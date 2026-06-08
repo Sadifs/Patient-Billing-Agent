@@ -1,0 +1,85 @@
+{
+  "document_type": "Hospital Patient Statement - Outpatient/Observation",
+  "cedars_account_number": "CS-2026-748830",
+  "statement_date": "2026-05-25",
+  "patient": {
+    "name": "Harold Patterson",
+    "dob": "1945-09-12",
+    "address": "2340 Veteran Ave Apt 11, Los Angeles, CA 90064"
+  },
+  "insurance": {
+    "payer": "Medicare Part B (Outpatient)",
+    "medicare_id": "3HJ9-KP4-RT21",
+    "supplemental": "None",
+    "status": "Active"
+  },
+  "service_dates": {
+    "start": "2026-05-10",
+    "end": "2026-05-13"
+  },
+  "patient_status": "OBSERVATION (Outpatient) \u2014 NOT admitted as inpatient",
+  "moon_notice_provided": false,
+  "service_type": "Observation Services - Chest Pain Rule-Out",
+  "line_items": [
+    {
+      "revenue_code": "0762",
+      "description": "Observation Services (CPT G0378) - 72 hours",
+      "quantity": 72,
+      "unit_charge": 120.0,
+      "medicare_part_b_paid_80pct": 6912.0,
+      "patient_responsibility_20pct": 1728.0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Laboratory - Cardiac Enzymes x3",
+      "quantity": 3,
+      "unit_charge": 480.0,
+      "medicare_part_b_paid_80pct": 1152.0,
+      "patient_responsibility_20pct": 288.0
+    },
+    {
+      "revenue_code": "0730",
+      "description": "Cardiac Monitoring - Continuous Telemetry",
+      "quantity": 1,
+      "unit_charge": 1800.0,
+      "medicare_part_b_paid_80pct": 1440.0,
+      "patient_responsibility_20pct": 360.0
+    },
+    {
+      "revenue_code": "0320",
+      "description": "Radiology - Chest X-ray (CPT 71046)",
+      "quantity": 2,
+      "unit_charge": 620.0,
+      "medicare_part_b_paid_80pct": 496.0,
+      "patient_responsibility_20pct": 124.0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy - Aspirin, Heparin, Metoprolol (Part D, not Part B)",
+      "quantity": 1,
+      "unit_charge": 800.0,
+      "medicare_part_b_paid_80pct": 0,
+      "patient_responsibility_20pct": 800.0,
+      "note": "Self-administered drugs during observation billed separately to Part D; NOT covered by Part B"
+    },
+    {
+      "revenue_code": "0450",
+      "description": "Emergency Department - Initial Evaluation (CPT 99284)",
+      "quantity": 1,
+      "unit_charge": 3200.0,
+      "medicare_part_b_paid_80pct": 2560.0,
+      "patient_responsibility_20pct": 640.0
+    }
+  ],
+  "totals": {
+    "total_charges": 18660.0,
+    "medicare_part_b_paid": 12560.0,
+    "patient_coinsurance_20pct": 3140.0,
+    "pharmacy_not_covered_by_part_b": 800.0,
+    "patient_balance_due": 3140.0
+  },
+  "observation_status_note": "Patient was placed under observation status (outpatient) for the duration of this stay. Medicare Part A does NOT apply. All covered services billed under Medicare Part B at 80%/20% cost-sharing. Pharmacy charges for self-administered medications are NOT covered under Part B and must be submitted to Part D plan.",
+  "moon_notice_note": "MOON (Medicare Outpatient Observation Notice) must be provided to Medicare patients in observation status within 36 hours. Status: Not yet provided \u2014 action required.",
+  "due_date": "2026-06-25",
+  "billing_contact": "310-423-8000"
+}

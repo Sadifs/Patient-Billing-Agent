@@ -1,0 +1,75 @@
+{
+  "document_type": "Hospital Patient Statement",
+  "cedars_account_number": "CS-2026-854118",
+  "statement_date": "2026-05-14",
+  "patient": {
+    "name": "Aisha Johnson",
+    "dob": "1991-06-17",
+    "address": "6231 S Vermont Ave Apt 8, Los Angeles, CA 90044"
+  },
+  "insurance": {
+    "payer": "Medi-Cal (California Medicaid)",
+    "medi_cal_id": "99102834-B",
+    "plan": "L.A. Care Health Plan",
+    "status": "Active"
+  },
+  "service_date": "2026-05-01",
+  "service_type": "Emergency Department Visit",
+  "line_items": [
+    {
+      "revenue_code": "0450",
+      "description": "Emergency Room - Level 3 (CPT 99283)",
+      "quantity": 1,
+      "unit_charge": 5800.0,
+      "medi_cal_paid": 5800.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0320",
+      "description": "Radiology - X-ray Left Ankle (CPT 73610)",
+      "quantity": 1,
+      "unit_charge": 980.0,
+      "medi_cal_paid": 980.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Laboratory - Basic Metabolic Panel (CPT 80048)",
+      "quantity": 1,
+      "unit_charge": 620.0,
+      "medi_cal_paid": 620.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0270",
+      "description": "Medical/Surgical Supplies",
+      "quantity": 1,
+      "unit_charge": 430.0,
+      "medi_cal_paid": 430.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy - Ibuprofen, Splint Materials",
+      "quantity": 1,
+      "unit_charge": 0,
+      "medi_cal_paid": 0,
+      "patient_responsibility": 370.0,
+      "flag": "VERIFY: This charge was not submitted to Medi-Cal. Possible causes: (1) self-administered drug exclusion, (2) billing error \u2014 Medi-Cal should cover this for covered service. Recommend billing review."
+    }
+  ],
+  "totals": {
+    "total_charges": 9200.0,
+    "medi_cal_paid": 8830.0,
+    "patient_balance_due": 370.0
+  },
+  "balance_note": "The $370 patient balance relates to pharmacy/supply items that may not have been submitted to Medi-Cal or may be a billing error. Medi-Cal typically covers ER pharmacy for covered services. Recommend verification before payment.",
+  "due_date": "2026-06-14",
+  "billing_contact": "310-423-8000",
+  "patient_financial_context": {
+    "household_size": 4,
+    "approximate_annual_income": 28000,
+    "fpl_percent": 85,
+    "note": "Medi-Cal patient at 85% FPL. ER services should generally be covered. $370 balance is atypical and should be verified."
+  }
+}

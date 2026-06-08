@@ -1,0 +1,90 @@
+{
+  "document_type": "Hospital Patient Statement",
+  "cedars_account_number": "CS-2026-884421",
+  "statement_date": "2026-05-15",
+  "patient": {
+    "name": "Maria Gonzalez",
+    "dob": "1988-07-22",
+    "address": "4432 Hollenbeck Ave, Los Angeles, CA 90032"
+  },
+  "insurance": {
+    "payer": "None",
+    "policy_number": "N/A",
+    "status": "Self-Pay / Uninsured"
+  },
+  "service_date": "2026-05-02",
+  "service_type": "Emergency Department Visit",
+  "attending_provider": "Cedars-Sinai Medical Center, Emergency Department",
+  "line_items": [
+    {
+      "revenue_code": "0450",
+      "description": "Emergency Room - Level 4 (CPT 99284)",
+      "quantity": 1,
+      "unit_charge": 8200.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 8200.0
+    },
+    {
+      "revenue_code": "0350",
+      "description": "CT Scan Abdomen/Pelvis with contrast (CPT 74178)",
+      "quantity": 1,
+      "unit_charge": 4800.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 4800.0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Comprehensive Metabolic Panel (CPT 80053)",
+      "quantity": 1,
+      "unit_charge": 890.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 890.0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Complete Blood Count with Differential (CPT 85025)",
+      "quantity": 1,
+      "unit_charge": 620.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 620.0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "IV Medications - Ondansetron 4mg",
+      "quantity": 2,
+      "unit_charge": 210.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 210.0
+    },
+    {
+      "revenue_code": "0270",
+      "description": "Medical/Surgical Supplies",
+      "quantity": 1,
+      "unit_charge": 480.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 480.0
+    },
+    {
+      "revenue_code": "0710",
+      "description": "Recovery Room",
+      "quantity": 1,
+      "unit_charge": 3200.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 3200.0
+    }
+  ],
+  "totals": {
+    "total_charges": 18400.0,
+    "contractual_adjustment": 0,
+    "insurance_paid": 0,
+    "patient_balance_due": 18400.0
+  },
+  "due_date": "2026-06-15",
+  "billing_contact": "310-423-8000",
+  "patient_financial_context": {
+    "household_size": 3,
+    "approximate_annual_income": 35000,
+    "fpl_percent": 136,
+    "fap_eligibility_note": "Based on income and household size, patient likely qualifies for Cedars-Sinai Charity Care (<=400% FPL). Patient should apply for FAP immediately."
+  }
+}
