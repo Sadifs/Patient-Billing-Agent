@@ -47,18 +47,18 @@ code systems, FPL thresholds, Cedars-Sinai financial assistance policy, common
 denial codes, and patient confusion points. This research defined what the
 agent needs to know.
 
-**Step 2 — Edge Case Planning** (`edge-cases/patient_billing_synthetic_edge_cases_v2.csv`)  
+**Step 2 — Edge Case Planning** ([edge-cases/patient_billing_synthetic_edge_cases_v2.csv](edge-cases/patient_billing_synthetic_edge_cases_v2.csv))  
 34 planned scenarios mapping every FPL boundary condition, insurance type,
 document type, and safety constraint the agent must handle. This served as
 the blueprint for the final dataset.
 
-**Step 3 — Dataset Generation** (`generate_final.py`)  
+**Step 3 — Dataset Generation** ([generate_final.py](generate_final.py))  
 A single Python script defines all 52 cases as structured data,
 auto-derives the 4 evaluation metric flags per case, writes the CSV, and
 runs a built-in FPL audit — recalculating every FPL value from income and
 household size to catch errors.
 
-**Step 4 — Synthetic Bills** (`synthetic_bills/`)  
+**Step 4 — Synthetic Bills** ([synthetic_bills/](synthetic_bills/))  
 10 Cedars-style hospital billing documents (JSON + PDF) created to support
 the Document Parsing test cases. Each bill uses real revenue codes, real CPT
 codes, and correct financial math.
