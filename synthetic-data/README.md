@@ -47,7 +47,7 @@ code systems, FPL thresholds, Cedars-Sinai financial assistance policy, common
 denial codes, and patient confusion points. This research defined what the
 agent needs to know.
 
-**Step 2 — Edge Case Planning** (`Edge Case csv_s/patient_billing_synthetic_edge_cases_v2.csv`)  
+**Step 2 — Edge Case Planning** (`edge-cases/patient_billing_synthetic_edge_cases_v2.csv`)  
 34 planned scenarios mapping every FPL boundary condition, insurance type,
 document type, and safety constraint the agent must handle. This served as
 the blueprint for the final dataset.
