@@ -63,7 +63,7 @@ LMU Capstone/
 │
 ├── instructions/               # Project scope & requirements
 │   ├── Cedars MSBA Capstone Project Description.pdf
-│   └── LMU MSBA Capstone Outline Plan.pptx
+│   └── LMU MSBA Cedars Capstone Outline Plan.pptx
 │
 └── README.md                   # This file
 ```
