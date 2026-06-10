@@ -1,0 +1,91 @@
+{
+  "document_type": "Medicare Summary Notice / Hospital Patient Statement",
+  "cedars_account_number": "CS-2026-733218",
+  "statement_date": "2026-05-10",
+  "patient": {
+    "name": "Dorothy Whitfield",
+    "dob": "1949-02-18",
+    "address": "9821 Olympic Blvd Apt 3B, Beverly Hills, CA 90212"
+  },
+  "insurance": {
+    "payer": "Medicare Part A",
+    "medicare_id": "1EG4-TE5-MK72",
+    "supplemental": "None",
+    "status": "Active"
+  },
+  "service_dates": {
+    "admission": "2026-04-18",
+    "discharge": "2026-04-22"
+  },
+  "service_type": "Inpatient - Hip Fracture Repair",
+  "drg": {
+    "code": "481",
+    "description": "Hip & Femur Procedures Except Major Joint w/o MCC",
+    "drg_payment": 22400.0
+  },
+  "line_items": [
+    {
+      "revenue_code": "0110",
+      "description": "Room & Board - Medical/Surgical (4 days)",
+      "quantity": 4,
+      "unit_charge": 5800.0,
+      "medicare_paid": 5800.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0360",
+      "description": "Operating Room - ORIF Hip Fracture (CPT 27244)",
+      "quantity": 1,
+      "unit_charge": 24800.0,
+      "medicare_paid": 24800.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Laboratory",
+      "quantity": 1,
+      "unit_charge": 2200.0,
+      "medicare_paid": 2200.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0320",
+      "description": "Radiology - Hip X-rays (CPT 73502)",
+      "quantity": 2,
+      "unit_charge": 800.0,
+      "medicare_paid": 800.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0420",
+      "description": "Physical & Occupational Therapy",
+      "quantity": 3,
+      "unit_charge": 3000.0,
+      "medicare_paid": 3000.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy",
+      "quantity": 1,
+      "unit_charge": 2000.0,
+      "medicare_paid": 2000.0,
+      "patient_responsibility": 0
+    }
+  ],
+  "totals": {
+    "total_charges": 38600.0,
+    "medicare_paid": 36968.0,
+    "part_a_deductible_2024": 1632.0,
+    "patient_balance_due": 1632.0
+  },
+  "deductible_note": "Medicare Part A Inpatient Deductible (2024): $1,632 applies to first 60 days of each benefit period. Patient owes this amount as Medicare does not cover the first $1,632 of an inpatient stay.",
+  "due_date": "2026-06-10",
+  "billing_contact": "310-423-8000",
+  "patient_financial_context": {
+    "household_size": 1,
+    "approximate_annual_income": 22000,
+    "fpl_percent": 138,
+    "note": "Patient may qualify for Medicare Savings Program (QMB) which could cover the Part A deductible. Patient also may qualify for Cedars FAP at 138% FPL."
+  }
+}

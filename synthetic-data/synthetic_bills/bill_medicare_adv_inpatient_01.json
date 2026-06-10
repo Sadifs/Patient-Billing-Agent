@@ -1,0 +1,120 @@
+{
+  "document_type": "Hospital Patient Statement - Medicare Advantage Denied Claim",
+  "cedars_account_number": "CS-2026-829941",
+  "statement_date": "2026-05-28",
+  "patient": {
+    "name": "Eleanor Martinez",
+    "dob": "1952-04-30",
+    "address": "880 S Barrington Ave Apt 6, Los Angeles, CA 90049"
+  },
+  "insurance": {
+    "payer": "Humana Medicare Advantage HMO",
+    "policy_number": "HMA-33219-CA",
+    "group_number": "G77401",
+    "status": "Active - Claim Denied"
+  },
+  "service_dates": {
+    "admission": "2026-04-20",
+    "discharge": "2026-04-25"
+  },
+  "service_type": "Inpatient - Cardiac Monitoring & Evaluation",
+  "line_items": [
+    {
+      "revenue_code": "0110",
+      "description": "Room & Board - Cardiac Unit (5 days)",
+      "quantity": 5,
+      "unit_charge": 7200.0,
+      "patient_responsibility": 7200.0
+    },
+    {
+      "revenue_code": "0480",
+      "description": "Cardiac Monitoring - Continuous Telemetry",
+      "quantity": 5,
+      "unit_charge": 2800.0,
+      "patient_responsibility": 2800.0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Laboratory - Cardiac Panel x5",
+      "quantity": 5,
+      "unit_charge": 3200.0,
+      "patient_responsibility": 3200.0
+    },
+    {
+      "revenue_code": "0480",
+      "description": "Cardiology Consultation & Echo (CPT 93306)",
+      "quantity": 1,
+      "unit_charge": 8400.0,
+      "patient_responsibility": 8400.0
+    },
+    {
+      "revenue_code": "0320",
+      "description": "Radiology - Chest X-ray & CT Pulmonary",
+      "quantity": 1,
+      "unit_charge": 6200.0,
+      "patient_responsibility": 6200.0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy - IV and Oral Cardiac Medications",
+      "quantity": 1,
+      "unit_charge": 4800.0,
+      "patient_responsibility": 4800.0
+    },
+    {
+      "revenue_code": "0710",
+      "description": "Nursing Care & Monitoring",
+      "quantity": 5,
+      "unit_charge": 4600.0,
+      "patient_responsibility": 4600.0
+    },
+    {
+      "revenue_code": "0730",
+      "description": "IV Therapy Administration",
+      "quantity": 10,
+      "unit_charge": 560.0,
+      "patient_responsibility": 560.0
+    },
+    {
+      "revenue_code": "0270",
+      "description": "Medical/Surgical Supplies",
+      "quantity": 1,
+      "unit_charge": 9240.0,
+      "patient_responsibility": 9240.0
+    },
+    {
+      "revenue_code": "0900",
+      "description": "Physician Evaluation & Management (CPT 99233 x5)",
+      "quantity": 5,
+      "unit_charge": 1600.0,
+      "patient_responsibility": 1600.0
+    }
+  ],
+  "totals": {
+    "total_charges": 48600.0,
+    "humana_payment": 0,
+    "denial_reason": "CO-197: Prior Authorization Not Obtained \u2014 Full balance billed to patient pending appeal",
+    "patient_balance_per_denial": 48600.0
+  },
+  "claim_status": {
+    "status": "DENIED",
+    "denial_code": "CO-197",
+    "denial_reason": "Prior authorization was not obtained before services were rendered. Services are not covered without prior authorization per plan requirements.",
+    "denial_date": "2026-05-20"
+  },
+  "appeal_rights": {
+    "internal_appeal_deadline": "60 days from denial date (2026-07-20)",
+    "expedited_appeal_available": true,
+    "expedited_timeline": "72 hours",
+    "external_review": "Independent Review Organization (IRO) available if internal appeal denied",
+    "cms_resource": "1-800-MEDICARE"
+  },
+  "due_date": "2026-06-28",
+  "billing_contact": "310-423-8000",
+  "patient_financial_context": {
+    "household_size": 1,
+    "approximate_annual_income": 26000,
+    "fpl_percent": 163,
+    "fap_note": "If appeal fails, patient at 163% FPL qualifies for Cedars Charity Care as a safety net. Apply simultaneously with appeal."
+  }
+}

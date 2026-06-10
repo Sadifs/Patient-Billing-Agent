@@ -1,0 +1,86 @@
+{
+  "document_type": "Hospital Patient Statement + Separate Physician Invoice",
+  "cedars_account_number": "CS-2026-812744",
+  "statement_date": "2026-05-22",
+  "patient": {
+    "name": "Robert Chen",
+    "dob": "1966-08-30",
+    "address": "1822 Camden Ave, Los Angeles, CA 90025"
+  },
+  "insurance": {
+    "payer": "Blue Shield of California PPO",
+    "policy_number": "BSC-77443-002",
+    "group_number": "G44210",
+    "status": "Active"
+  },
+  "service_dates": {
+    "admission": "2026-04-15",
+    "discharge": "2026-04-17"
+  },
+  "service_type": "Inpatient Orthopedic Surgery",
+  "line_items_facility": [
+    {
+      "revenue_code": "0110",
+      "description": "Room & Board - Orthopedic Unit (2 days)",
+      "quantity": 2,
+      "unit_charge": 6200.0,
+      "contractual_adjustment": 4800.0,
+      "insurance_paid": 1200.0,
+      "patient_responsibility": 200.0
+    },
+    {
+      "revenue_code": "0360",
+      "description": "Operating Room - Total Knee Replacement (CPT 27447)",
+      "quantity": 1,
+      "unit_charge": 18400.0,
+      "contractual_adjustment": 14800.0,
+      "insurance_paid": 1700.0,
+      "patient_responsibility": 1900.0
+    },
+    {
+      "revenue_code": "0270",
+      "description": "Implant - Knee Prosthesis",
+      "quantity": 1,
+      "unit_charge": 12000.0,
+      "contractual_adjustment": 9000.0,
+      "insurance_paid": 3000.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0710",
+      "description": "Recovery Room",
+      "quantity": 1,
+      "unit_charge": 3400.0,
+      "contractual_adjustment": 2800.0,
+      "insurance_paid": 600.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0420",
+      "description": "Physical Therapy - Initial Evaluation",
+      "quantity": 2,
+      "unit_charge": 1000.0,
+      "contractual_adjustment": 700.0,
+      "insurance_paid": 300.0,
+      "patient_responsibility": 0
+    }
+  ],
+  "facility_totals": {
+    "total_charges": 41000.0,
+    "contractual_adjustment": 32100.0,
+    "insurance_paid": 6800.0,
+    "patient_balance_due": 2100.0
+  },
+  "separate_physician_invoice": {
+    "issuer": "Pacific Anesthesia Associates",
+    "npi": "1234567890",
+    "network_status": "OUT-OF-NETWORK",
+    "service": "Anesthesia - General (CPT 00470), 42 units",
+    "total_billed": 6200.0,
+    "insurance_applied": 3400.0,
+    "out_of_network_surcharge": 2800.0,
+    "patient_responsibility": 2800.0,
+    "no_surprises_act_flag": "POTENTIAL VIOLATION: Patient received care at an in-network facility. Out-of-network anesthesia billing without written patient consent may violate the No Surprises Act (effective Jan 1, 2022)."
+  },
+  "billing_contact": "310-423-8000"
+}

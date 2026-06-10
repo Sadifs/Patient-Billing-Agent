@@ -1,0 +1,67 @@
+{
+  "document_type": "Hospital Patient Statement",
+  "cedars_account_number": "CS-2026-867334",
+  "statement_date": "2026-05-16",
+  "patient": {
+    "name": "Carlos Rivera",
+    "dob": "1978-10-22",
+    "address": "3312 W Pico Blvd, Los Angeles, CA 90019"
+  },
+  "insurance": {
+    "payer": "Medi-Cal (California Medicaid) - Share of Cost",
+    "medi_cal_id": "88441127-A",
+    "plan": "Molina Healthcare of California",
+    "status": "Active - Share of Cost"
+  },
+  "service_date": "2026-05-08",
+  "service_type": "Outpatient Procedure - Colonoscopy",
+  "line_items": [
+    {
+      "revenue_code": "0360",
+      "description": "Endoscopy Suite - Colonoscopy (CPT 45378)",
+      "quantity": 1,
+      "unit_charge": 2400.0,
+      "medi_cal_paid_after_soc": 2020.0,
+      "patient_responsibility": 380.0
+    },
+    {
+      "revenue_code": "0710",
+      "description": "Recovery Room - PACU",
+      "quantity": 1,
+      "unit_charge": 600.0,
+      "medi_cal_paid_after_soc": 500.0,
+      "patient_responsibility": 100.0
+    },
+    {
+      "revenue_code": "0270",
+      "description": "Medical/Surgical Supplies",
+      "quantity": 1,
+      "unit_charge": 280.0,
+      "medi_cal_paid_after_soc": 280.0,
+      "patient_responsibility": 0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy - Prep medications",
+      "quantity": 1,
+      "unit_charge": 120.0,
+      "medi_cal_paid_after_soc": 120.0,
+      "patient_responsibility": 0
+    }
+  ],
+  "totals": {
+    "total_charges": 3400.0,
+    "medi_cal_paid": 2920.0,
+    "patient_share_of_cost": 480.0,
+    "patient_balance_due": 480.0
+  },
+  "share_of_cost_explanation": "This patient has a Medi-Cal Share of Cost (SOC) of $480 for this benefit month. Share of Cost functions as a monthly deductible \u2014 the patient must pay this amount before Medi-Cal begins paying for covered services. The $480 patient balance on this statement reflects the patient's SOC obligation for May 2026.",
+  "due_date": "2026-06-16",
+  "billing_contact": "310-423-8000",
+  "patient_financial_context": {
+    "household_size": 1,
+    "approximate_annual_income": 18500,
+    "fpl_percent": 116,
+    "note": "Share of Cost is determined by Medi-Cal based on income above the Medi-Cal eligibility threshold. Patient should verify their SOC amount with Medi-Cal (1-800-541-5555) to confirm the $480 is correct."
+  }
+}

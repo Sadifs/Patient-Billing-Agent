@@ -1,0 +1,54 @@
+{
+  "document_type": "Hospital Patient Statement",
+  "cedars_account_number": "CS-2026-791023",
+  "statement_date": "2026-05-19",
+  "patient": {
+    "name": "George Williams",
+    "dob": "1943-12-08",
+    "address": "4410 Wilshire Blvd Apt 14, Los Angeles, CA 90010"
+  },
+  "insurance": {
+    "payer": "Kaiser Permanente Senior Advantage (Medicare Advantage HMO)",
+    "policy_number": "KP-MA-88102-CA",
+    "status": "Active"
+  },
+  "service_date": "2026-05-05",
+  "service_type": "Outpatient Procedure - Ophthalmology",
+  "line_items": [
+    {
+      "revenue_code": "0490",
+      "description": "Ophthalmology Procedure - Intravitreal Injection (CPT 67028)",
+      "quantity": 1,
+      "unit_charge": 6200.0,
+      "plan_paid": 5820.0,
+      "patient_responsibility": 380.0,
+      "cost_sharing_category": "Outpatient Procedure - Tier 2"
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy - Bevacizumab Injection (J9035)",
+      "quantity": 1,
+      "unit_charge": 1400.0,
+      "plan_paid": 1180.0,
+      "patient_responsibility": 220.0,
+      "cost_sharing_category": "Specialty Pharmacy"
+    },
+    {
+      "revenue_code": "0490",
+      "description": "Office Visit - Ophthalmology (CPT 92014)",
+      "quantity": 1,
+      "unit_charge": 800.0,
+      "plan_paid": 800.0,
+      "patient_responsibility": 0,
+      "cost_sharing_category": "Specialist Office Visit - covered at $0 with procedure"
+    }
+  ],
+  "totals": {
+    "total_charges": 8400.0,
+    "plan_paid": 7800.0,
+    "patient_balance_due": 600.0
+  },
+  "cost_sharing_note": "Patient standard specialist copay is $30 per visit (office visit only). The $600 reflects cost-sharing for an outpatient procedure (CPT 67028 = intravitreal injection) and specialty pharmacy, which have different cost-sharing tiers than routine specialist office visits. Please review your Summary of Benefits for procedure-specific cost-sharing.",
+  "due_date": "2026-06-19",
+  "billing_contact": "310-423-8000"
+}

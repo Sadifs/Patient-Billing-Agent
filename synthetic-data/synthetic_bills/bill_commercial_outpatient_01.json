@@ -1,0 +1,85 @@
+{
+  "document_type": "Hospital Patient Statement",
+  "cedars_account_number": "CS-2026-776203",
+  "statement_date": "2026-05-18",
+  "patient": {
+    "name": "Sarah Kim",
+    "dob": "1982-11-05",
+    "address": "3390 Roxbury Drive, Beverly Hills, CA 90210"
+  },
+  "insurance": {
+    "payer": "Anthem Blue Cross PPO",
+    "policy_number": "XBP-44821-001",
+    "group_number": "G88321",
+    "subscriber": "Sarah Kim",
+    "status": "Active"
+  },
+  "service_date": "2026-04-28",
+  "service_type": "Outpatient Surgery",
+  "attending_provider": "Cedars-Sinai Medical Center, Outpatient Surgery Center",
+  "line_items": [
+    {
+      "revenue_code": "0360",
+      "description": "Operating Room Facility Fee - Laparoscopic Cholecystectomy (CPT 47562)",
+      "quantity": 1,
+      "unit_charge": 14200.0,
+      "contractual_adjustment": 11800.0,
+      "insurance_paid": 1600.0,
+      "patient_responsibility": 800.0
+    },
+    {
+      "revenue_code": "0710",
+      "description": "Recovery Room - PACU",
+      "quantity": 1,
+      "unit_charge": 3800.0,
+      "contractual_adjustment": 3100.0,
+      "insurance_paid": 500.0,
+      "patient_responsibility": 200.0
+    },
+    {
+      "revenue_code": "0270",
+      "description": "Medical/Surgical Supplies - Laparoscopic Set",
+      "quantity": 1,
+      "unit_charge": 4200.0,
+      "contractual_adjustment": 3500.0,
+      "insurance_paid": 500.0,
+      "patient_responsibility": 200.0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Pre-operative Laboratory Panel",
+      "quantity": 1,
+      "unit_charge": 1400.0,
+      "contractual_adjustment": 1100.0,
+      "insurance_paid": 200.0,
+      "patient_responsibility": 100.0
+    },
+    {
+      "revenue_code": "0320",
+      "description": "Radiology - Pre-op Chest X-ray",
+      "quantity": 1,
+      "unit_charge": 1200.0,
+      "contractual_adjustment": 700.0,
+      "insurance_paid": 300.0,
+      "patient_responsibility": 200.0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy - Pre/Post-op Medications",
+      "quantity": 1,
+      "unit_charge": 0.0,
+      "contractual_adjustment": 0,
+      "insurance_paid": 0,
+      "patient_responsibility": 300.0
+    }
+  ],
+  "totals": {
+    "total_charges": 24800.0,
+    "contractual_adjustment": 20200.0,
+    "insurance_paid": 2800.0,
+    "patient_balance_due": 1800.0
+  },
+  "due_date": "2026-06-18",
+  "billing_contact": "310-423-8000",
+  "notes": "Contractual adjustment reflects Cedars-Sinai / Anthem Blue Cross negotiated rate agreement. Patient responsible for deductible/coinsurance portion only."
+}

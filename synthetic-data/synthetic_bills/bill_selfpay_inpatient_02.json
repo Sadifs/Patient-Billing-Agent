@@ -1,0 +1,121 @@
+{
+  "document_type": "Hospital Patient Statement",
+  "cedars_account_number": "CS-2026-901337",
+  "statement_date": "2026-05-20",
+  "patient": {
+    "name": "James Okonkwo",
+    "dob": "1979-03-14",
+    "address": "7821 Sunset Blvd Apt 204, Los Angeles, CA 90046"
+  },
+  "insurance": {
+    "payer": "None",
+    "policy_number": "N/A",
+    "status": "Self-Pay / Uninsured"
+  },
+  "service_dates": {
+    "admission": "2026-05-05",
+    "discharge": "2026-05-07"
+  },
+  "service_type": "Inpatient Surgery",
+  "drg": {
+    "code": "341",
+    "description": "Simple Pneumonia & Pleurisy w CC"
+  },
+  "attending_provider": "Cedars-Sinai Medical Center",
+  "line_items": [
+    {
+      "revenue_code": "0110",
+      "description": "Room & Board - Medical/Surgical (2 days)",
+      "quantity": 2,
+      "unit_charge": 8400.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 16800.0
+    },
+    {
+      "revenue_code": "0360",
+      "description": "Operating Room Facility Fee - Appendectomy (CPT 44950)",
+      "quantity": 1,
+      "unit_charge": 18600.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 18600.0
+    },
+    {
+      "revenue_code": "0370",
+      "description": "Anesthesia - General (32 units)",
+      "quantity": 32,
+      "unit_charge": 148.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 4736.0
+    },
+    {
+      "revenue_code": "0710",
+      "description": "Recovery Room - Post Anesthesia Care Unit",
+      "quantity": 1,
+      "unit_charge": 4200.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 4200.0
+    },
+    {
+      "revenue_code": "0300",
+      "description": "Laboratory - Pre-operative Panel",
+      "quantity": 1,
+      "unit_charge": 1840.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 1840.0
+    },
+    {
+      "revenue_code": "0320",
+      "description": "Radiology - Abdominal X-ray (CPT 74019)",
+      "quantity": 1,
+      "unit_charge": 980.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 980.0
+    },
+    {
+      "revenue_code": "0250",
+      "description": "Pharmacy - Antibiotics (Cefazolin J0690 x4)",
+      "quantity": 4,
+      "unit_charge": 320.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 1280.0
+    },
+    {
+      "revenue_code": "0270",
+      "description": "Medical/Surgical Supplies",
+      "quantity": 1,
+      "unit_charge": 12764.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 12764.0
+    },
+    {
+      "revenue_code": "0730",
+      "description": "EKG / Cardiac Monitoring",
+      "quantity": 1,
+      "unit_charge": 2000.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 2000.0
+    },
+    {
+      "revenue_code": "0730",
+      "description": "IV Therapy Administration",
+      "quantity": 4,
+      "unit_charge": 1250.0,
+      "insurance_paid": 0,
+      "patient_responsibility": 5000.0
+    }
+  ],
+  "totals": {
+    "total_charges": 67200.0,
+    "contractual_adjustment": 0,
+    "insurance_paid": 0,
+    "patient_balance_due": 67200.0
+  },
+  "due_date": "2026-06-20",
+  "billing_contact": "310-423-8000",
+  "patient_financial_context": {
+    "household_size": 2,
+    "approximate_annual_income": 52000,
+    "fpl_percent": 370,
+    "fap_eligibility_note": "At 370% FPL with HH=2, patient qualifies for Cedars Charity Care (<=400% FPL). URGENT: Patient should apply for FAP immediately given $67,200 balance."
+  }
+}
