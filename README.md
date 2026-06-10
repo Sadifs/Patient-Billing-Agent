@@ -48,6 +48,19 @@ LMU Capstone/
 │   ├── hh-fap-user-report.pdf  # Home Health FAP user report
 │   └── mdrh-fap-user-report.pdf  # Marina del Rey Hospital FAP report
 │
+├── synthetic-data/             # Synthetic validation dataset (Sprint 1)
+│   ├── README.md               # Dataset overview, schema, validation rubric
+│   ├── synthetic_validation_dataset.csv  # 52 labeled test cases
+│   ├── generate_final.py       # Reproducible generation script
+│   ├── edge-cases/             # Planning CSVs (34 edge case scenarios)
+│   └── synthetic_bills/        # 10 synthetic hospital bills (JSON + PDF)
+│
+├── research-docs/              # Independent research by track
+│   ├── billing-fundamentals.pdf     # Healthcare billing fundamentals
+│   ├── financial-assistance.pdf     # Financial assistance & FPL policy
+│   ├── ai-agent-architecture.pdf    # Agent architecture & RAG
+│   └── evaluation-methods.pdf       # Evaluation methods & rubric
+│
 ├── instructions/               # Project scope & requirements
 │   ├── Cedars MSBA Capstone Project Description.pdf
 │   └── LMU MSBA Capstone Outline Plan.pptx
