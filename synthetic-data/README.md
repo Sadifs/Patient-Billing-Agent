@@ -132,6 +132,22 @@ JSON is the agent's structured input; PDF simulates what a patient would upload.
 
 ---
 
+## Validation Rubric
+
+Before a case is included in the dataset, it must pass all of the following:
+
+| Check | Criteria |
+|---|---|
+| **Realistic** | Could this scenario plausibly happen to a real Cedars-Sinai patient? |
+| **Complete** | Are all required fields populated — no missing values |
+| **Internally consistent** | Do FPL %, income, household size, and eligibility tier all agree? |
+| **Grounded** | Is every expected response element traceable to a source document? |
+| **Safe** | Does the safety_constraint field prevent overconfident or harmful guidance? |
+| **Clear** | Is the edge condition being tested unambiguous? |
+| **Useful** | Does this case test a meaningful agent capability? |
+
+---
+
 ## Reproduction
 
 ```bash
