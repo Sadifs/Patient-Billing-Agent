@@ -41,7 +41,7 @@ entirely fictional patient profiles.
 
 ## How It Was Built
 
-**Step 1 — Research** (`../research-docs/`)  
+**Step 1 — Research** ([research-docs/](../research-docs/))  
 Comprehensive review of hospital billing fundamentals: revenue cycle, billing
 code systems, FPL thresholds, Cedars-Sinai financial assistance policy, common
 denial codes, and patient confusion points. This research defined what the
