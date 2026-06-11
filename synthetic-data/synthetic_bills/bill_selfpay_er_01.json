@@ -66,7 +66,7 @@
     },
     {
       "revenue_code": "0762",
-      "description": "Extended Observation - ER Monitoring (CPT 99218)",
+      "description": "Observation Room Services - Extended ER Stay",
       "quantity": 1,
       "unit_charge": 3200.0,
       "insurance_paid": 0,
