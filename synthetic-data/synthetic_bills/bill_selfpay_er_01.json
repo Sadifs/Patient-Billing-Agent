@@ -51,7 +51,7 @@
     {
       "revenue_code": "0250",
       "description": "IV Medications - Ondansetron 4mg",
-      "quantity": 2,
+      "quantity": 1,
       "unit_charge": 210.0,
       "insurance_paid": 0,
       "patient_responsibility": 210.0
@@ -65,8 +65,8 @@
       "patient_responsibility": 480.0
     },
     {
-      "revenue_code": "0710",
-      "description": "Recovery Room",
+      "revenue_code": "0762",
+      "description": "Extended Observation - ER Monitoring (CPT 99218)",
       "quantity": 1,
       "unit_charge": 3200.0,
       "insurance_paid": 0,
