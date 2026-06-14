@@ -29,6 +29,8 @@ HOW TO ADD A TOOL:
 
 # from app.tools.your_tool import your_tool
 
+from app.tools.calculate_fpl import calculate_fpl
+
 TOOLS = [
-    # ADD YOUR TOOLS HERE
+    calculate_fpl,
 ]
