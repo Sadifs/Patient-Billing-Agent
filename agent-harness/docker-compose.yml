@@ -7,7 +7,10 @@ services:
       - .env
     volumes:
       # Mount knowledge docs so they persist and can be updated without rebuild
-      - ../Knowledge Docs:/app/Knowledge Docs:ro
+      - type: bind
+        source: ../knowledge-docs
+        target: /app/knowledge-docs
+        read_only: true
     environment:
       - HOST=0.0.0.0
       - PORT=8000

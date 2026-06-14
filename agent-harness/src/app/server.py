@@ -50,7 +50,7 @@ app = Sanic("BillAgent")
 app.static("/static", str(_APP_DIR / "static"))
 
 # ── Knowledge base ──────────────────────────────────────────────────────
-KNOWLEDGE_DIR = _APP_DIR.parent.parent.parent / "Knowledge Docs"
+KNOWLEDGE_DIR = _APP_DIR.parent.parent / "knowledge-docs"
 indexer = KnowledgeBaseIndexer(knowledge_dir=str(KNOWLEDGE_DIR))
 search_service = LocalSearchService(indexer)
 
@@ -135,7 +135,7 @@ async def chat(request: Request):
             await resp.write(f"data: {json.dumps({'text': chunk})}\n\n".encode())
         await resp.write(b"data: [DONE]\n\n")
 
-    return response.stream(stream_response, content_type="text/event-stream")
+    return response.ResponseStream(stream_response, content_type="text/event-stream")
 
 
 @app.post("/upload")
