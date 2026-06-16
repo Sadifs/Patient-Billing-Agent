@@ -67,16 +67,16 @@
       "revenue_code": "0250",
       "description": "Pharmacy - Pre/Post-op Medications",
       "quantity": 1,
-      "unit_charge": 0.0,
+      "unit_charge": 300.0,
       "contractual_adjustment": 0,
       "insurance_paid": 0,
       "patient_responsibility": 300.0
     }
   ],
   "totals": {
-    "total_charges": 24800.0,
+    "total_charges": 25100.0,
     "contractual_adjustment": 20200.0,
-    "insurance_paid": 2800.0,
+    "insurance_paid": 3100.0,
     "patient_balance_due": 1800.0
   },
   "due_date": "2026-06-18",

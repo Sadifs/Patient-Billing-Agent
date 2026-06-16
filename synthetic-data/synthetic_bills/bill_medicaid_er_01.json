@@ -52,15 +52,15 @@
       "revenue_code": "0250",
       "description": "Pharmacy - Ibuprofen, Splint Materials",
       "quantity": 1,
-      "unit_charge": 0,
+      "unit_charge": 370.0,
       "medi_cal_paid": 0,
       "patient_responsibility": 370.0,
       "flag": "VERIFY: This charge was not submitted to Medi-Cal. Possible causes: (1) self-administered drug exclusion, (2) billing error \u2014 Medi-Cal should cover this for covered service. Recommend billing review."
     }
   ],
   "totals": {
-    "total_charges": 9200.0,
-    "medi_cal_paid": 8830.0,
+    "total_charges": 8200.0,
+    "medi_cal_paid": 7830.0,
     "patient_balance_due": 370.0
   },
   "balance_note": "The $370 patient balance relates to pharmacy/supply items that may not have been submitted to Medi-Cal or may be a billing error. Medi-Cal typically covers ER pharmacy for covered services. Recommend verification before payment.",

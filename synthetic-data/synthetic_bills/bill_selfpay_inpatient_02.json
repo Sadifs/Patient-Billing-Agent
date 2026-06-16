@@ -18,8 +18,8 @@
   },
   "service_type": "Inpatient Surgery",
   "drg": {
-    "code": "341",
-    "description": "Simple Pneumonia & Pleurisy w CC"
+    "code": "345",
+    "description": "Simple Appendectomy w CC"
   },
   "attending_provider": "Cedars-Sinai Medical Center",
   "line_items": [
@@ -105,10 +105,10 @@
     }
   ],
   "totals": {
-    "total_charges": 67200.0,
+    "total_charges": 68200.0,
     "contractual_adjustment": 0,
     "insurance_paid": 0,
-    "patient_balance_due": 67200.0
+    "patient_balance_due": 68200.0
   },
   "due_date": "2026-06-20",
   "billing_contact": "310-423-8000",
@@ -116,6 +116,6 @@
     "household_size": 2,
     "approximate_annual_income": 52000,
     "fpl_percent": 370,
-    "fap_eligibility_note": "At 370% FPL with HH=2, patient qualifies for Cedars Charity Care (<=400% FPL). URGENT: Patient should apply for FAP immediately given $67,200 balance."
+    "fap_eligibility_note": "At 370% FPL with HH=2, patient qualifies for Cedars Charity Care (<=400% FPL). URGENT: Patient should apply for FAP immediately given $68,200 balance."
   }
 }

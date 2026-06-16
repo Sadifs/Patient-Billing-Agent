@@ -62,13 +62,6 @@
       "patient_responsibility": 4800.0
     },
     {
-      "revenue_code": "0710",
-      "description": "Nursing Care & Monitoring",
-      "quantity": 5,
-      "unit_charge": 4600.0,
-      "patient_responsibility": 4600.0
-    },
-    {
       "revenue_code": "0730",
       "description": "IV Therapy Administration",
       "quantity": 10,
@@ -81,20 +74,14 @@
       "quantity": 1,
       "unit_charge": 9240.0,
       "patient_responsibility": 9240.0
-    },
-    {
-      "revenue_code": "0900",
-      "description": "Physician Evaluation & Management (CPT 99233 x5)",
-      "quantity": 5,
-      "unit_charge": 1600.0,
-      "patient_responsibility": 1600.0
     }
   ],
+  "physician_billing_note": "Physician evaluation and management services (CPT 99233 x5) are billed separately by the treating physician on a CMS-1500 claim. They do not appear on this facility statement.",
   "totals": {
-    "total_charges": 48600.0,
+    "total_charges": 42400.0,
     "humana_payment": 0,
     "denial_reason": "CO-197: Prior Authorization Not Obtained \u2014 Full balance billed to patient pending appeal",
-    "patient_balance_per_denial": 48600.0
+    "patient_balance_per_denial": 42400.0
   },
   "claim_status": {
     "status": "DENIED",
