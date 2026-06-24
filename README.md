@@ -48,12 +48,21 @@ LMU Capstone/
 │   ├── hh-fap-user-report.pdf  # Home Health FAP user report
 │   └── mdrh-fap-user-report.pdf  # Marina del Rey Hospital FAP report
 │
-├── synthetic-data/             # Synthetic validation dataset (Sprint 1)
+├── synthetic-data/             # Synthetic validation dataset v1 (Sprint 1)
 │   ├── README.md               # Dataset overview, schema, validation rubric
 │   ├── synthetic_validation_dataset.csv  # 52 labeled test cases
 │   ├── generate_final.py       # Reproducible generation script
 │   ├── edge-cases/             # Planning CSVs (34 edge case scenarios)
 │   └── synthetic_bills/        # 10 synthetic hospital bills (JSON + PDF)
+│
+├── synthetic-data-v2/          # Synthetic validation dataset v2
+│   ├── README.md               # V2 overview, FPL tiers, reproduction steps
+│   ├── synthetic_validation_dataset_v2.csv  # 15 document-linked test cases
+│   ├── generate_v2_bills.py    # Generates evaluator + agent bill JSON
+│   ├── generate_v2_csv.py      # Generates validation CSV with patient profiles
+│   ├── edge-cases/             # Planning CSVs (billing + FAP edge cases)
+│   ├── synthetic_bills_v2/     # 15 evaluator bills (full metadata)
+│   └── synthetic_bills_v2_agent/  # 15 LLM-safe bills (metadata stripped)
 │
 ├── research-docs/              # Independent research by track
 │   ├── billing-fundamentals.pdf     # Healthcare billing fundamentals
