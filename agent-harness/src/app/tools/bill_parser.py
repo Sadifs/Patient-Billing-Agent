@@ -37,10 +37,11 @@ LINE_ITEM_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+
 DEFAULT_KNOWLEDGE_DIRS = [
-    Path(__file__).resolve().parent.parent.parent.parent.parent / "Knowledge Docs",
-    Path(__file__).resolve().parent.parent.parent.parent.parent / "knowledge-docs",
-    Path("/app/Knowledge Docs"),
+    _REPO_ROOT / "knowledge-docs",
+    Path("/app/knowledge-docs"),
 ]
 
 
