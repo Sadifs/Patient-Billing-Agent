@@ -50,16 +50,14 @@ LMU Capstone/
 │
 ├── synthetic-data/             # Synthetic validation dataset (v1 + v2 merged)
 │   ├── README.md               # Dataset overview, schema, validation rubric
-│   ├── synthetic_validation_dataset.csv       # Master — 70 labeled test cases (v1 + v2)
-│   ├── generate_final.py       # V1 generation script
-│   ├── generate_v2_bills.py    # V2 bill generation (evaluator + agent copies)
-│   ├── generate_v2_csv.py      # V2 validation CSV generation
-│   ├── merge_validation_datasets.py  # Combines v1 + v2 CSVs
-│   ├── generate_all.py         # Runs all generators
-│   ├── edge-cases/             # Planning CSVs (v1 + v2 edge case scenarios)
-│   ├── synthetic_bills/        # V1 — 10 synthetic hospital bills (JSON + PDF)
-│   ├── synthetic_bills_v2/     # V2 — 25 evaluator bills (JSON + PDF, full metadata)
-│   └── synthetic_bills_v2_agent/  # V2 — 25 LLM-safe bills (JSON, metadata stripped)
+│   ├── synthetic_validation_dataset.csv       # Master — 70 labeled test cases (42 v1 + 28 v2)
+│   ├── generate_v2_bills.py    # V2 bill generation for bills 01–15
+│   ├── generate_v2_csv.py      # V2 validation CSV for bills 01–15
+│   ├── generate_new_bills.py   # Generates bills 16–25 (reproducible)
+│   ├── generate_v2_pdfs.py     # PDF renderer for all v2 bills
+│   ├── edge-cases/             # Planning CSVs (reference, not used in evaluation)
+│   ├── synthetic_bills_v2/     # V2 — 28 evaluator bills (JSON + PDF, full metadata)
+│   └── synthetic_bills_v2_agent/  # V2 — 28 LLM-safe bills (JSON, metadata stripped)
 │
 ├── research-docs/              # Independent research by track
 │   ├── billing-fundamentals.pdf     # Healthcare billing fundamentals
