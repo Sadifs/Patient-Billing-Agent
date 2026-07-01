@@ -90,6 +90,11 @@ MANUAL_REVIEW_COLUMNS = [
 
 TRUE_FALSE_VALUES = {"true", "false"}
 EMPTY_MARKERS = {"", "n/a", "na", "none", "null"}
+BILL_DIRECTORY_NAMES = [
+    "synthetic_bills_v2_agent",
+    "synthetic_bills_v2",
+    "synthetic_bills",
+]
 
 
 @dataclass
@@ -188,6 +193,20 @@ def split_pipe_list(value: str | None) -> list[str]:
     return [item.strip() for item in normalized(value).split("|") if item.strip()]
 
 
+def synthetic_bill_paths(repo_root: Path, bill_doc_file: str) -> list[Path]:
+    """Return all supported locations for a referenced synthetic bill file."""
+    synthetic_data_dir = repo_root / "synthetic-data"
+    return [
+        synthetic_data_dir / directory_name / bill_doc_file
+        for directory_name in BILL_DIRECTORY_NAMES
+    ]
+
+
+def synthetic_bill_exists(repo_root: Path, bill_doc_file: str) -> bool:
+    """Check current v2 bill folders first, with legacy fallback."""
+    return any(path.exists() for path in synthetic_bill_paths(repo_root, bill_doc_file))
+
+
 def count_true_flags(rows: Iterable[dict[str, str]]) -> dict[str, int]:
     counts = {column: 0 for column in EVALUATION_FLAG_COLUMNS}
     for row in rows:
@@ -201,7 +220,6 @@ def validate_dataset(dataset_path: Path, repo_root: Path | None = None) -> Valid
     rows, columns = load_dataset(dataset_path)
     repo_root = repo_root or repo_root_from(dataset_path)
     knowledge_dir = repo_root / "knowledge-docs"
-    bills_dir = repo_root / "synthetic-data" / "synthetic_bills"
 
     report = ValidationReport(
         dataset_path=str(dataset_path),
@@ -279,11 +297,11 @@ def validate_dataset(dataset_path: Path, repo_root: Path | None = None) -> Valid
                     )
 
         bill_doc = normalized(row.get("bill_doc_file"))
-        if bill_doc and bill_doc.lower() != "n/a" and not (bills_dir / bill_doc).exists():
+        if bill_doc and not is_empty(bill_doc) and not synthetic_bill_exists(repo_root, bill_doc):
             report.issues.append(
                 ValidationIssue(
                     "warning",
-                    "Referenced synthetic bill file was not found",
+                    "Referenced synthetic bill file was not found in supported synthetic bill folders",
                     case_id=case_id,
                     column="bill_doc_file",
                 )
@@ -406,4 +424,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

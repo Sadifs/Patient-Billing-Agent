@@ -16,6 +16,9 @@ template, but it does not yet produce final automated accuracy scores.
 - Checks that required fields are populated
 - Checks that evaluation flags are `True` or `False`
 - Warns when referenced source documents or synthetic bill files are missing
+- Resolves synthetic bill references from the current v2 folders first:
+  `synthetic_bills_v2_agent`, then `synthetic_bills_v2`, then the legacy
+  `synthetic_bills` folder
 - Creates a manual evaluation CSV template for future agent response review
 
 ## What It Does Not Do Yet
@@ -57,4 +60,3 @@ Once the synthetic dataset is finalized, the harness can be expanded to:
 3. Add rubric-based scoring for each evaluation flag.
 4. Produce summary metrics by category and failure type.
 5. Compare results across branches before merging new agent tools.
-

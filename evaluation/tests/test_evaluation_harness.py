@@ -6,10 +6,12 @@ import unittest
 from pathlib import Path
 
 from evaluation.evaluation_harness import (
+    BILL_DIRECTORY_NAMES,
     EVALUATION_FLAG_COLUMNS,
     MANUAL_REVIEW_COLUMNS,
     REQUIRED_COLUMNS,
     load_dataset,
+    synthetic_bill_exists,
     validate_dataset,
     write_manual_review_template,
 )
@@ -31,9 +33,23 @@ class EvaluationHarnessTests(unittest.TestCase):
         report = validate_dataset(self.dataset_path, self.repo_root)
 
         self.assertEqual(report.error_count, 0)
+        self.assertEqual(report.warning_count, 0)
         self.assertEqual(report.row_count, len(rows))
         for column in EVALUATION_FLAG_COLUMNS:
             self.assertIn(column, report.evaluation_flag_counts)
+
+    def test_referenced_v2_bill_files_are_discovered(self) -> None:
+        rows, _columns = load_dataset(self.dataset_path)
+        bill_files = {
+            row["bill_doc_file"]
+            for row in rows
+            if row.get("bill_doc_file", "").strip().lower() not in {"", "n/a"}
+        }
+
+        self.assertIn("synthetic_bills_v2_agent", BILL_DIRECTORY_NAMES)
+        self.assertGreater(len(bill_files), 0)
+        for bill_file in bill_files:
+            self.assertTrue(synthetic_bill_exists(self.repo_root, bill_file), bill_file)
 
     def test_manual_review_template_has_one_row_per_case(self) -> None:
         source_rows, _columns = load_dataset(self.dataset_path)
