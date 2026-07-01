@@ -7,6 +7,7 @@ and dollar amounts using pdfplumber for text and table extraction.
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,8 @@ LINE_ITEM_KEYWORDS = re.compile(
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
 DEFAULT_KNOWLEDGE_DIRS = [
+    Path(os.environ.get("UPLOAD_DIR", "/tmp/uploads")).expanduser(),
+    Path("/app/uploads"),
     _REPO_ROOT / "knowledge-docs",
     Path("/app/knowledge-docs"),
 ]

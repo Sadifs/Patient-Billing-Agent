@@ -51,7 +51,7 @@ app.static("/static", str(_APP_DIR / "static"))
 
 # ── Knowledge base ──────────────────────────────────────────────────────
 KNOWLEDGE_DIR = _APP_DIR.parent.parent / "knowledge-docs"
-UPLOAD_DIR = Path("/tmp/uploads")
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/tmp/uploads")).expanduser()
 indexer = KnowledgeBaseIndexer(knowledge_dir=str(KNOWLEDGE_DIR))
 search_service = LocalSearchService(indexer)
 
@@ -158,7 +158,13 @@ async def upload(request: Request):
 
     indexer.index_file(str(save_path))
 
-    return response.json({"status": "indexed", "filename": filename})
+    return response.json(
+        {
+            "status": "indexed",
+            "filename": filename,
+            "path": str(save_path),
+        }
+    )
 
 
 # ── Startup ─────────────────────────────────────────────────────────────
