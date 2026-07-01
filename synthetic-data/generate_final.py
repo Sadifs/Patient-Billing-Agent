@@ -1,9 +1,17 @@
 import csv, json, os, shutil
 
 SRC = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(SRC, "..", "Synthetic Data - Share")
-BILLS_OUT = os.path.join(OUT, "synthetic_bills")
+OUT = SRC
+BILLS_OUT = os.path.join(SRC, "synthetic_bills")
 os.makedirs(BILLS_OUT, exist_ok=True)
+
+# V1 document cases superseded by v2 bills (DV2-001 – DV2-009) — excluded so combined total = 60
+SUPERSEDED_BY_V2 = {
+    "DV-001", "DV-002", "DV-005", "DV-006", "DV-007", "DV-008", "DV-009",
+}
+TARGET_V1_CASES = 45
+TARGET_V2_CASES = 15
+TARGET_COMBINED_CASES = 60
 
 FIELDS = [
     "case_id","category","document_type","input_format","insurance_type",
@@ -831,8 +839,14 @@ cases = [
 },
 ]
 
+cases = [c for c in cases if c["case_id"] not in SUPERSEDED_BY_V2]
+if len(cases) != TARGET_V1_CASES:
+    raise SystemExit(
+        f"Expected {TARGET_V1_CASES} v1 cases after removing superseded DV cases, got {len(cases)}"
+    )
+
 # ── WRITE CSV ─────────────────────────────────────────────────────────────────
-csv_path = os.path.join(OUT, "synthetic_validation_dataset.csv")
+csv_path = os.path.join(SRC, "synthetic_validation_dataset.csv")
 with open(csv_path, "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=FIELDS)
     writer.writeheader()
@@ -840,12 +854,12 @@ with open(csv_path, "w", newline="", encoding="utf-8") as f:
 
 # ── COPY JSON BILLS FROM OLD LOCATION ────────────────────────────────────────
 old_bills = os.path.join(SRC, "synthetic_bills")
-if os.path.isdir(old_bills):
+if os.path.isdir(old_bills) and os.path.abspath(old_bills) != os.path.abspath(BILLS_OUT):
     for fn in os.listdir(old_bills):
         shutil.copy2(os.path.join(old_bills, fn), os.path.join(BILLS_OUT, fn))
 
-print(f"CSV: {csv_path}  ({len(cases)} cases)")
-print(f"Bills: {BILLS_OUT}/  ({len(os.listdir(BILLS_OUT))} JSON files)")
+print(f"CSV: {csv_path}  ({len(cases)} cases — {len(SUPERSEDED_BY_V2)} DV cases moved to v2)")
+print(f"Bills: {BILLS_OUT}/")
 print()
 from collections import Counter
 print("insurance_type breakdown:")

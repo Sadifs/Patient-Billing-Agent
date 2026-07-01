@@ -1,0 +1,92 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-04-01",
+  "due_date": "2026-05-01",
+  "patient": {
+    "patient_name": "Gladys Park",
+    "patient_account_number": "CS-2026-10114",
+    "service_date": "2026-02-20"
+  },
+  "guarantor": {
+    "guarantor_name": "Gladys Park",
+    "guarantor_account_number": "GU-2026-10114"
+  },
+  "insurance": {
+    "primary": "Medicare Part A + Part B (Traditional)",
+    "secondary": "Medi-Cal (California Medicaid) – Dual Eligible"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "SNF Room & Board – Days 21–25 (Medicare coinsurance days)",
+        "code_type": "Revenue",
+        "code": "0190",
+        "quantity": 5,
+        "unit": "day",
+        "billed_amount": 9600.0,
+        "insurance_payments": 9600.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Physical Therapy – SNF",
+        "code_type": "CPT",
+        "code": "97110",
+        "quantity": 5,
+        "unit": "session",
+        "billed_amount": 1800.0,
+        "insurance_payments": 1800.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Pharmacy – SNF Medications",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 620.0,
+        "insurance_payments": 620.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      }
+    ],
+    "totals": {
+      "total_billed": 12020.0,
+      "total_insurance_payments": 12020.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 0.0,
+      "patient_balance": 0.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [
+      {
+        "payer_name": "Medicare Part A (SNF coinsurance days 21–25)",
+        "payment_amount": 9980.0,
+        "payment_date": "2026-03-15",
+        "check_or_ref_number": "MCR-SNF-2026-00451"
+      },
+      {
+        "payer_name": "Medi-Cal – Dual Eligible Crossover",
+        "payment_amount": 2040.0,
+        "payment_date": "2026-03-22",
+        "check_or_ref_number": "MCAL-XOVER-2026-00228"
+      }
+    ],
+    "adjustments": []
+  },
+  "total_amount_due": 0.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "310-423-8000",
+    "hours": "Monday–Friday, 8:00 AM – 5:00 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}
