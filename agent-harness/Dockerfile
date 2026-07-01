@@ -14,9 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY src/ ./src/
 
-# Copy knowledge base documents (if present at build time)
-COPY Knowledge\ Docs/ ./Knowledge\ Docs/ 2>/dev/null || true
-
 # Set Python path
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
