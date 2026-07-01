@@ -1,0 +1,113 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "Patricia Olson",
+    "patient_account_number": "CS-2026-09720",
+    "service_date": "2026-05-28"
+  },
+  "guarantor": {
+    "guarantor_name": "Patricia Olson",
+    "guarantor_account_number": "GU-2026-09720"
+  },
+  "insurance": {
+    "primary": "Kaiser Permanente \u2013 HMO (employer-sponsored)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "MRI \u2013 Knee without contrast",
+        "code_type": "CPT",
+        "code": "73721",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 4800.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 4800.0
+      },
+      {
+        "service_name": "MRI \u2013 Lumbar Spine without contrast",
+        "code_type": "CPT",
+        "code": "72148",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 6800.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 6800.0
+      },
+      {
+        "service_name": "Outpatient Facility Fee \u2013 Radiology",
+        "code_type": "Revenue",
+        "code": "0320",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 3200.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 3200.0
+      },
+      {
+        "service_name": "Radiologist Read Fee",
+        "code_type": "CPT",
+        "code": "73222",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 1400.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 1400.0
+      },
+      {
+        "service_name": "Orthopedic Consultation \u2013 New Patient",
+        "code_type": "CPT",
+        "code": "99204",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 2200.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 2200.0
+      },
+      {
+        "service_name": "X-Ray \u2013 Knee (3 views)",
+        "code_type": "CPT",
+        "code": "73562",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 480.0
+      }
+    ],
+    "totals": {
+      "total_billed": 18880.0,
+      "total_insurance_payments": 0.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 18880.0,
+      "patient_balance": 18880.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [],
+    "adjustments": [],
+    "denial_reason": "Claim denied: Prior authorization not obtained. Services rendered without required pre-authorization (Kaiser Ref: AUTH-DENIED-2026-09720). Patient may file an appeal within 180 days."
+  },
+  "total_amount_due": 18880.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

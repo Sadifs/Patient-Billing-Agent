@@ -1,22 +1,22 @@
 # Synthetic Validation Dataset — Overview
 
 **Project:** LMU MSBA × Cedars-Sinai AI Patient Billing Agent  
-**Last updated:** June 2026
+**Last updated:** July 2026
 
 ---
 
 ## What This Dataset Is
 
 The synthetic validation dataset is the ground truth used to evaluate the AI
-billing agent. It contains **60 labeled test cases** across two dataset versions:
+billing agent. It contains **72 labeled test cases** across two dataset versions:
 
 | Version | Cases | Focus |
 |---------|-------|-------|
-| **V1** | 45 | Text-input scenarios, billing literacy, FAP routing, safety |
-| **V2** | 15 | Document-linked bills with diversified patient financial profiles |
+| **V1** | 42 | Text-input scenarios, billing literacy, FAP routing, safety |
+| **V2** | 30 | Document-linked bills with diversified patient financial profiles |
 
-Seven v1 document cases (DV-001, DV-002, DV-005–DV-009) were superseded by v2
-bills and are excluded from v1 to keep the combined total at **60 patients**.
+Ten v1 document cases (DV-001 – DV-010) were superseded by v2 bills and
+are excluded from v1 to keep the combined total at **72 patients**.
 
 When the agent responds to a case, its output is compared against the labeled
 expected response to measure accuracy.
@@ -29,31 +29,29 @@ All cases use fictional patient profiles — no real PHI.
 
 | File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | **Master — 60 labeled test cases (v1 + v2 combined). Use this.** |
-| `generate_final.py` | Regenerates v1 CSV |
-| `generate_v2_bills.py` | Regenerates v2 bill JSON (evaluator + agent copies) |
-| `generate_v2_csv.py` | Regenerates v2 validation CSV |
-| `merge_validation_datasets.py` | Combines v1 + v2 into combined CSV |
-| `generate_all.py` | Runs all generators in order |
-| `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios |
-| `synthetic_bills/` | V1 — 10 JSON + 10 PDF bills |
-| `synthetic_bills_v2/` | V2 — 15 evaluator bills (full metadata) |
-| `synthetic_bills_v2_agent/` | V2 — 15 LLM-safe bills (metadata stripped) |
+| `synthetic_validation_dataset.csv` | **Master — 72 labeled test cases (v1 + v2 combined). Use this.** |
+| `generate_v2_bills.py` | Regenerates v2 bill JSON for bills 01–15 (evaluator + agent copies) |
+| `generate_v2_csv.py` | Regenerates v2 validation CSV for bills 01–15 |
+| `generate_new_bills.py` | Generates v2 bills 16–25 (reproducible) |
+| `generate_v2_pdfs.py` | Generates PDFs for all v2 bills from JSON |
+| `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios (reference) |
+| `synthetic_bills_v2/` | V2 — 30 evaluator bills (JSON + PDF, full metadata) |
+| `synthetic_bills_v2_agent/` | V2 — 30 LLM-safe bills (JSON, metadata stripped) |
 
 ---
 
 ## V1 vs V2
 
-### V1 (`synthetic_bills/` + 52-case CSV)
+### V1 (42-case CSV, text-input only)
 
 - Text-input and document-parsing scenarios
-- 10 Cedars-style bills (JSON + PDF)
-- Covers billing understanding, FAP, safety, action planning
+- No bill files — all cases are text-based patient questions
+- Covers billing understanding, FAP routing, safety, action planning
 
-### V2 (`synthetic_bills_v2/` + 15-case CSV)
+### V2 (`synthetic_bills_v2/` + 30-case CSV)
 
 - Cedars-style patient statement schema v2.0 (guarantor, summary of services, patient services contact)
-- **15 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, etc.)
+- **30 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, COB, collections, FAP-approved, surprise billing, payment plans, Medi-Cal share of cost, etc.)
 - Diversified patient profiles in CSV (household size, income, FPL tier)
 - Bill JSON has **no FAP ground truth** — evaluation metadata lives in CSV only
 - `synthetic_bills_v2_agent/` strips `_schema_version`, `_note`, `_intentional_error_note` before LLM use
@@ -64,9 +62,9 @@ All cases use fictional patient profiles — no real PHI.
 
 | Field | V1 | V2 | Combined |
 |---|---|---|---|
-| Total cases | 45 | 15 | **60** |
+| Total cases | 42 | 30 | **72** |
 | Fields per case | 23 | 23 | 23 |
-| Synthetic bills | 10 (JSON+PDF) | 15 (JSON, PDF in progress) | 25 unique bill sets |
+| Synthetic bills | 0 | 30 (JSON+PDF) | 30 unique bill sets |
 | FPL range | 0% – 689% | 85% – 533% | 0% – 689% |
 
 ---
@@ -75,11 +73,11 @@ All cases use fictional patient profiles — no real PHI.
 
 | Category | V1 | V2 | Total |
 |---|---|---|---|
-| Financial Assistance | 12 | 5 | 17 |
-| Billing Understanding | 15 | 5 | 20 |
+| Financial Assistance | 12 | 12 | 24 |
+| Billing Understanding | 15 | 11 | 26 |
 | Safety & Privacy | 8 | 1 | 9 |
-| Action Planning | 6 | 3 | 9 |
-| Document Parsing | 4 | 1 | 5 |
+| Action Planning | 6 | 6 | 12 |
+| Document Parsing | 1 | 0 | 1 |
 
 ---
 
@@ -97,23 +95,20 @@ All cases use fictional patient profiles — no real PHI.
 
 ## Reproduction
 
-Regenerate everything:
+Regenerate PDFs for all v2 bills:
 
 ```bash
 cd synthetic-data/
-python3 generate_all.py
+python3 generate_v2_pdfs.py
 ```
 
-Or run individually:
+Regenerate bills 16–25 JSON (evaluator + agent):
 
 ```bash
-python3 generate_final.py              # v1 CSV
-python3 generate_v2_bills.py           # v2 bills (evaluator + agent)
-python3 generate_v2_csv.py             # v2 CSV
-python3 merge_validation_datasets.py   # combined CSV
+python3 generate_new_bills.py
 ```
 
-Requires: `csv`, `json`, `os`, `shutil` (stdlib only).
+Requires: `csv`, `json`, `os`, `reportlab` (PDFs only).
 
 ---
 
@@ -121,19 +116,26 @@ Requires: `csv`, `json`, `os`, `shutil` (stdlib only).
 
 | Dataset | Use this folder |
 |---|---|
-| V1 document cases (DV-001 – DV-010) | `synthetic_bills/` |
-| V2 document cases (DV2-001 – DV2-015) | `synthetic_bills_v2_agent/` |
+| V2 document cases (DV2-001 – DV2-030) | `synthetic_bills_v2_agent/` |
 
-Use `synthetic_validation_dataset.csv` as the master answer key (**60 patients**).
+Use `synthetic_validation_dataset.csv` as the master answer key (**72 patients**).
 
-### V1 cases superseded by V2 (excluded from v1 CSV)
+---
 
-| Removed | Replaced by |
+## V1 Cases Superseded by V2
+
+All 10 original v1 document cases were migrated to v2 format.
+Use `synthetic_bills_v2/` for all document cases.
+
+| V1 Case | Replaced by |
 |---------|-------------|
 | DV-001 | DV2-001 (self-pay ER) |
 | DV-002 | DV2-002 (self-pay inpatient) |
+| DV-003 | DV2-026 (commercial outpatient – contractual adjustment) |
+| DV-004 | DV2-027 (commercial inpatient – OON anesthesia) |
 | DV-005 | DV2-005 (Medicare inpatient) |
-| DV-006 | DV2-006 (Medicare observation) |
+| DV-006 | DV2-006 (Medicare observation + Medigap) |
 | DV-007 | DV2-007 (Medicare Advantage denied) |
 | DV-008 | DV2-008 (MA copay discrepancy) |
 | DV-009 | DV2-009 (Medi-Cal ER) |
+| DV-010 | DV2-028 (Medi-Cal outpatient – share of cost) |

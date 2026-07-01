@@ -1,0 +1,278 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-10",
+  "due_date": "2026-07-10",
+  "patient": {
+    "patient_name": "Jessica Park",
+    "patient_account_number": "CS-2026-08102",
+    "service_date": "2026-05-18"
+  },
+  "guarantor": {
+    "guarantor_name": "David Park",
+    "guarantor_account_number": "GU-2026-08102"
+  },
+  "insurance": {
+    "primary": "Anthem Blue Cross \u2013 HMO (Commercial)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Labor & Delivery \u2013 Vaginal Delivery",
+        "code_type": "CPT",
+        "code": "59400",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 12000.0,
+        "insurance_payments": 9480.0,
+        "adjustments": 1200.0,
+        "patient_balance": 1320.0
+      },
+      {
+        "service_name": "Inpatient Room & Board \u2013 Semi-Private",
+        "code_type": "Revenue",
+        "code": "0110",
+        "quantity": 3,
+        "unit": "day",
+        "billed_amount": 15000.0,
+        "insurance_payments": 11850.0,
+        "adjustments": 1500.0,
+        "patient_balance": 1650.0
+      },
+      {
+        "service_name": "Nursery \u2013 Newborn, Well Baby",
+        "code_type": "Revenue",
+        "code": "0170",
+        "quantity": 3,
+        "unit": "day",
+        "billed_amount": 4500.0,
+        "insurance_payments": 3555.0,
+        "adjustments": 450.0,
+        "patient_balance": 495.0
+      },
+      {
+        "service_name": "Epidural Anesthesia",
+        "code_type": "CPT",
+        "code": "01967",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 5500.0,
+        "insurance_payments": 4345.0,
+        "adjustments": 550.0,
+        "patient_balance": 605.0
+      },
+      {
+        "service_name": "Fetal Monitoring \u2013 External",
+        "code_type": "Revenue",
+        "code": "0730",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 800.0,
+        "insurance_payments": 632.0,
+        "adjustments": 80.0,
+        "patient_balance": 88.0
+      },
+      {
+        "service_name": "Ultrasound \u2013 Obstetric (\u00d72)",
+        "code_type": "CPT",
+        "code": "76805",
+        "quantity": 2,
+        "unit": "each",
+        "billed_amount": 1200.0,
+        "insurance_payments": 948.0,
+        "adjustments": 120.0,
+        "patient_balance": 132.0
+      },
+      {
+        "service_name": "GBS Culture",
+        "code_type": "CPT",
+        "code": "87081",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 180.0,
+        "insurance_payments": 142.0,
+        "adjustments": 18.0,
+        "patient_balance": 20.0
+      },
+      {
+        "service_name": "CBC \u2013 Postpartum",
+        "code_type": "CPT",
+        "code": "85025",
+        "quantity": 2,
+        "unit": "each",
+        "billed_amount": 300.0,
+        "insurance_payments": 237.0,
+        "adjustments": 30.0,
+        "patient_balance": 33.0
+      },
+      {
+        "service_name": "Type & Screen",
+        "code_type": "CPT",
+        "code": "86900",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 240.0,
+        "insurance_payments": 190.0,
+        "adjustments": 24.0,
+        "patient_balance": 26.0
+      },
+      {
+        "service_name": "IV Administration \u2013 Oxytocin Drip",
+        "code_type": "CPT",
+        "code": "96365",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 379.0,
+        "adjustments": 48.0,
+        "patient_balance": 53.0
+      },
+      {
+        "service_name": "Pharmacy \u2013 Oxytocin 10u/mL",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 320.0,
+        "insurance_payments": 253.0,
+        "adjustments": 32.0,
+        "patient_balance": 35.0
+      },
+      {
+        "service_name": "Pharmacy \u2013 Group B Strep Antibiotics",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 379.0,
+        "adjustments": 48.0,
+        "patient_balance": 53.0
+      },
+      {
+        "service_name": "Pharmacy \u2013 Postpartum Pain Management",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 600.0,
+        "insurance_payments": 474.0,
+        "adjustments": 60.0,
+        "patient_balance": 66.0
+      },
+      {
+        "service_name": "Medical/Surgical Supplies",
+        "code_type": "Revenue",
+        "code": "0270",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 1200.0,
+        "insurance_payments": 948.0,
+        "adjustments": 120.0,
+        "patient_balance": 132.0
+      },
+      {
+        "service_name": "Lactation Consultation",
+        "code_type": "CPT",
+        "code": "99401",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 280.0,
+        "insurance_payments": 221.0,
+        "adjustments": 28.0,
+        "patient_balance": 31.0
+      },
+      {
+        "service_name": "Social Work \u2013 Discharge Planning",
+        "code_type": "Revenue",
+        "code": "0560",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 280.0,
+        "insurance_payments": 221.0,
+        "adjustments": 28.0,
+        "patient_balance": 31.0
+      },
+      {
+        "service_name": "Newborn Hearing Screen",
+        "code_type": "CPT",
+        "code": "92585",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 180.0,
+        "insurance_payments": 142.0,
+        "adjustments": 18.0,
+        "patient_balance": 20.0
+      },
+      {
+        "service_name": "Newborn Metabolic Screen",
+        "code_type": "Revenue",
+        "code": "0300",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 160.0,
+        "insurance_payments": 126.0,
+        "adjustments": 16.0,
+        "patient_balance": 18.0
+      },
+      {
+        "service_name": "Circumcision (elective)",
+        "code_type": "CPT",
+        "code": "54150",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 379.0,
+        "adjustments": 48.0,
+        "patient_balance": 53.0
+      },
+      {
+        "service_name": "Rhogam (if applicable)",
+        "code_type": "HCPCS",
+        "code": "J2790",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 320.0,
+        "insurance_payments": 253.0,
+        "adjustments": 32.0,
+        "patient_balance": 35.0
+      }
+    ],
+    "totals": {
+      "total_billed": 44500.0,
+      "total_insurance_payments": 35154.0,
+      "total_adjustments": 4450.0,
+      "outstanding_balance": 4896.0,
+      "patient_balance": 4896.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [
+      {
+        "payer_name": "Anthem Blue Cross HMO",
+        "payment_amount": 35154.0,
+        "payment_date": "2026-06-04",
+        "check_or_ref_number": "ABC-2026-08102-01"
+      }
+    ],
+    "adjustments": [
+      {
+        "description": "Anthem Blue Cross Contractual Adjustment",
+        "amount": 4450.0
+      }
+    ]
+  },
+  "total_amount_due": 4896.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}
