@@ -1,0 +1,128 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-04-20",
+  "due_date": "2026-05-20",
+  "patient": {
+    "patient_name": "Dorothy Nguyen",
+    "patient_account_number": "CS-2026-05634",
+    "service_date": "2026-03-18"
+  },
+  "guarantor": {
+    "guarantor_name": "Dorothy Nguyen",
+    "guarantor_account_number": "GU-2026-05634"
+  },
+  "insurance": {
+    "primary": "Humana Gold Plus HMO (Medicare Advantage)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Inpatient Facility – DRG 460 (Spinal Fusion)",
+        "code_type": "Revenue",
+        "code": "0100",
+        "quantity": 5,
+        "unit": "day",
+        "billed_amount": 38400.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 38400.0
+      },
+      {
+        "service_name": "Spinal Fusion – Lumbar (primary procedure)",
+        "code_type": "CPT",
+        "code": "22630",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 24000.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 24000.0
+      },
+      {
+        "service_name": "Implant – Spinal Cage/Hardware",
+        "code_type": "Revenue",
+        "code": "0278",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 14200.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 14200.0
+      },
+      {
+        "service_name": "Anesthesia – Spinal Surgery",
+        "code_type": "CPT",
+        "code": "00630",
+        "quantity": 36,
+        "unit": "unit",
+        "billed_amount": 5400.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 5400.0
+      },
+      {
+        "service_name": "Recovery Room",
+        "code_type": "Revenue",
+        "code": "0710",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 4200.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 4200.0
+      },
+      {
+        "service_name": "Room & Board",
+        "code_type": "Revenue",
+        "code": "0110",
+        "quantity": 4,
+        "unit": "day",
+        "billed_amount": 19200.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 19200.0
+      },
+      {
+        "service_name": "Laboratory & Pathology",
+        "code_type": "Revenue",
+        "code": "0300",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 1800.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 1800.0
+      }
+    ],
+    "totals": {
+      "total_billed": 107200.0,
+      "total_insurance_payments": 0.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 107200.0,
+      "patient_balance": 107200.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [],
+    "adjustments": [
+      {
+        "description": "Denial Reason: CO-197 – Prior Authorization Not Obtained (Humana Gold Plus HMO). Claim denied. Balance transferred to patient pending appeal.",
+        "amount": 0
+      }
+    ]
+  },
+  "total_amount_due": 107200.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "310-423-8000",
+    "hours": "Monday–Friday, 8:00 AM – 5:00 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

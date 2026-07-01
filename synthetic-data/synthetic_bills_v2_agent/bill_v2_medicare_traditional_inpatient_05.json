@@ -1,0 +1,97 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-04-10",
+  "due_date": "2026-05-10",
+  "patient": {
+    "patient_name": "Eleanor Vance",
+    "patient_account_number": "CS-2026-03389",
+    "service_date": "2026-03-01"
+  },
+  "guarantor": {
+    "guarantor_name": "Eleanor Vance",
+    "guarantor_account_number": "GU-2026-03389"
+  },
+  "insurance": {
+    "primary": "Medicare Part A + Part B (Traditional)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Inpatient Facility – DRG 482 (Hip & Femur Procedures)",
+        "code_type": "Revenue",
+        "code": "0100",
+        "quantity": 4,
+        "unit": "day",
+        "billed_amount": 61400.0,
+        "insurance_payments": 59768.0,
+        "adjustments": 0.0,
+        "patient_balance": 1632.0
+      },
+      {
+        "service_name": "Operating Room – Facility Fee",
+        "code_type": "Revenue",
+        "code": "0360",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 11200.0,
+        "insurance_payments": 11200.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Pharmacy – Inpatient Medications",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 3800.0,
+        "insurance_payments": 3800.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Laboratory",
+        "code_type": "Revenue",
+        "code": "0300",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 1600.0,
+        "insurance_payments": 1600.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      }
+    ],
+    "totals": {
+      "total_billed": 78000.0,
+      "total_insurance_payments": 76368.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 1632.0,
+      "patient_balance": 1632.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [
+      {
+        "payer_name": "Medicare Part A",
+        "payment_amount": 76368.0,
+        "payment_date": "2026-04-05",
+        "check_or_ref_number": "MCR-2026-FI-00882"
+      }
+    ],
+    "adjustments": []
+  },
+  "total_amount_due": 1632.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "310-423-8000",
+    "hours": "Monday–Friday, 8:00 AM – 5:00 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}
