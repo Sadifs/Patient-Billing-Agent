@@ -16,6 +16,7 @@ Endpoints:
 
 import asyncio
 import json
+import logging
 import os
 import re
 import sys
@@ -38,6 +39,8 @@ from app.tools.calculate_fpl import calculate_fpl
 from app.tools.search_bills import create_search_bills_tool
 from app.hooks import HOOKS as REGISTERED_HOOKS
 from app.skills import build_system_prompt
+
+logger = logging.getLogger(__name__)
 
 # ── Configuration (from environment variables) ──────────────────────────
 API_KEY = os.environ.get("API_KEY", "")
@@ -95,6 +98,47 @@ def _fpl_context_message(user_message: str) -> Message | None:
             "of estimating manually. Do not guarantee eligibility. "
             f"FPL calculation result: {result}"
         ),
+    )
+
+
+def _technical_fallback_message(user_message: str) -> str:
+    """Return a relevant fallback when the model/provider errors mid-response."""
+    text = user_message.lower()
+
+    if any(word in text for word in ("insurance", "provider", "primary", "secondary")):
+        return (
+            "I’m sorry, I ran into a technical issue while checking that. "
+            "To identify your insurance provider, I need the bill or the part "
+            "of the bill that lists Primary Insurance and Secondary Insurance. "
+            "Please upload the bill again or paste those lines, and I can help "
+            "read them."
+        )
+
+    if any(
+        phrase in text
+        for phrase in (
+            "help paying",
+            "can't afford",
+            "cannot afford",
+            "financial assistance",
+            "charity care",
+            "payment plan",
+            "household",
+            "income",
+            "fpl",
+        )
+    ):
+        return (
+            "I’m sorry, I ran into a technical issue while preparing that "
+            "financial-assistance answer. If you share your household size and "
+            "approximate annual household income, I can estimate your FPL "
+            "percentage and suggest next steps."
+        )
+
+    return (
+        "I’m sorry, I ran into a technical issue while preparing that answer. "
+        "Please try again, or paste the relevant bill details and I can help "
+        "explain them."
     )
 
 
@@ -179,14 +223,8 @@ async def chat(request: Request):
         try:
             chunks = await loop.run_in_executor(None, run_agent)
         except Exception:
-            chunks = [
-                (
-                    "I’m sorry, I ran into a technical issue while preparing "
-                    "that answer. If you are asking about help paying a bill, "
-                    "please share your household size and approximate annual "
-                    "household income, and I can estimate your FPL percentage."
-                )
-            ]
+            logger.exception("Agent response generation failed")
+            chunks = [_technical_fallback_message(user_message)]
         for chunk in chunks:
             await resp.write(f"data: {json.dumps({'text': chunk})}\n\n".encode())
         await resp.write(b"data: [DONE]\n\n")
