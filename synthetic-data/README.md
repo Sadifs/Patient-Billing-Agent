@@ -124,8 +124,8 @@ Use `synthetic_validation_dataset.csv` as the master answer key (**70 patients**
 
 ## V1 Cases Superseded by V2
 
-All 10 original v1 document cases were migrated to v2 format. The `synthetic_bills/`
-folder has been removed — use `synthetic_bills_v2/` for all document cases.
+All 10 original v1 document cases were migrated to v2 format.
+Use `synthetic_bills_v2/` for all document cases.
 
 | V1 Case | Replaced by |
 |---------|-------------|
