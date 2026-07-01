@@ -50,9 +50,7 @@ LMU Capstone/
 │
 ├── synthetic-data/             # Synthetic validation dataset (v1 + v2 merged)
 │   ├── README.md               # Dataset overview, schema, validation rubric
-│   ├── synthetic_validation_dataset.csv       # V1 — 52 labeled test cases
-│   ├── synthetic_validation_dataset_v2.csv    # V2 — 15 document-linked cases
-│   ├── synthetic_validation_dataset_combined.csv  # Merged — 67 cases
+│   ├── synthetic_validation_dataset.csv       # Master — 70 labeled test cases (v1 + v2)
 │   ├── generate_final.py       # V1 generation script
 │   ├── generate_v2_bills.py    # V2 bill generation (evaluator + agent copies)
 │   ├── generate_v2_csv.py      # V2 validation CSV generation
@@ -60,8 +58,8 @@ LMU Capstone/
 │   ├── generate_all.py         # Runs all generators
 │   ├── edge-cases/             # Planning CSVs (v1 + v2 edge case scenarios)
 │   ├── synthetic_bills/        # V1 — 10 synthetic hospital bills (JSON + PDF)
-│   ├── synthetic_bills_v2/     # V2 — 15 evaluator bills (full metadata)
-│   └── synthetic_bills_v2_agent/  # V2 — 15 LLM-safe bills (metadata stripped)
+│   ├── synthetic_bills_v2/     # V2 — 25 evaluator bills (JSON + PDF, full metadata)
+│   └── synthetic_bills_v2_agent/  # V2 — 25 LLM-safe bills (JSON, metadata stripped)
 │
 ├── research-docs/              # Independent research by track
 │   ├── billing-fundamentals.pdf     # Healthcare billing fundamentals

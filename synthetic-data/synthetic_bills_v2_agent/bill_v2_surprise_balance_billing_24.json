@@ -1,0 +1,168 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "Diane Walters",
+    "patient_account_number": "CS-2026-08311",
+    "service_date": "2026-05-20"
+  },
+  "guarantor": {
+    "guarantor_name": "Diane Walters",
+    "guarantor_account_number": "GU-2026-08311"
+  },
+  "insurance": {
+    "primary": "Aetna \u2013 PPO (employer-sponsored)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "OR Facility Fee (in-network)",
+        "code_type": "Revenue",
+        "code": "0360",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 14000.0,
+        "insurance_payments": 11200.0,
+        "adjustments": 1400.0,
+        "patient_balance": 1400.0
+      },
+      {
+        "service_name": "Total Hip Arthroplasty",
+        "code_type": "CPT",
+        "code": "27130",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 32000.0,
+        "insurance_payments": 25600.0,
+        "adjustments": 3200.0,
+        "patient_balance": 3200.0
+      },
+      {
+        "service_name": "Anesthesia \u2013 General (in-network)",
+        "code_type": "CPT",
+        "code": "01402",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 6000.0,
+        "insurance_payments": 4800.0,
+        "adjustments": 600.0,
+        "patient_balance": 600.0
+      },
+      {
+        "service_name": "Inpatient Room & Board (in-network)",
+        "code_type": "Revenue",
+        "code": "0110",
+        "quantity": 3,
+        "unit": "day",
+        "billed_amount": 15000.0,
+        "insurance_payments": 12000.0,
+        "adjustments": 1500.0,
+        "patient_balance": 1500.0
+      },
+      {
+        "service_name": "Physical Therapy (in-network, \u00d73)",
+        "code_type": "CPT",
+        "code": "97110",
+        "quantity": 3,
+        "unit": "each",
+        "billed_amount": 900.0,
+        "insurance_payments": 720.0,
+        "adjustments": 90.0,
+        "patient_balance": 90.0
+      },
+      {
+        "service_name": "Implant \u2013 Hip Prosthesis",
+        "code_type": "HCPCS",
+        "code": "C1776",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 12000.0,
+        "insurance_payments": 9600.0,
+        "adjustments": 1200.0,
+        "patient_balance": 1200.0
+      },
+      {
+        "service_name": "Medical/Surgical Supplies",
+        "code_type": "Revenue",
+        "code": "0270",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 2200.0,
+        "insurance_payments": 1760.0,
+        "adjustments": 220.0,
+        "patient_balance": 220.0
+      },
+      {
+        "service_name": "Assistant Surgeon \u2013 Out-of-Network",
+        "code_type": "CPT",
+        "code": "27131",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 8500.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 8500.0
+      },
+      {
+        "service_name": "Pathology \u2013 Out-of-Network",
+        "code_type": "CPT",
+        "code": "88305",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 1800.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 1800.0
+      },
+      {
+        "service_name": "Radiology \u2013 Out-of-Network Read",
+        "code_type": "CPT",
+        "code": "72196",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 1600.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 1600.0
+      }
+    ],
+    "totals": {
+      "total_billed": 94000.0,
+      "total_insurance_payments": 65680.0,
+      "total_adjustments": 8210.0,
+      "outstanding_balance": 20110.0,
+      "patient_balance": 20110.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [
+      {
+        "payer_name": "Aetna PPO (in-network claims)",
+        "payment_amount": 65680.0,
+        "payment_date": "2026-06-10",
+        "check_or_ref_number": "AET-2026-08311-01"
+      }
+    ],
+    "adjustments": [
+      {
+        "description": "Aetna PPO Contractual Adjustment (in-network services)",
+        "amount": 8210.0
+      }
+    ]
+  },
+  "total_amount_due": 20110.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

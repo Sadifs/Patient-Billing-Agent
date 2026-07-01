@@ -8,15 +8,15 @@
 ## What This Dataset Is
 
 The synthetic validation dataset is the ground truth used to evaluate the AI
-billing agent. It contains **60 labeled test cases** across two dataset versions:
+billing agent. It contains **70 labeled test cases** across two dataset versions:
 
 | Version | Cases | Focus |
 |---------|-------|-------|
 | **V1** | 45 | Text-input scenarios, billing literacy, FAP routing, safety |
-| **V2** | 15 | Document-linked bills with diversified patient financial profiles |
+| **V2** | 25 | Document-linked bills with diversified patient financial profiles |
 
 Seven v1 document cases (DV-001, DV-002, DV-005–DV-009) were superseded by v2
-bills and are excluded from v1 to keep the combined total at **60 patients**.
+bills and are excluded from v1 to keep the combined total at **70 patients**.
 
 When the agent responds to a case, its output is compared against the labeled
 expected response to measure accuracy.
@@ -44,16 +44,16 @@ All cases use fictional patient profiles — no real PHI.
 
 ## V1 vs V2
 
-### V1 (`synthetic_bills/` + 52-case CSV)
+### V1 (`synthetic_bills/` + 45-case CSV)
 
 - Text-input and document-parsing scenarios
 - 10 Cedars-style bills (JSON + PDF)
 - Covers billing understanding, FAP, safety, action planning
 
-### V2 (`synthetic_bills_v2/` + 15-case CSV)
+### V2 (`synthetic_bills_v2/` + 25-case CSV)
 
 - Cedars-style patient statement schema v2.0 (guarantor, summary of services, patient services contact)
-- **15 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, etc.)
+- **25 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, COB, collections, FAP-approved, surprise billing, payment plans, etc.)
 - Diversified patient profiles in CSV (household size, income, FPL tier)
 - Bill JSON has **no FAP ground truth** — evaluation metadata lives in CSV only
 - `synthetic_bills_v2_agent/` strips `_schema_version`, `_note`, `_intentional_error_note` before LLM use
@@ -64,9 +64,9 @@ All cases use fictional patient profiles — no real PHI.
 
 | Field | V1 | V2 | Combined |
 |---|---|---|---|
-| Total cases | 45 | 15 | **60** |
+| Total cases | 45 | 25 | **70** |
 | Fields per case | 23 | 23 | 23 |
-| Synthetic bills | 10 (JSON+PDF) | 15 (JSON, PDF in progress) | 25 unique bill sets |
+| Synthetic bills | 10 (JSON+PDF) | 25 (JSON+PDF) | 35 unique bill sets |
 | FPL range | 0% – 689% | 85% – 533% | 0% – 689% |
 
 ---
@@ -75,10 +75,10 @@ All cases use fictional patient profiles — no real PHI.
 
 | Category | V1 | V2 | Total |
 |---|---|---|---|
-| Financial Assistance | 12 | 5 | 17 |
-| Billing Understanding | 15 | 5 | 20 |
+| Financial Assistance | 12 | 9 | 21 |
+| Billing Understanding | 15 | 9 | 24 |
 | Safety & Privacy | 8 | 1 | 9 |
-| Action Planning | 6 | 3 | 9 |
+| Action Planning | 6 | 5 | 11 |
 | Document Parsing | 4 | 1 | 5 |
 
 ---
@@ -122,9 +122,9 @@ Requires: `csv`, `json`, `os`, `shutil` (stdlib only).
 | Dataset | Use this folder |
 |---|---|
 | V1 document cases (DV-001 – DV-010) | `synthetic_bills/` |
-| V2 document cases (DV2-001 – DV2-015) | `synthetic_bills_v2_agent/` |
+| V2 document cases (DV2-001 – DV2-025) | `synthetic_bills_v2_agent/` |
 
-Use `synthetic_validation_dataset.csv` as the master answer key (**60 patients**).
+Use `synthetic_validation_dataset.csv` as the master answer key (**70 patients**).
 
 ### V1 cases superseded by V2 (excluded from v1 CSV)
 
