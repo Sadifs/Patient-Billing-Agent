@@ -31,7 +31,7 @@ Reproduction
     cd synthetic-data/
     python3 generate_v2_bills.py
 
-Writes two bill directories alongside v1 synthetic_bills/:
+Writes two bill directories:
     synthetic_bills_v2/        — evaluator copies (full metadata)
     synthetic_bills_v2_agent/  — LLM input (_schema_version, _note, _intentional_error_note stripped)
 
