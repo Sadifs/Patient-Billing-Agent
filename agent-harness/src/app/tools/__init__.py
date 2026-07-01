@@ -28,7 +28,9 @@ HOW TO ADD A TOOL:
 """
 
 from app.tools.bill_parser import bill_parser
+from app.tools.calculate_fpl import calculate_fpl
 
 TOOLS = [
     bill_parser,
+    calculate_fpl,
 ]
