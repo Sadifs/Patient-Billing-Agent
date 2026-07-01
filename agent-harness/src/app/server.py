@@ -51,6 +51,7 @@ app.static("/static", str(_APP_DIR / "static"))
 
 # ── Knowledge base ──────────────────────────────────────────────────────
 KNOWLEDGE_DIR = _APP_DIR.parent.parent / "knowledge-docs"
+UPLOAD_DIR = Path("/tmp/uploads")
 indexer = KnowledgeBaseIndexer(knowledge_dir=str(KNOWLEDGE_DIR))
 search_service = LocalSearchService(indexer)
 
@@ -148,10 +149,11 @@ async def upload(request: Request):
     if not uploaded:
         return response.json({"error": "No file in request"}, status=400)
 
-    filename = uploaded.name
+    filename = Path(uploaded.name).name
     file_body = uploaded.body
 
-    save_path = KNOWLEDGE_DIR / filename
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    save_path = UPLOAD_DIR / filename
     save_path.write_bytes(file_body)
 
     indexer.index_file(str(save_path))
