@@ -1,0 +1,103 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-05-15",
+  "due_date": "2026-06-15",
+  "patient": {
+    "patient_name": "Harold Jensen",
+    "patient_account_number": "CS-2026-04512",
+    "service_date": "2026-04-08"
+  },
+  "guarantor": {
+    "guarantor_name": "Harold Jensen",
+    "guarantor_account_number": "GU-2026-04512"
+  },
+  "insurance": {
+    "primary": "Medicare Part A + Part B (Traditional)",
+    "secondary": "AARP Medicare Supplement Plan G (UnitedHealthcare)"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Observation Services – per hour (72 hours)",
+        "code_type": "CPT",
+        "code": "99224",
+        "quantity": 72,
+        "unit": "hour",
+        "billed_amount": 12800.0,
+        "insurance_payments": 12800.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Cardiac Monitoring – Telemetry",
+        "code_type": "Revenue",
+        "code": "0730",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 3200.0,
+        "insurance_payments": 3200.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Echocardiogram",
+        "code_type": "CPT",
+        "code": "93306",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 4600.0,
+        "insurance_payments": 4600.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Pharmacy – Outpatient Drugs (observation billed under Part D)",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 820.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 820.0
+      }
+    ],
+    "totals": {
+      "total_billed": 21420.0,
+      "total_insurance_payments": 20600.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 820.0,
+      "patient_balance": 820.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [
+      {
+        "payer_name": "Medicare Part B",
+        "payment_amount": 16480.0,
+        "payment_date": "2026-05-02",
+        "check_or_ref_number": "MCR-2026-B-14820"
+      },
+      {
+        "payer_name": "AARP Medicare Supplement Plan G",
+        "payment_amount": 4120.0,
+        "payment_date": "2026-05-10",
+        "check_or_ref_number": "MEDIGAP-2026-G-00221"
+      }
+    ],
+    "adjustments": []
+  },
+  "total_amount_due": 820.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday–Friday, 8:00 AM – 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

@@ -1,121 +1,83 @@
 # Synthetic Validation Dataset — Overview
 
 **Project:** LMU MSBA × Cedars-Sinai AI Patient Billing Agent  
-**Last updated:** June 2026
+**Last updated:** July 2026
 
 ---
 
 ## What This Dataset Is
 
-The synthetic validation dataset is the ground truth used to evaluate the
-AI billing agent. It contains 52 labeled test cases, each representing a
-realistic patient scenario with a known correct answer. When the agent
-responds to a case, its output is compared against the labeled expected
-response to measure accuracy.
+The synthetic validation dataset is the ground truth used to evaluate the AI
+billing agent. It contains **72 labeled test cases** across two dataset versions:
 
-The dataset was built entirely from scratch — no real patient records were
-used. All cases are modeled against official Cedars-Sinai policy documents
-and verified for clinical and financial accuracy.
+| Version | Cases | Focus |
+|---------|-------|-------|
+| **V1** | 42 | Text-input scenarios, billing literacy, FAP routing, safety |
+| **V2** | 30 | Document-linked bills with diversified patient financial profiles |
 
----
+Ten v1 document cases (DV-001 – DV-010) were superseded by v2 bills and
+are excluded from v1 to keep the combined total at **72 patients**.
 
-## Why Synthetic
+When the agent responds to a case, its output is compared against the labeled
+expected response to measure accuracy.
 
-Real patient billing records contain Protected Health Information (PHI) —
-identifiable patient data that cannot leave the hospital system under HIPAA.
-Synthetic data was the only viable approach. Every case reflects real billing
-scenarios, real FPL calculations, and real Cedars-Sinai policy, but uses
-entirely fictional patient profiles.
+All cases use fictional patient profiles — no real PHI.
 
 ---
 
 ## Contents
 
-| File | Description |
+| File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | 52 labeled test cases (answer key for agent evaluation) |
-| `generate_final.py` | Reproducible generation script |
-| `synthetic_bills/` | 10 JSON bills + 10 PDF bills (agent input format) |
+| `synthetic_validation_dataset.csv` | **Master — 72 labeled test cases (v1 + v2 combined). Use this.** |
+| `generate_v2_bills.py` | Regenerates v2 bill JSON for bills 01–15 (evaluator + agent copies) |
+| `generate_v2_csv.py` | Regenerates v2 validation CSV for bills 01–15 |
+| `generate_new_bills.py` | Generates v2 bills 16–25 (reproducible) |
+| `generate_v2_pdfs.py` | Generates PDFs for all v2 bills from JSON |
+| `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios (reference) |
+| `synthetic_bills_v2/` | V2 — 30 evaluator bills (JSON + PDF, full metadata) |
+| `synthetic_bills_v2_agent/` | V2 — 30 LLM-safe bills (JSON, metadata stripped) |
 
 ---
 
-## How It Was Built
+## V1 vs V2
 
-**Step 1 — Research** ([research-docs/](../research-docs/))  
-Comprehensive review of hospital billing fundamentals: revenue cycle, billing
-code systems, FPL thresholds, Cedars-Sinai financial assistance policy, common
-denial codes, and patient confusion points. This research defined what the
-agent needs to know.
+### V1 (42-case CSV, text-input only)
 
-**Step 2 — Edge Case Planning** ([edge-cases/patient_billing_synthetic_edge_cases_v2.csv](edge-cases/patient_billing_synthetic_edge_cases_v2.csv))  
-34 planned scenarios mapping every FPL boundary condition, insurance type,
-document type, and safety constraint the agent must handle. This served as
-the blueprint for the final dataset.
+- Text-input and document-parsing scenarios
+- No bill files — all cases are text-based patient questions
+- Covers billing understanding, FAP routing, safety, action planning
 
-**Step 3 — Dataset Generation** ([generate_final.py](generate_final.py))  
-A single Python script defines all 52 cases as structured data,
-auto-derives the 4 evaluation metric flags per case, writes the CSV, and
-runs a built-in FPL audit — recalculating every FPL value from income and
-household size to catch errors.
+### V2 (`synthetic_bills_v2/` + 30-case CSV)
 
-**Step 4 — Synthetic Bills** ([synthetic_bills/](synthetic_bills/))  
-10 Cedars-style hospital billing documents (JSON + PDF) created to support
-the Document Parsing test cases. Each bill uses real revenue codes, real CPT
-codes, and correct financial math.
+- Cedars-style patient statement schema v2.0 (guarantor, summary of services, patient services contact)
+- **30 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, COB, collections, FAP-approved, surprise billing, payment plans, Medi-Cal share of cost, etc.)
+- Diversified patient profiles in CSV (household size, income, FPL tier)
+- Bill JSON has **no FAP ground truth** — evaluation metadata lives in CSV only
+- `synthetic_bills_v2_agent/` strips `_schema_version`, `_note`, `_intentional_error_note` before LLM use
 
 ---
 
 ## Dataset Summary
 
-| Field | Value |
-|---|---|
-| Total cases | 52 |
-| Fields per case | 23 |
-| Evaluation metric flags | 4 (True/False per case) |
-| Synthetic bills | 10 (JSON + PDF) |
-| Payer types covered | 5 |
-| Knowledge documents referenced | 15 |
-| Errors found and corrected | 2 (DV-006, DV-007) |
-| Outstanding errors | 0 |
+| Field | V1 | V2 | Combined |
+|---|---|---|---|
+| Total cases | 42 | 30 | **72** |
+| Fields per case | 23 | 23 | 23 |
+| Synthetic bills | 0 | 30 (JSON+PDF) | 30 unique bill sets |
+| FPL range | 0% – 689% | 85% – 533% | 0% – 689% |
 
 ---
 
-## Category Breakdown
+## Category Breakdown (Combined)
 
-| Category | Cases | Scope |
-|---|---|---|
-| Billing Understanding | 18 | CPT/ICD-10 codes, EOBs, chargemaster, denial codes |
-| Financial Assistance | 14 | FPL eligibility, Charity Care vs. Discount Plan routing |
-| Safety & Privacy | 8 | PHI handling, legal limits, eligibility disclaimers |
-| Action Planning | 7 | Appeals, collections, billing disputes, multi-payer routing |
-| Document Parsing | 5 | Field extraction from uploaded JSON/PDF bills |
-
----
-
-## Evaluation Metric Flags
-
-Each case carries four True/False columns marking which metrics it tests:
-
-| Flag | What it measures |
-|---|---|
-| `tests_semantic_correctness` | Does the agent explain the right thing? |
-| `tests_precision_recall` | Does it extract the correct fields from a document? |
-| `tests_hallucination_rate` | Does it fabricate unsupported information? |
-| `tests_text_differentiation` | Is the response clear, plain-language, and actionable? |
-
----
-
-## Synthetic Bills
-
-10 billing documents (JSON + PDF pairs) covering:
-
-- **Self-Pay:** ER visit and inpatient stay (Financial Assistance testing)
-- **Medicaid:** ER and outpatient
-- **Medicare:** inpatient and observation stay
-- **Medicare Advantage:** inpatient and outpatient
-- **Commercial:** outpatient and inpatient
-
-JSON is the agent's structured input; PDF simulates what a patient would upload.
+| Category | V1 | V2 | Total |
+|---|---|---|---|
+| Financial Assistance | 12 | 12 | 24 |
+| Billing Understanding | 15 | 11 | 26 |
+| Safety & Privacy | 8 | 1 | 9 |
+| Action Planning | 6 | 6 | 12 |
+| Document Parsing | 1 | 0 | 1 |
 
 ---
 
@@ -127,32 +89,53 @@ JSON is the agent's structured input; PDF simulates what a patient would upload.
 | 401–600% FPL | Discount Payment Plan |
 | > 600% FPL | Standard billing (payment plans available) |
 
-**Formula:** $15,960/yr for a 1-person household + $5,680 per additional person  
-**Dataset range:** 0% – 689% FPL
-
----
-
-## Validation Rubric
-
-Before a case is included in the dataset, it must pass all of the following:
-
-| Check | Criteria |
-|---|---|
-| **Realistic** | Could this scenario plausibly happen to a real Cedars-Sinai patient? |
-| **Complete** | Are all required fields populated — no missing values |
-| **Internally consistent** | Do FPL %, income, household size, and eligibility tier all agree? |
-| **Grounded** | Is every expected response element traceable to a source document? |
-| **Safe** | Does the safety_constraint field prevent overconfident or harmful guidance? |
-| **Clear** | Is the edge condition being tested unambiguous? |
-| **Useful** | Does this case test a meaningful agent capability? |
+**Formula:** $15,960/yr for a 1-person household + $5,680 per additional person
 
 ---
 
 ## Reproduction
 
+Regenerate PDFs for all v2 bills:
+
 ```bash
 cd synthetic-data/
-python3 generate_final.py
+python3 generate_v2_pdfs.py
 ```
 
-Requires: `csv`, `json`, `os`, `shutil` (stdlib only — no external dependencies for CSV generation). PDF generation requires `reportlab`.
+Regenerate bills 16–25 JSON (evaluator + agent):
+
+```bash
+python3 generate_new_bills.py
+```
+
+Requires: `csv`, `json`, `os`, `reportlab` (PDFs only).
+
+---
+
+## Which Bills to Pass to the Agent
+
+| Dataset | Use this folder |
+|---|---|
+| V2 document cases (DV2-001 – DV2-030) | `synthetic_bills_v2_agent/` |
+
+Use `synthetic_validation_dataset.csv` as the master answer key (**72 patients**).
+
+---
+
+## V1 Cases Superseded by V2
+
+All 10 original v1 document cases were migrated to v2 format.
+Use `synthetic_bills_v2/` for all document cases.
+
+| V1 Case | Replaced by |
+|---------|-------------|
+| DV-001 | DV2-001 (self-pay ER) |
+| DV-002 | DV2-002 (self-pay inpatient) |
+| DV-003 | DV2-026 (commercial outpatient – contractual adjustment) |
+| DV-004 | DV2-027 (commercial inpatient – OON anesthesia) |
+| DV-005 | DV2-005 (Medicare inpatient) |
+| DV-006 | DV2-006 (Medicare observation + Medigap) |
+| DV-007 | DV2-007 (Medicare Advantage denied) |
+| DV-008 | DV2-008 (MA copay discrepancy) |
+| DV-009 | DV2-009 (Medi-Cal ER) |
+| DV-010 | DV2-028 (Medi-Cal outpatient – share of cost) |

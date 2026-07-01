@@ -1,0 +1,134 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-04-01",
+  "due_date": "2026-05-01",
+  "patient": {
+    "patient_name": "Maria Gutierrez",
+    "patient_account_number": "CS-2026-00441",
+    "service_date": "2026-03-15"
+  },
+  "guarantor": {
+    "guarantor_name": "Maria Gutierrez",
+    "guarantor_account_number": "GU-2026-00441"
+  },
+  "insurance": {
+    "primary": "None on file",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Emergency Department – Level 4",
+        "code_type": "CPT",
+        "code": "99284",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 3200.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 3200.0
+      },
+      {
+        "service_name": "CT Scan – Abdomen/Pelvis with contrast",
+        "code_type": "CPT",
+        "code": "74177",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 5800.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 5800.0
+      },
+      {
+        "service_name": "Comprehensive Metabolic Panel",
+        "code_type": "CPT",
+        "code": "80053",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 620.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 620.0
+      },
+      {
+        "service_name": "IV Administration – Initial Hour",
+        "code_type": "CPT",
+        "code": "96365",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 480.0
+      },
+      {
+        "service_name": "Normal Saline 1000mL (IV Fluid)",
+        "code_type": "HCPCS",
+        "code": "J7030",
+        "quantity": 2,
+        "unit": "bag",
+        "billed_amount": 300.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 300.0
+      },
+      {
+        "service_name": "Pharmacy – Ondansetron 4mg injection",
+        "code_type": "HCPCS",
+        "code": "J2405",
+        "quantity": 1,
+        "unit": "dose",
+        "billed_amount": 200.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 200.0
+      },
+      {
+        "service_name": "Medical/Surgical Supplies",
+        "code_type": "Revenue",
+        "code": "0270",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 400.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 400.0
+      },
+      {
+        "service_name": "Emergency Room Facility Fee",
+        "code_type": "Revenue",
+        "code": "0450",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 8000.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 8000.0
+      }
+    ],
+    "totals": {
+      "total_billed": 19000.0,
+      "total_insurance_payments": 0.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 19000.0,
+      "patient_balance": 19000.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [],
+    "adjustments": []
+  },
+  "total_amount_due": 19000.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday–Friday, 8:00 AM – 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

@@ -27,8 +27,8 @@ HOW TO ADD A TOOL:
     use the create_tool() factory pattern — see search_bills.py for an example.
 """
 
-# from app.tools.your_tool import your_tool
+from app.tools.bill_parser import bill_parser
 
 TOOLS = [
-    # ADD YOUR TOOLS HERE
+    bill_parser,
 ]

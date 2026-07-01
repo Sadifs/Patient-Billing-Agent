@@ -1,0 +1,75 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-05-05",
+  "due_date": "2026-06-05",
+  "patient": {
+    "patient_name": "Bernard Okafor",
+    "patient_account_number": "CS-2026-06741",
+    "service_date": "2026-04-14"
+  },
+  "guarantor": {
+    "guarantor_name": "Bernard Okafor",
+    "guarantor_account_number": "GU-2026-06741"
+  },
+  "insurance": {
+    "primary": "Kaiser Permanente Senior Advantage PPO (Medicare Advantage)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Intravitreal Injection – Ranibizumab (Lucentis)",
+        "code_type": "CPT",
+        "code": "67028",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 2800.0,
+        "insurance_payments": 2200.0,
+        "adjustments": 0.0,
+        "patient_balance": 600.0
+      },
+      {
+        "service_name": "Ranibizumab (Lucentis) 0.5mg vial – Specialty Pharmacy",
+        "code_type": "HCPCS",
+        "code": "J2778",
+        "quantity": 1,
+        "unit": "vial",
+        "billed_amount": 1900.0,
+        "insurance_payments": 1300.0,
+        "adjustments": 0.0,
+        "patient_balance": 600.0
+      }
+    ],
+    "totals": {
+      "total_billed": 4700.0,
+      "total_insurance_payments": 3500.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 1200.0,
+      "patient_balance": 1200.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [
+      {
+        "payer_name": "Kaiser Permanente Senior Advantage PPO",
+        "payment_amount": 3500.0,
+        "payment_date": "2026-05-01",
+        "check_or_ref_number": "KP-MA-2026-00991"
+      }
+    ],
+    "adjustments": []
+  },
+  "total_amount_due": 1200.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday–Friday, 8:00 AM – 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

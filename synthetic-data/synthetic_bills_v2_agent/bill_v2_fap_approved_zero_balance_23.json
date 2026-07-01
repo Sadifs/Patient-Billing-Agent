@@ -1,0 +1,163 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-01",
+  "due_date": "2026-07-01",
+  "patient": {
+    "patient_name": "Marcus Webb",
+    "patient_account_number": "CS-2026-07005",
+    "service_date": "2026-05-08"
+  },
+  "guarantor": {
+    "guarantor_name": "Marcus Webb",
+    "guarantor_account_number": "GU-2026-07005"
+  },
+  "insurance": {
+    "primary": "None on file",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Emergency Department \u2013 Level 4",
+        "code_type": "CPT",
+        "code": "99284",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 3200.0,
+        "insurance_payments": 3200.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "CT Scan \u2013 Chest with contrast",
+        "code_type": "CPT",
+        "code": "71250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 5600.0,
+        "insurance_payments": 5600.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Pulmonary Function Test",
+        "code_type": "CPT",
+        "code": "94010",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 560.0,
+        "insurance_payments": 560.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Chest X-Ray",
+        "code_type": "CPT",
+        "code": "71046",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 240.0,
+        "insurance_payments": 240.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "CBC + CMP",
+        "code_type": "CPT",
+        "code": "85025",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 480.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Pharmacy \u2013 Bronchodilators",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 480.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "IV Administration",
+        "code_type": "CPT",
+        "code": "96365",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 480.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Medical/Surgical Supplies",
+        "code_type": "Revenue",
+        "code": "0270",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480.0,
+        "insurance_payments": 480.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Observation Services (12 hours)",
+        "code_type": "Revenue",
+        "code": "0762",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 7200.0,
+        "insurance_payments": 7200.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      },
+      {
+        "service_name": "Financial Assistance Credit (FAP)",
+        "code_type": "Revenue",
+        "code": "0399",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 0.0,
+        "patient_balance": 0.0
+      }
+    ],
+    "totals": {
+      "total_billed": 18720.0,
+      "total_insurance_payments": 18720.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 0.0,
+      "patient_balance": 0.0
+    }
+  },
+  "payment_detail": {
+    "insurance_payments": [
+      {
+        "payer_name": "Cedars-Sinai Financial Assistance Program (FAP)",
+        "payment_amount": 18720.0,
+        "payment_date": "2026-05-25",
+        "check_or_ref_number": "FAP-2026-07005-APPROVED"
+      }
+    ],
+    "adjustments": []
+  },
+  "total_amount_due": 0.0,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}
