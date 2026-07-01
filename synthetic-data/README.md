@@ -8,12 +8,15 @@
 ## What This Dataset Is
 
 The synthetic validation dataset is the ground truth used to evaluate the AI
-billing agent. It contains **67 labeled test cases** across two dataset versions:
+billing agent. It contains **60 labeled test cases** across two dataset versions:
 
 | Version | Cases | Focus |
 |---------|-------|-------|
-| **V1** | 52 | Text-input scenarios, billing literacy, FAP routing, safety |
+| **V1** | 45 | Text-input scenarios, billing literacy, FAP routing, safety |
 | **V2** | 15 | Document-linked bills with diversified patient financial profiles |
+
+Seven v1 document cases (DV-001, DV-002, DV-005–DV-009) were superseded by v2
+bills and are excluded from v1 to keep the combined total at **60 patients**.
 
 When the agent responds to a case, its output is compared against the labeled
 expected response to measure accuracy.
@@ -26,9 +29,9 @@ All cases use fictional patient profiles — no real PHI.
 
 | File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | V1 — 52 labeled test cases |
+| `synthetic_validation_dataset.csv` | V1 — 45 labeled test cases |
 | `synthetic_validation_dataset_v2.csv` | V2 — 15 document-linked test cases |
-| `synthetic_validation_dataset_combined.csv` | **Merged** — all 67 cases |
+| `synthetic_validation_dataset_combined.csv` | **Merged — 60 patients total** |
 | `generate_final.py` | Regenerates v1 CSV |
 | `generate_v2_bills.py` | Regenerates v2 bill JSON (evaluator + agent copies) |
 | `generate_v2_csv.py` | Regenerates v2 validation CSV |
@@ -63,7 +66,7 @@ All cases use fictional patient profiles — no real PHI.
 
 | Field | V1 | V2 | Combined |
 |---|---|---|---|
-| Total cases | 52 | 15 | **67** |
+| Total cases | 45 | 15 | **60** |
 | Fields per case | 23 | 23 | 23 |
 | Synthetic bills | 10 (JSON+PDF) | 15 (JSON) | 25 unique bill sets |
 | FPL range | 0% – 689% | 85% – 533% | 0% – 689% |
@@ -74,11 +77,11 @@ All cases use fictional patient profiles — no real PHI.
 
 | Category | V1 | V2 | Total |
 |---|---|---|---|
-| Financial Assistance | 14 | 5 | 19 |
-| Billing Understanding | 18 | 5 | 23 |
+| Financial Assistance | 12 | 5 | 17 |
+| Billing Understanding | 15 | 5 | 20 |
 | Safety & Privacy | 8 | 1 | 9 |
-| Action Planning | 7 | 3 | 10 |
-| Document Parsing | 5 | 1 | 6 |
+| Action Planning | 6 | 3 | 9 |
+| Document Parsing | 4 | 1 | 5 |
 
 ---
 
@@ -123,4 +126,16 @@ Requires: `csv`, `json`, `os`, `shutil` (stdlib only).
 | V1 document cases (DV-001 – DV-010) | `synthetic_bills/` |
 | V2 document cases (DV2-001 – DV2-015) | `synthetic_bills_v2_agent/` |
 
-Use `synthetic_validation_dataset_combined.csv` as the master answer key for evaluation.
+Use `synthetic_validation_dataset_combined.csv` as the master answer key (**60 patients**).
+
+### V1 cases superseded by V2 (excluded from v1 CSV)
+
+| Removed | Replaced by |
+|---------|-------------|
+| DV-001 | DV2-001 (self-pay ER) |
+| DV-002 | DV2-002 (self-pay inpatient) |
+| DV-005 | DV2-005 (Medicare inpatient) |
+| DV-006 | DV2-006 (Medicare observation) |
+| DV-007 | DV2-007 (Medicare Advantage denied) |
+| DV-008 | DV2-008 (MA copay discrepancy) |
+| DV-009 | DV2-009 (Medi-Cal ER) |
