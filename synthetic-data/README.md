@@ -29,9 +29,7 @@ All cases use fictional patient profiles — no real PHI.
 
 | File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | V1 — 45 labeled test cases |
-| `synthetic_validation_dataset_v2.csv` | V2 — 15 document-linked test cases |
-| `synthetic_validation_dataset_combined.csv` | **Merged — 60 patients total** |
+| `synthetic_validation_dataset.csv` | **Master — 60 labeled test cases (v1 + v2 combined). Use this.** |
 | `generate_final.py` | Regenerates v1 CSV |
 | `generate_v2_bills.py` | Regenerates v2 bill JSON (evaluator + agent copies) |
 | `generate_v2_csv.py` | Regenerates v2 validation CSV |
@@ -68,7 +66,7 @@ All cases use fictional patient profiles — no real PHI.
 |---|---|---|---|
 | Total cases | 45 | 15 | **60** |
 | Fields per case | 23 | 23 | 23 |
-| Synthetic bills | 10 (JSON+PDF) | 15 (JSON) | 25 unique bill sets |
+| Synthetic bills | 10 (JSON+PDF) | 15 (JSON, PDF in progress) | 25 unique bill sets |
 | FPL range | 0% – 689% | 85% – 533% | 0% – 689% |
 
 ---
@@ -126,7 +124,7 @@ Requires: `csv`, `json`, `os`, `shutil` (stdlib only).
 | V1 document cases (DV-001 – DV-010) | `synthetic_bills/` |
 | V2 document cases (DV2-001 – DV2-015) | `synthetic_bills_v2_agent/` |
 
-Use `synthetic_validation_dataset_combined.csv` as the master answer key (**60 patients**).
+Use `synthetic_validation_dataset.csv` as the master answer key (**60 patients**).
 
 ### V1 cases superseded by V2 (excluded from v1 CSV)
 
