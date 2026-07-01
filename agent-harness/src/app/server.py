@@ -17,6 +17,7 @@ Endpoints:
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -33,6 +34,7 @@ from agent_harness import AgentHarness, Message, OpenAICompatibleClient
 from app.rag.indexer import KnowledgeBaseIndexer
 from app.rag.search import LocalSearchService
 from app.tools import TOOLS as REGISTERED_TOOLS
+from app.tools.calculate_fpl import calculate_fpl
 from app.tools.search_bills import create_search_bills_tool
 from app.hooks import HOOKS as REGISTERED_HOOKS
 from app.skills import build_system_prompt
@@ -54,6 +56,46 @@ KNOWLEDGE_DIR = _APP_DIR.parent.parent / "knowledge-docs"
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/tmp/uploads")).expanduser()
 indexer = KnowledgeBaseIndexer(knowledge_dir=str(KNOWLEDGE_DIR))
 search_service = LocalSearchService(indexer)
+
+
+def _extract_fpl_inputs(text: str) -> dict[str, int | float] | None:
+    """Extract simple household size and income values from patient text."""
+    household_match = re.search(
+        r"\b(?:household|family)\s*(?:size)?\s*(?:is|:)?\s*(\d{1,2})\b",
+        text,
+        re.IGNORECASE,
+    )
+    income_match = re.search(
+        r"\b(?:household\s*)?(?:income|make|earn|salary)\b[^$\d]{0,20}\$?\s*([\d,]+(?:\.\d{2})?)",
+        text,
+        re.IGNORECASE,
+    )
+
+    if not household_match or not income_match:
+        return None
+
+    return {
+        "household_size": int(household_match.group(1)),
+        "annual_income_usd": float(income_match.group(1).replace(",", "")),
+    }
+
+
+def _fpl_context_message(user_message: str) -> Message | None:
+    """Pre-calculate FPL context when the user supplies both required values."""
+    fpl_inputs = _extract_fpl_inputs(user_message)
+    if not fpl_inputs:
+        return None
+
+    result = calculate_fpl.handler(fpl_inputs)
+    return Message(
+        role="system",
+        content=(
+            "The user provided household size and annual household income. "
+            "Use this calculated FPL screening result in your answer instead "
+            "of estimating manually. Do not guarantee eligibility. "
+            f"FPL calculation result: {result}"
+        ),
+    )
 
 
 def _make_client():
@@ -118,6 +160,9 @@ async def chat(request: Request):
     messages = []
     for msg in history:
         messages.append(Message(role=msg["role"], content=msg["content"]))
+    fpl_context = _fpl_context_message(user_message)
+    if fpl_context:
+        messages.append(fpl_context)
     messages.append(Message(role="user", content=user_message))
 
     harness = _build_harness()
@@ -131,7 +176,17 @@ async def chat(request: Request):
                 chunks.append(chunk)
             return chunks
 
-        chunks = await loop.run_in_executor(None, run_agent)
+        try:
+            chunks = await loop.run_in_executor(None, run_agent)
+        except Exception:
+            chunks = [
+                (
+                    "I’m sorry, I ran into a technical issue while preparing "
+                    "that answer. If you are asking about help paying a bill, "
+                    "please share your household size and approximate annual "
+                    "household income, and I can estimate your FPL percentage."
+                )
+            ]
         for chunk in chunks:
             await resp.write(f"data: {json.dumps({'text': chunk})}\n\n".encode())
         await resp.write(b"data: [DONE]\n\n")
