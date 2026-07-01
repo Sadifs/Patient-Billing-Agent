@@ -29,8 +29,7 @@ All cases use fictional patient profiles — no real PHI.
 
 | File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | **Master — 60 labeled test cases (v1 + v2 combined)** |
-| `synthetic_validation_dataset_v2.csv` | V2 only — 15 document-linked test cases (reference copy) |
+| `synthetic_validation_dataset.csv` | **Master — 60 labeled test cases (v1 + v2 combined). Use this.** |
 | `generate_final.py` | Regenerates v1 CSV |
 | `generate_v2_bills.py` | Regenerates v2 bill JSON (evaluator + agent copies) |
 | `generate_v2_csv.py` | Regenerates v2 validation CSV |
