@@ -16,7 +16,9 @@ Endpoints:
 
 import asyncio
 import json
+import logging
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -33,9 +35,12 @@ from agent_harness import AgentHarness, Message, OpenAICompatibleClient
 from app.rag.indexer import KnowledgeBaseIndexer
 from app.rag.search import LocalSearchService
 from app.tools import TOOLS as REGISTERED_TOOLS
+from app.tools.calculate_fpl import calculate_fpl
 from app.tools.search_bills import create_search_bills_tool
 from app.hooks import HOOKS as REGISTERED_HOOKS
 from app.skills import build_system_prompt
+
+logger = logging.getLogger(__name__)
 
 # ── Configuration (from environment variables) ──────────────────────────
 API_KEY = os.environ.get("API_KEY", "")
@@ -51,8 +56,90 @@ app.static("/static", str(_APP_DIR / "static"))
 
 # ── Knowledge base ──────────────────────────────────────────────────────
 KNOWLEDGE_DIR = _APP_DIR.parent.parent / "knowledge-docs"
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/tmp/uploads")).expanduser()
 indexer = KnowledgeBaseIndexer(knowledge_dir=str(KNOWLEDGE_DIR))
 search_service = LocalSearchService(indexer)
+
+
+def _extract_fpl_inputs(text: str) -> dict[str, int | float] | None:
+    """Extract simple household size and income values from patient text."""
+    household_match = re.search(
+        r"\b(?:household|family)\s*(?:size)?\s*(?:is|:)?\s*(\d{1,2})\b",
+        text,
+        re.IGNORECASE,
+    )
+    income_match = re.search(
+        r"\b(?:household\s*)?(?:income|make|earn|salary)\b[^$\d]{0,20}\$?\s*([\d,]+(?:\.\d{2})?)",
+        text,
+        re.IGNORECASE,
+    )
+
+    if not household_match or not income_match:
+        return None
+
+    return {
+        "household_size": int(household_match.group(1)),
+        "annual_income_usd": float(income_match.group(1).replace(",", "")),
+    }
+
+
+def _fpl_context_message(user_message: str) -> Message | None:
+    """Pre-calculate FPL context when the user supplies both required values."""
+    fpl_inputs = _extract_fpl_inputs(user_message)
+    if not fpl_inputs:
+        return None
+
+    result = calculate_fpl.handler(fpl_inputs)
+    return Message(
+        role="system",
+        content=(
+            "The user provided household size and annual household income. "
+            "Use this calculated FPL screening result in your answer instead "
+            "of estimating manually. Do not guarantee eligibility. "
+            f"FPL calculation result: {result}"
+        ),
+    )
+
+
+def _technical_fallback_message(user_message: str) -> str:
+    """Return a relevant fallback when the model/provider errors mid-response."""
+    text = user_message.lower()
+
+    if any(word in text for word in ("insurance", "provider", "primary", "secondary")):
+        return (
+            "I’m sorry, I ran into a technical issue while checking that. "
+            "To identify your insurance provider, I need the bill or the part "
+            "of the bill that lists Primary Insurance and Secondary Insurance. "
+            "Please upload the bill again or paste those lines, and I can help "
+            "read them."
+        )
+
+    if any(
+        phrase in text
+        for phrase in (
+            "help paying",
+            "can't afford",
+            "cannot afford",
+            "financial assistance",
+            "charity care",
+            "payment plan",
+            "household",
+            "income",
+            "fpl",
+        )
+    ):
+        return (
+            "I’m sorry, I ran into a technical issue while preparing that "
+            "financial-assistance answer. If you share your household size and "
+            "approximate annual household income, I can estimate your FPL "
+            "percentage and suggest next steps."
+        )
+
+    return (
+        "I’m sorry, I ran into a technical issue while preparing that answer. "
+        "Please try again, or paste the relevant bill details and I can help "
+        "explain them."
+    )
 
 
 def _make_client():
@@ -117,6 +204,9 @@ async def chat(request: Request):
     messages = []
     for msg in history:
         messages.append(Message(role=msg["role"], content=msg["content"]))
+    fpl_context = _fpl_context_message(user_message)
+    if fpl_context:
+        messages.append(fpl_context)
     messages.append(Message(role="user", content=user_message))
 
     harness = _build_harness()
@@ -130,7 +220,11 @@ async def chat(request: Request):
                 chunks.append(chunk)
             return chunks
 
-        chunks = await loop.run_in_executor(None, run_agent)
+        try:
+            chunks = await loop.run_in_executor(None, run_agent)
+        except Exception:
+            logger.exception("Agent response generation failed")
+            chunks = [_technical_fallback_message(user_message)]
         for chunk in chunks:
             await resp.write(f"data: {json.dumps({'text': chunk})}\n\n".encode())
         await resp.write(b"data: [DONE]\n\n")
@@ -148,15 +242,22 @@ async def upload(request: Request):
     if not uploaded:
         return response.json({"error": "No file in request"}, status=400)
 
-    filename = uploaded.name
+    filename = Path(uploaded.name).name
     file_body = uploaded.body
 
-    save_path = KNOWLEDGE_DIR / filename
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    save_path = UPLOAD_DIR / filename
     save_path.write_bytes(file_body)
 
     indexer.index_file(str(save_path))
 
-    return response.json({"status": "indexed", "filename": filename})
+    return response.json(
+        {
+            "status": "indexed",
+            "filename": filename,
+            "path": str(save_path),
+        }
+    )
 
 
 # ── Startup ─────────────────────────────────────────────────────────────
