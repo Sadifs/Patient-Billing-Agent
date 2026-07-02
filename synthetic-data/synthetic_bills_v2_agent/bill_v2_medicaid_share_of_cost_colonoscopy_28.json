@@ -80,7 +80,7 @@
       {
         "service_name": "Medi-Cal Share of Cost",
         "code_type": "Revenue",
-        "code": "0320",
+        "code": "0399",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 480.0,

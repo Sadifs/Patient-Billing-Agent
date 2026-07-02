@@ -276,9 +276,9 @@
         "patient_balance": 90.0
       },
       {
-        "service_name": "Physical Therapy \u2013 Cardiac Rehab Eval",
+        "service_name": "Physical Therapy \u2013 Cardiac Rehab Evaluation",
         "code_type": "CPT",
-        "code": "97001",
+        "code": "97161",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 600.0,
@@ -320,9 +320,9 @@
         "patient_balance": 216.0
       },
       {
-        "service_name": "OR Facility Fee \u2013 PCI Suite",
+        "service_name": "Cardiac Catheterization Lab \u2013 PCI Suite",
         "code_type": "Revenue",
-        "code": "0360",
+        "code": "0481",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 4200.0,

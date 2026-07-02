@@ -100,9 +100,9 @@
         "patient_balance": 180.0
       },
       {
-        "service_name": "Anesthesia \u2013 General (OUT-OF-NETWORK provider)",
+        "service_name": "Anesthesia \u2013 Total Knee Arthroplasty (OUT-OF-NETWORK provider \u2013 Pacific Anesthesia Group)",
         "code_type": "CPT",
-        "code": "00470",
+        "code": "01402",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 6200.0,
