@@ -58,6 +58,45 @@ All cases use fictional patient profiles — no real PHI.
 
 ---
 
+## V2 Bill Inventory (DV2-001 – DV2-030)
+
+Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a distinct insurance scenario. The evaluator folder (`synthetic_bills_v2/`) contains full metadata; the agent folder (`synthetic_bills_v2_agent/`) has evaluation fields stripped.
+
+| Case ID | File (prefix: `bill_v2_`) | Insurance | Scenario | Key Teaching Point |
+|---|---|---|---|---|
+| DV2-001 | `selfpay_er_01` | None (self-pay) | ER visit – abdominal pain | Full chargemaster bill; AGB & FAP screening needed |
+| DV2-002 | `selfpay_inpatient_02` | None (self-pay) | Inpatient appendectomy | Full chargemaster; FAP eligibility at ~94% FPL |
+| DV2-003 | `commercial_ppo_outpatient_03` | Anthem PPO | Outpatient MRI + office visit | Copay/coinsurance after deductible |
+| DV2-004 | `commercial_hdhp_oon_anesthesia_04` | UHC HDHP | Knee replacement – OON anesthesiologist | No Surprises Act; balance billing for OON provider |
+| DV2-005 | `medicare_traditional_inpatient_05` | Medicare A+B | Hip replacement inpatient | DRG payment; Part A deductible = $1,632 (2026) |
+| DV2-006 | `medicare_medigap_observation_06` | Medicare + Medigap Plan G | 72-hr observation stay | Observation ≠ inpatient; outpatient drugs not covered by Medigap |
+| DV2-007 | `medicare_advantage_denied_07` | Humana Gold HMO (MA) | Spinal fusion – claim denied | Prior auth denial; $107K pending; 180-day appeal right |
+| DV2-008 | `medicare_advantage_copay_discrepancy_08` | Kaiser Senior Advantage (MA) | Intravitreal injection (Lucentis) | Billed copay ($600) differs from expected copay ($200) |
+| DV2-009 | `medicaid_er_09` | Medi-Cal FFS | ER visit – standard Medi-Cal | Safety scenario; patient balance unusual for Medi-Cal |
+| DV2-010 | `medicaid_share_of_cost_10` | Medi-Cal Share of Cost | Colonoscopy with biopsy | Share of Cost as monthly deductible mechanism |
+| DV2-011 | `dual_eligible_snf_11` | Medicare + Medi-Cal (dual) | SNF days 21–25 | Dual eligible = $0 balance; Medicare primary, Medi-Cal fills gap |
+| DV2-012 | `commercial_wellness_reclassified_12` | Blue Shield HMO | Annual wellness visit reclassified | Preventive→diagnostic reclassification; unexpected patient balance |
+| DV2-013 | `intentionally_incorrect_math_13` | Cigna EPO | Lab panel – intentional math error | Outstanding ($260) ≠ patient balance ($960); agent should flag discrepancy |
+| DV2-014 | `tricare_outpatient_14` | TRICARE Prime | Prenatal visit + obstetric ultrasound | Active duty dependent; $0 patient balance |
+| DV2-015 | `workers_comp_er_15` | State Compensation Fund | ER – workplace hand laceration | Workers' comp pays 100%; $0 patient balance |
+| DV2-016 | `complex_cardiac_inpatient_16` | Blue Shield PPO | Cardiac inpatient – PCI + stents | High-complexity multi-line bill; FAP at ~337% FPL |
+| DV2-017 | `maternity_inpatient_17` | Anthem HMO | Vaginal delivery + newborn | Guarantor = spouse; maternity coverage; epidural |
+| DV2-018 | `secondary_insurance_cob_18` | Cigna PPO + Kaiser (secondary COB) | Laparoscopic colon resection | Coordination of Benefits; secondary insurance credit |
+| DV2-019 | `medicare_partb_outpatient_19` | Medicare Part B | Colonoscopy + polypectomy | 80/20 Part B split; FAP eligible at ~105% FPL |
+| DV2-020 | `medicaid_outpatient_20` | L.A. Care (Medi-Cal MC) | Outpatient physical therapy | Small copay; FAP eligible at ~90% FPL |
+| DV2-021 | `collections_selfpay_21` | None (collections) | ER appendectomy – sent to collections | Patient FAP-eligible (~257% FPL) but never applied; retroactive FAP |
+| DV2-022 | `eob_commercial_22` | UHC PPO | Cardiac inpatient – EOB reading | Tests agent's ability to explain EOB components |
+| DV2-023 | `fap_approved_zero_balance_23` | None → FAP applied | ER respiratory – FAP already approved | Zero balance because FAP applied; agent must recognize this |
+| DV2-024 | `surprise_balance_billing_24` | Aetna PPO | Hip replacement – OON assistant surgeon | No Surprises Act dispute; OON surprise billing; ~555% FPL |
+| DV2-025 | `selfpay_payment_plan_25` | None (payment plan active) | Lumbar spinal fusion | Active payment plan; prior payments credited; FAP eligible (~264% FPL) |
+| DV2-026 | `commercial_outpatient_contractual_26` | Cigna PPO | Outpatient imaging – contractual adj | Large contractual adjustment; deductible scenario |
+| DV2-027 | `commercial_inpatient_oon_anesthesia_27` | Aetna PPO | Knee replacement – OON anesthesia | Balance billing for OON anesthesiologist; No Surprises Act |
+| DV2-028 | `medicaid_share_of_cost_colonoscopy_28` | Molina (Medi-Cal MC) | Colonoscopy – share of cost | Medi-Cal managed care + contractual adj + SOC; FAP eligible (~116% FPL) |
+| DV2-029 | `pediatric_er_appendectomy_29` | Anthem PPO | Pediatric ER appendectomy | Minor patient; FAP eligibility based on parent (guarantor) income |
+| DV2-030 | `prior_auth_denial_30` | Kaiser HMO | MRI studies – prior auth denied | Denial pending appeal; patient near FAP threshold (~388% FPL) |
+
+---
+
 ## Dataset Summary
 
 | Field | V1 | V2 | Combined |

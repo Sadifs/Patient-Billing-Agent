@@ -69,9 +69,9 @@ def draw_page1(c, bill):
 
     c.setFillColor(WHITE)
     c.setFont("Helvetica-Bold", 17)
-    c.drawString(L, PAGE_H - 28, "Cedars")
+    c.drawString(L, PAGE_H - 28, "Cedars-")
     c.setFont("Helvetica", 17)
-    c.drawString(L + 58, PAGE_H - 28, "Sinai")
+    c.drawString(L + 62, PAGE_H - 28, "Sinai")
     c.setFont("Helvetica", 8)
     c.drawString(L, PAGE_H - 43, "P.O. Box 48954")
     c.drawString(L, PAGE_H - 53, "Los Angeles, CA 90048-0954")
@@ -307,9 +307,9 @@ def draw_page1(c, bill):
     # Stub logo
     c.setFillColor(PURPLE)
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(L + 24, stub_top - 16, "Cedars")
+    c.drawString(L + 24, stub_top - 16, "Cedars-")
     c.setFont("Helvetica", 13)
-    c.drawString(L + 74, stub_top - 16, "Sinai")
+    c.drawString(L + 78, stub_top - 16, "Sinai")
 
     # Stub details (left)
     c.setFillColor(DARK_GRAY)
@@ -360,9 +360,11 @@ def draw_page1(c, bill):
     c.drawString(px + 5, stub_top - 119, "Print Cardholder's Name: _____________________________")
     c.drawString(px + 5, stub_top - 130, "Signature: ___________________________________________")
 
-    # Barcode number
+    # Barcode number (machine-readable guarantor account for check processing)
     acct = guarantor["guarantor_account_number"].replace("GU-", "").replace("-", "")
-    c.setFillColor(BLACK)
+    c.setFillColor(DARK_GRAY)
+    c.setFont("Helvetica", 7)
+    c.drawString(L, 30, "Remittance ID:")
     c.setFont("Helvetica", 9)
     c.drawString(L, 18, f"{'0'*10}{acct}{'0'*10}")
 
@@ -381,9 +383,9 @@ def draw_page2(c, bill):
 
     c.setFillColor(WHITE)
     c.setFont("Helvetica-Bold", 17)
-    c.drawString(L, PAGE_H - 28, "Cedars")
+    c.drawString(L, PAGE_H - 28, "Cedars-")
     c.setFont("Helvetica", 17)
-    c.drawString(L + 58, PAGE_H - 28, "Sinai")
+    c.drawString(L + 62, PAGE_H - 28, "Sinai")
     c.setFont("Helvetica", 8)
     c.drawString(L, PAGE_H - 43, "P.O. Box 48954")
     c.drawString(L, PAGE_H - 53, "Los Angeles, CA 90048-0954")
@@ -429,6 +431,10 @@ def draw_page2(c, bill):
             c.drawCentredString(xp + cw / 2, ty - rh + 5, h)
         xp += cw
 
+    # Determine if this bill has insurance on file
+    ins_primary = bill.get("insurance", {}).get("primary", "")
+    has_insurance = ins_primary not in ("", "None", "None / Self-Pay", "Self-Pay", "N/A")
+
     # Data rows
     ry = ty - rh
     for i, item in enumerate(line_items):
@@ -447,7 +453,8 @@ def draw_page2(c, bill):
         c.drawCentredString(xp + col_w[1]/2, ry - rh + 5, code_str);                           xp += col_w[1]
         c.drawCentredString(xp + col_w[2]/2, ry - rh + 5, str(item["quantity"]));              xp += col_w[2]
         c.drawRightString(xp + col_w[3] - 4, ry - rh + 5, money(item["billed_amount"]));       xp += col_w[3]
-        c.drawRightString(xp + col_w[4] - 4, ry - rh + 5, money(item["insurance_payments"]));  xp += col_w[4]
+        ins_display = money(item["insurance_payments"]) if has_insurance else "—"
+        c.drawRightString(xp + col_w[4] - 4, ry - rh + 5, ins_display);                        xp += col_w[4]
         c.drawRightString(xp + col_w[5] - 4, ry - rh + 5, money(item["adjustments"]));         xp += col_w[5]
         c.drawRightString(xp + col_w[6] - 4, ry - rh + 5, money(item["patient_balance"]))
         ry -= rh
@@ -459,12 +466,11 @@ def draw_page2(c, bill):
     c.setFont("Helvetica-Bold", 8.5)
     c.drawString(L + 4, ry - rh + 5, "Totals")
     xp = L + col_w[0] + col_w[1] + col_w[2]
-    for val, cw in zip(
-        [totals["total_billed"], totals["total_insurance_payments"],
-         totals["total_adjustments"], totals["patient_balance"]],
-        col_w[3:]
-    ):
-        c.drawRightString(xp + cw - 4, ry - rh + 5, money(val))
+    total_vals = [totals["total_billed"], totals["total_insurance_payments"],
+                  totals["total_adjustments"], totals["patient_balance"]]
+    for idx, (val, cw) in enumerate(zip(total_vals, col_w[3:])):
+        display = ("—" if (idx == 1 and not has_insurance) else money(val))
+        c.drawRightString(xp + cw - 4, ry - rh + 5, display)
         xp += cw
     ry -= rh
 

@@ -58,9 +58,9 @@
         "patient_balance": 3200.0
       },
       {
-        "service_name": "Radiologist Read Fee",
+        "service_name": "Radiologist Read Fee \u2013 MRI Studies (Lumbar Spine)",
         "code_type": "CPT",
-        "code": "73222",
+        "code": "72148",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 1400.0,
