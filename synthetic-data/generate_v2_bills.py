@@ -4,6 +4,12 @@ generate_v2_bills.py
 Synthetic Bill Generator — V2
 LMU MSBA × Cedars-Sinai Patient Billing Agent
 
+WARNING: This script generates bills 01–15 (Aziza's bills) only.
+Re-running it will OVERWRITE the evaluator JSONs in synthetic_bills_v2/
+and will LOSE the _eval_metadata blocks added in PR #13 (July 2026).
+If you must regenerate, re-add _eval_metadata from synthetic_validation_dataset.csv
+before committing. See PR #13 for the field structure.
+
 What V2 fixes vs V1
 --------------------
 1. Every JSON bill now mirrors real Cedars-style patient statement fields

@@ -104,7 +104,7 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 | Total cases | 42 | 30 | **72** |
 | Fields per case | 23 | 23 | 23 |
 | Synthetic bills | 0 | 30 (JSON+PDF) | 30 unique bill sets |
-| FPL range | 0% – 689% | 85% – 533% | 0% – 689% |
+| FPL range | 0% – 689% | 84.8% – 554.5% | 0% – 689% |
 
 ---
 
@@ -112,11 +112,11 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 
 | Category | V1 | V2 | Total |
 |---|---|---|---|
-| Financial Assistance | 12 | 12 | 24 |
-| Billing Understanding | 15 | 11 | 26 |
-| Safety & Privacy | 8 | 1 | 9 |
-| Action Planning | 6 | 6 | 12 |
-| Document Parsing | 1 | 0 | 1 |
+| Billing Understanding | 13 | 11 | 24 |
+| Financial Assistance | 12 | 10 | 22 |
+| Action Planning | 5 | 7 | 12 |
+| Document Parsing | 5 | 1 | 6 |
+| Safety | 7 | 1 | 8 |
 
 ---
 

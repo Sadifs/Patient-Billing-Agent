@@ -166,7 +166,7 @@
     "case_id": "DV2-023",
     "household_size": 1,
     "annual_income_usd": 17300,
-    "fpl_percentage": 108.0,
+    "fpl_percentage": 108.4,
     "expected_eligibility_tier": "Charity Care (108% FPL, HH=1) \u2014 FAP approved, $0 balance",
     "scenario_tags": [
       "fap_approved",
