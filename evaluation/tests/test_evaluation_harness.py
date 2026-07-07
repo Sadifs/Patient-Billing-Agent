@@ -8,10 +8,16 @@ from pathlib import Path
 from evaluation.evaluation_harness import (
     BILL_DIRECTORY_NAMES,
     EVALUATION_FLAG_COLUMNS,
+    LIVE_REVIEW_COLUMNS,
     MANUAL_REVIEW_COLUMNS,
     REQUIRED_COLUMNS,
+    agent_prompt_for_row,
     load_dataset,
+    live_review_output_row,
+    parse_sse_text,
+    selected_rows,
     synthetic_bill_exists,
+    synthetic_bill_upload_path,
     validate_dataset,
     write_manual_review_template,
 )
@@ -66,6 +72,60 @@ class EvaluationHarnessTests(unittest.TestCase):
             self.assertEqual(len(rows), len(source_rows))
             self.assertEqual(rows[0]["agent_response"], "")
             self.assertIn("patient_input", rows[0])
+
+    def test_synthetic_bill_upload_path_prefers_pdf(self) -> None:
+        upload_path = synthetic_bill_upload_path(
+            self.repo_root,
+            "bill_v2_collections_selfpay_21.json",
+        )
+
+        self.assertIsNotNone(upload_path)
+        self.assertEqual(upload_path.suffix, ".pdf")
+
+    def test_agent_prompt_rewrites_bill_reference_to_uploaded_pdf(self) -> None:
+        row = {
+            "patient_input": "[Patient uploads bill: bill_v2_test.json] — Can you explain this?",
+            "bill_doc_file": "bill_v2_test.json",
+        }
+
+        prompt = agent_prompt_for_row(row, self.repo_root / "synthetic-data" / "synthetic_bills_v2" / "bill_v2_test.pdf")
+
+        self.assertIn("bill_v2_test.pdf", prompt)
+        self.assertNotIn("bill_v2_test.json", prompt)
+
+    def test_selected_rows_filters_cases(self) -> None:
+        rows, _columns = load_dataset(self.dataset_path)
+
+        selected = selected_rows(rows, case_ids={"FA-001"}, limit=10)
+
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0]["case_id"], "FA-001")
+
+    def test_parse_sse_text_combines_text_chunks(self) -> None:
+        body = (
+            'data: {"text": "Hello"}\n\n'
+            'data: {"text": " world"}\n\n'
+            "data: [DONE]\n\n"
+        )
+
+        self.assertEqual(parse_sse_text(body), "Hello world")
+
+    def test_live_review_output_row_has_metric_columns(self) -> None:
+        rows, _columns = load_dataset(self.dataset_path)
+        output_row = live_review_output_row(
+            rows[0],
+            uploaded_bill_file="",
+            agent_initial_prompt="Prompt",
+            agent_followup_prompt="",
+            agent_initial_response="Initial",
+            agent_followup_response="",
+        )
+
+        self.assertEqual(list(output_row.keys()), LIVE_REVIEW_COLUMNS)
+        self.assertEqual(output_row["agent_initial_prompt"], "Prompt")
+        self.assertEqual(output_row["agent_final_response"], "Initial")
+        self.assertIn("semantic_correctness_score_0_1", output_row)
+        self.assertIn("text_differentiation_score_1_5", output_row)
 
 
 if __name__ == "__main__":

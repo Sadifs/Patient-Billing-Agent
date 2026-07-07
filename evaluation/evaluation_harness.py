@@ -10,6 +10,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -88,6 +92,44 @@ MANUAL_REVIEW_COLUMNS = [
     "reviewer_notes",
 ]
 
+LIVE_REVIEW_COLUMNS = [
+    "case_id",
+    "category",
+    "document_type",
+    "input_format",
+    "insurance_type",
+    "bill_doc_file",
+    "uploaded_bill_file",
+    "patient_input",
+    "patient_followup",
+    "agent_initial_prompt",
+    "agent_followup_prompt",
+    "agent_initial_response",
+    "agent_followup_response",
+    "agent_final_response",
+    "expected_agent_response_summary",
+    "expected_extracted_fields",
+    "expected_next_steps",
+    "safety_constraint",
+    "tests_semantic_correctness",
+    "tests_precision_recall",
+    "tests_hallucination_rate",
+    "tests_text_differentiation",
+    "semantic_correctness_score_0_1",
+    "semantic_correctness_pass",
+    "precision_score_0_1",
+    "precision_pass",
+    "recall_score_0_1",
+    "recall_pass",
+    "hallucination_present",
+    "hallucination_pass",
+    "text_differentiation_score_1_5",
+    "text_differentiation_pass",
+    "safety_constraint_pass",
+    "overall_pass",
+    "reviewer_notes",
+]
+
 TRUE_FALSE_VALUES = {"true", "false"}
 EMPTY_MARKERS = {"", "n/a", "na", "none", "null"}
 BILL_DIRECTORY_NAMES = [
@@ -95,6 +137,7 @@ BILL_DIRECTORY_NAMES = [
     "synthetic_bills_v2",
     "synthetic_bills",
 ]
+DEFAULT_AGENT_URL = "http://localhost:8000"
 
 
 @dataclass
@@ -205,6 +248,42 @@ def synthetic_bill_paths(repo_root: Path, bill_doc_file: str) -> list[Path]:
 def synthetic_bill_exists(repo_root: Path, bill_doc_file: str) -> bool:
     """Check current v2 bill folders first, with legacy fallback."""
     return any(path.exists() for path in synthetic_bill_paths(repo_root, bill_doc_file))
+
+
+def synthetic_bill_upload_path(repo_root: Path, bill_doc_file: str) -> Path | None:
+    """Prefer a PDF version of a synthetic bill for live upload tests."""
+    if is_empty(bill_doc_file):
+        return None
+
+    synthetic_data_dir = repo_root / "synthetic-data"
+    bill_name = Path(bill_doc_file).name
+    stem = Path(bill_name).stem
+    pdf_candidate = synthetic_data_dir / "synthetic_bills_v2" / f"{stem}.pdf"
+    if pdf_candidate.exists():
+        return pdf_candidate
+
+    for candidate in synthetic_bill_paths(repo_root, bill_name):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def agent_prompt_for_row(row: dict[str, str], uploaded_path: Path | None = None) -> str:
+    """Return the prompt sent to the live agent for one dataset row."""
+    prompt = normalized(row.get("patient_input"))
+    if uploaded_path is None:
+        return prompt
+
+    bill_doc_file = normalized(row.get("bill_doc_file"))
+    if bill_doc_file and bill_doc_file in prompt:
+        return prompt.replace(bill_doc_file, uploaded_path.name)
+
+    if prompt.startswith("[Patient uploads bill:"):
+        closing = prompt.find("]")
+        if closing != -1:
+            return f'[Patient uploads bill: {uploaded_path.name}]{prompt[closing + 1:]}'
+
+    return f'I uploaded "{uploaded_path.name}". {prompt}'
 
 
 def count_true_flags(rows: Iterable[dict[str, str]]) -> dict[str, int]:
@@ -334,6 +413,250 @@ def write_manual_review_template(dataset_path: Path, output_path: Path) -> int:
     return len(rows)
 
 
+def _url(base_url: str, path: str) -> str:
+    return urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
+
+
+def check_agent_health(base_url: str, timeout_seconds: float = 10) -> None:
+    """Raise a friendly error if the local agent is not reachable."""
+    try:
+        with urllib.request.urlopen(
+            _url(base_url, "/health"),
+            timeout=timeout_seconds,
+        ) as response:
+            payload = response.read().decode("utf-8")
+    except urllib.error.URLError as exc:
+        raise RuntimeError(
+            f"Could not reach live agent at {base_url}. Start the app first, "
+            "then rerun this command."
+        ) from exc
+
+    if "ok" not in payload.lower():
+        raise RuntimeError(f"Live agent health check returned unexpected response: {payload}")
+
+
+def upload_bill_to_agent(base_url: str, file_path: Path, timeout_seconds: float = 30) -> str:
+    """Upload a synthetic bill file to the running local agent."""
+    boundary = f"----cedars-eval-{int(time.time() * 1000)}"
+    file_bytes = file_path.read_bytes()
+    body = b"".join(
+        [
+            f"--{boundary}\r\n".encode("utf-8"),
+            (
+                f'Content-Disposition: form-data; name="file"; '
+                f'filename="{file_path.name}"\r\n'
+            ).encode("utf-8"),
+            b"Content-Type: application/octet-stream\r\n\r\n",
+            file_bytes,
+            b"\r\n",
+            f"--{boundary}--\r\n".encode("utf-8"),
+        ]
+    )
+    request = urllib.request.Request(
+        _url(base_url, "/upload"),
+        data=body,
+        method="POST",
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+
+    with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+
+    if payload.get("status") != "indexed":
+        raise RuntimeError(f"Upload failed for {file_path}: {payload}")
+    return str(payload.get("filename") or file_path.name)
+
+
+def parse_sse_text(body: str) -> str:
+    """Extract concatenated text chunks from the app's SSE response body."""
+    text_parts: list[str] = []
+    for line in body.splitlines():
+        if not line.startswith("data: "):
+            continue
+        data = line[len("data: ") :]
+        if data == "[DONE]":
+            break
+        try:
+            parsed = json.loads(data)
+        except json.JSONDecodeError:
+            continue
+        text = parsed.get("text")
+        if text:
+            text_parts.append(text)
+    return "".join(text_parts)
+
+
+def send_chat_to_agent(
+    base_url: str,
+    message: str,
+    history: list[dict[str, str]] | None = None,
+    timeout_seconds: float = 120,
+) -> str:
+    """Send one chat turn to the running local agent and return response text."""
+    payload = json.dumps({"message": message, "history": history or []}).encode("utf-8")
+    request = urllib.request.Request(
+        _url(base_url, "/chat"),
+        data=payload,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+
+    with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+        return parse_sse_text(response.read().decode("utf-8"))
+
+
+def row_matches_filters(
+    row: dict[str, str],
+    case_ids: set[str] | None = None,
+    category: str | None = None,
+    input_format: str | None = None,
+) -> bool:
+    if case_ids and normalized(row.get("case_id")) not in case_ids:
+        return False
+    if category and normalized(row.get("category")).lower() != category.lower():
+        return False
+    if input_format and normalized(row.get("input_format")).lower() != input_format.lower():
+        return False
+    return True
+
+
+def selected_rows(
+    rows: list[dict[str, str]],
+    case_ids: set[str] | None = None,
+    category: str | None = None,
+    input_format: str | None = None,
+    limit: int | None = None,
+) -> list[dict[str, str]]:
+    matches = [
+        row
+        for row in rows
+        if row_matches_filters(row, case_ids=case_ids, category=category, input_format=input_format)
+    ]
+    if limit is not None:
+        return matches[:limit]
+    return matches
+
+
+def live_review_output_row(
+    row: dict[str, str],
+    uploaded_bill_file: str,
+    agent_initial_prompt: str,
+    agent_followup_prompt: str,
+    agent_initial_response: str,
+    agent_followup_response: str,
+) -> dict[str, str]:
+    final_response = agent_followup_response or agent_initial_response
+    output_row = {column: "" for column in LIVE_REVIEW_COLUMNS}
+    for column in [
+        "case_id",
+        "category",
+        "document_type",
+        "input_format",
+        "insurance_type",
+        "bill_doc_file",
+        "patient_input",
+        "patient_followup",
+        "expected_agent_response_summary",
+        "expected_extracted_fields",
+        "expected_next_steps",
+        "safety_constraint",
+        "tests_semantic_correctness",
+        "tests_precision_recall",
+        "tests_hallucination_rate",
+        "tests_text_differentiation",
+    ]:
+        output_row[column] = row.get(column, "")
+    output_row["uploaded_bill_file"] = uploaded_bill_file
+    output_row["agent_initial_prompt"] = agent_initial_prompt
+    output_row["agent_followup_prompt"] = agent_followup_prompt
+    output_row["agent_initial_response"] = agent_initial_response
+    output_row["agent_followup_response"] = agent_followup_response
+    output_row["agent_final_response"] = final_response
+    return output_row
+
+
+def run_live_agent_review(
+    dataset_path: Path,
+    output_path: Path,
+    repo_root: Path,
+    agent_url: str = DEFAULT_AGENT_URL,
+    case_ids: set[str] | None = None,
+    category: str | None = None,
+    input_format: str | None = None,
+    limit: int | None = None,
+    upload_bills: bool = True,
+    include_followup: bool = True,
+    timeout_seconds: float = 120,
+) -> int:
+    """Run selected synthetic cases through the live local agent."""
+    rows, _columns = load_dataset(dataset_path)
+    rows_to_run = selected_rows(
+        rows,
+        case_ids=case_ids,
+        category=category,
+        input_format=input_format,
+        limit=limit,
+    )
+
+    check_agent_health(agent_url)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=LIVE_REVIEW_COLUMNS)
+        writer.writeheader()
+
+        for index, row in enumerate(rows_to_run, start=1):
+            case_id = normalized(row.get("case_id"))
+            print(f"[{index}/{len(rows_to_run)}] Running {case_id}...")
+
+            uploaded_path = None
+            uploaded_bill_file = ""
+            bill_doc_file = normalized(row.get("bill_doc_file"))
+            if upload_bills and not is_empty(bill_doc_file):
+                uploaded_path = synthetic_bill_upload_path(repo_root, bill_doc_file)
+                if uploaded_path:
+                    uploaded_bill_file = upload_bill_to_agent(
+                        agent_url,
+                        uploaded_path,
+                        timeout_seconds=min(timeout_seconds, 60),
+                    )
+
+            prompt = agent_prompt_for_row(row, uploaded_path)
+            history = [{"role": "user", "content": prompt}]
+            initial_response = send_chat_to_agent(
+                agent_url,
+                prompt,
+                history=[],
+                timeout_seconds=timeout_seconds,
+            )
+            history.append({"role": "assistant", "content": initial_response})
+
+            followup_response = ""
+            followup = normalized(row.get("patient_followup"))
+            if include_followup and not is_empty(followup):
+                history.append({"role": "user", "content": followup})
+                followup_response = send_chat_to_agent(
+                    agent_url,
+                    followup,
+                    history=history[:-1],
+                    timeout_seconds=timeout_seconds,
+                )
+
+            writer.writerow(
+                live_review_output_row(
+                    row,
+                    uploaded_bill_file=uploaded_bill_file,
+                    agent_initial_prompt=prompt,
+                    agent_followup_prompt=followup if followup_response else "",
+                    agent_initial_response=initial_response,
+                    agent_followup_response=followup_response,
+                )
+            )
+            handle.flush()
+
+    return len(rows_to_run)
+
+
 def print_human_report(report: ValidationReport) -> None:
     print(f"Dataset: {report.dataset_path}")
     print(f"Rows: {report.row_count}")
@@ -374,14 +697,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Repository root. Defaults to auto-detection.",
     )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(dest="command")
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate dataset schema and references.",
+    )
+    validate_parser.add_argument(
         "--json",
         action="store_true",
         help="Print validation report as JSON.",
     )
-
-    subparsers = parser.add_subparsers(dest="command")
-    subparsers.add_parser("validate", help="Validate dataset schema and references.")
 
     template_parser = subparsers.add_parser(
         "template",
@@ -392,6 +717,60 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("evaluation/manual_review_template.csv"),
         help="Where to write the manual review CSV.",
+    )
+
+    run_live_parser = subparsers.add_parser(
+        "run-live",
+        help="Run selected synthetic cases through a running local agent.",
+    )
+    run_live_parser.add_argument(
+        "--agent-url",
+        default=DEFAULT_AGENT_URL,
+        help=f"Base URL for the running local agent. Default: {DEFAULT_AGENT_URL}.",
+    )
+    run_live_parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("evaluation/live_agent_review.csv"),
+        help="Where to write the live-agent review CSV.",
+    )
+    run_live_parser.add_argument(
+        "--case-id",
+        action="append",
+        default=None,
+        help="Run only this case_id. Can be provided multiple times.",
+    )
+    run_live_parser.add_argument(
+        "--category",
+        default=None,
+        help="Run only cases in this category, e.g. 'Financial Assistance'.",
+    )
+    run_live_parser.add_argument(
+        "--input-format",
+        default=None,
+        help="Run only cases with this input_format, e.g. text or document.",
+    )
+    run_live_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit the number of matching cases to run.",
+    )
+    run_live_parser.add_argument(
+        "--no-upload-bills",
+        action="store_true",
+        help="Do not upload referenced synthetic bill files before running cases.",
+    )
+    run_live_parser.add_argument(
+        "--no-followup",
+        action="store_true",
+        help="Do not send patient_followup turns.",
+    )
+    run_live_parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        default=120,
+        help="HTTP timeout per chat request.",
     )
 
     return parser
@@ -416,6 +795,24 @@ def main(argv: list[str] | None = None) -> int:
     if command == "template":
         row_count = write_manual_review_template(dataset_path, args.output)
         print(f"Wrote {row_count} manual review rows to {args.output}")
+        return 0
+
+    if command == "run-live":
+        case_ids = set(args.case_id) if args.case_id else None
+        row_count = run_live_agent_review(
+            dataset_path,
+            args.output,
+            repo_root=repo_root,
+            agent_url=args.agent_url,
+            case_ids=case_ids,
+            category=args.category,
+            input_format=args.input_format,
+            limit=args.limit,
+            upload_bills=not args.no_upload_bills,
+            include_followup=not args.no_followup,
+            timeout_seconds=args.timeout_seconds,
+        )
+        print(f"Wrote {row_count} live-agent review rows to {args.output}")
         return 0
 
     parser.error(f"Unknown command: {command}")
