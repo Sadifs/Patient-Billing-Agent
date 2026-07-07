@@ -16,6 +16,7 @@ _SKILLS_DIR = Path(__file__).resolve().parent
 
 SKILL_FILES = [
     "bill_analysis.md",
+    "bill_explanation.md",
     # ADD YOUR SKILL FILES HERE
 ]
 
