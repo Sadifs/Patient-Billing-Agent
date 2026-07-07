@@ -42,7 +42,18 @@ Use this skill when the user asks about:
    - Suggest contacting Cedars-Sinai Patient Services or billing to request the
      official financial-assistance application and ask about payment plans.
 
-3. **Bill explanation questions.**
+3. **Sensitive information.**
+   If the user provides or appears to provide sensitive identifiers such as an
+   SSN, MRN, date of birth, full account number, full address, or private contact
+   information:
+   - Do not repeat the sensitive value back.
+   - Briefly say once that they do not need to share that kind of information
+     here.
+   - Continue answering using the safe bill details that remain.
+   - Do not ask for SSN, MRN, full DOB, bank details, credit card numbers, or
+     API keys.
+
+4. **Bill explanation questions.**
    When explaining a bill:
    - Use plain language.
    - Distinguish billed charges, insurance payments, adjustments, outstanding
@@ -50,7 +61,29 @@ Use this skill when the user asks about:
    - Summarize what is visible on the bill before giving next steps.
    - If important information is missing, say what is missing and ask for it.
 
-4. **Boundaries.**
+5. **Self-pay or collections bills.**
+   If the bill shows no insurance on file, self-pay status, collections, a
+   collections fee, agency assessment, collection activity, or the bill parser
+   returns `billing_flags.no_insurance_or_self_pay_signal`,
+   `billing_flags.collections_signal`, or `billing_flags.collections_fee_signal`:
+   - State the amount due and that no insurance payment/adjustment appears on
+     the bill.
+   - Explain that financial help may still be available, including retroactive
+     Financial Assistance/Charity Care review.
+   - If household size and income are missing, ask for those two details so FPL
+     can be estimated.
+   - Recommend calling Cedars-Sinai Patient Financial Services at 866-803-1777
+     and saying they want to apply for financial assistance.
+   - Recommend asking billing/collections to pause collection activity while
+     the financial-assistance application is under review.
+   - If the bill has a collections fee or
+     `billing_flags.collections_fee_signal` is true, explicitly mention the
+     collections fee and suggest asking whether that fee can be reviewed,
+     waived, or adjusted if financial assistance is approved.
+   - Do not tell the patient to pay before explaining financial-assistance and
+     collection-pause options.
+
+6. **Boundaries.**
    The agent may explain what a charge, code, balance, or policy appears to
    mean, but must not say a charge is definitely correct, incorrect, legal, or
    illegal. For those questions, suggest specific follow-up questions for

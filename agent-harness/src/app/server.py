@@ -38,6 +38,7 @@ from app.tools import TOOLS as REGISTERED_TOOLS
 from app.tools.calculate_fpl import calculate_fpl
 from app.tools.search_bills import create_search_bills_tool
 from app.hooks import HOOKS as REGISTERED_HOOKS
+from app.hooks.phi_redaction import PHIRedactionHook
 from app.skills import build_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ KNOWLEDGE_DIR = _APP_DIR.parent.parent / "knowledge-docs"
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/tmp/uploads")).expanduser()
 indexer = KnowledgeBaseIndexer(knowledge_dir=str(KNOWLEDGE_DIR))
 search_service = LocalSearchService(indexer)
+input_redactor = PHIRedactionHook()
 
 
 def _extract_fpl_inputs(text: str) -> dict[str, int | float] | None:
@@ -101,6 +103,54 @@ def _fpl_context_message(user_message: str) -> Message | None:
     )
 
 
+def _redact_message_for_model(text: str) -> str:
+    """Remove obvious PHI before sending user text to the model."""
+    return input_redactor.redact(text)
+
+
+def _message_has_phi(text: str) -> bool:
+    """Return whether the user text changed after PHI redaction."""
+    return _redact_message_for_model(text) != text
+
+
+def _sensitive_info_notice() -> str:
+    return (
+        "You do not need to share sensitive identifiers such as SSNs, MRNs, "
+        "dates of birth, or full account numbers here.\n\n"
+    )
+
+
+def _clean_duplicate_sensitive_notice(text: str) -> str:
+    """Remove model-generated sensitive-info reminders before app prefixing."""
+    patterns = [
+        r"^\s*You do not need to share sensitive identifiers such as your SSN or MRN here\.\s*",
+        r"^\s*You do not need to share sensitive identifiers such as SSNs?, MRNs?, dates of birth, or full account numbers here\.\s*",
+        r"^\s*Please do not share sensitive identifiers such as SSNs?, MRNs?, dates of birth, or full account numbers here\.\s*",
+    ]
+    cleaned = text
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    return cleaned.lstrip()
+
+
+def _phi_redaction_context_message(original_text: str) -> Message | None:
+    """Tell the model when user-entered sensitive identifiers were removed."""
+    if not _message_has_phi(original_text):
+        return None
+
+    return Message(
+        role="system",
+        content=(
+            "The user's message included sensitive identifiers that were "
+            "redacted before model processing. Do not repeat or ask for SSNs, "
+            "MRNs, dates of birth, full account numbers, or similar sensitive "
+            "details. The application will display a sensitive-information "
+            "reminder separately, so do not add your own reminder. Answer the "
+            "billing question using the remaining safe bill information."
+        ),
+    )
+
+
 def _technical_fallback_message(user_message: str) -> str:
     """Return a relevant fallback when the model/provider errors mid-response."""
     text = user_message.lower()
@@ -112,6 +162,15 @@ def _technical_fallback_message(user_message: str) -> str:
             "of the bill that lists Primary Insurance and Secondary Insurance. "
             "Please upload the bill again or paste those lines, and I can help "
             "read them."
+        )
+
+    if any(word in text for word in ("bill", "charge", "charges", "uploaded", "pdf")):
+        return (
+            "I’m sorry, I ran into a technical issue while preparing that bill "
+            "explanation. Please try again without including sensitive details "
+            "like SSNs, MRNs, dates of birth, or account numbers. You can ask "
+            "something like: “I uploaded the bill. Can you explain the total "
+            "amount due and next steps?”"
         )
 
     if any(
@@ -201,13 +260,22 @@ async def chat(request: Request):
     if not user_message:
         return response.json({"error": "message is required"}, status=400)
 
+    user_message_has_phi = _message_has_phi(user_message)
     messages = []
     for msg in history:
-        messages.append(Message(role=msg["role"], content=msg["content"]))
+        messages.append(
+            Message(
+                role=msg["role"],
+                content=_redact_message_for_model(msg["content"]),
+            )
+        )
     fpl_context = _fpl_context_message(user_message)
     if fpl_context:
         messages.append(fpl_context)
-    messages.append(Message(role="user", content=user_message))
+    phi_context = _phi_redaction_context_message(user_message)
+    if phi_context:
+        messages.append(phi_context)
+    messages.append(Message(role="user", content=_redact_message_for_model(user_message)))
 
     harness = _build_harness()
 
@@ -225,6 +293,9 @@ async def chat(request: Request):
         except Exception:
             logger.exception("Agent response generation failed")
             chunks = [_technical_fallback_message(user_message)]
+        if user_message_has_phi:
+            combined = _clean_duplicate_sensitive_notice("".join(chunks))
+            chunks = [_sensitive_info_notice() + combined]
         for chunk in chunks:
             await resp.write(f"data: {json.dumps({'text': chunk})}\n\n".encode())
         await resp.write(b"data: [DONE]\n\n")

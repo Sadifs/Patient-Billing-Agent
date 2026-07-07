@@ -298,6 +298,74 @@ def _extract_pdf_content(path: Path) -> tuple[str, list[list[list[Any]]], int]:
     return "\n\n".join(text_parts), tables, page_count
 
 
+def _bill_flags(text: str, line_items: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return high-level billing signals useful for patient guidance."""
+    combined = " ".join(
+        [text]
+        + [
+            str(item.get("description") or item.get("raw_line") or "")
+            for item in line_items
+        ]
+    ).lower()
+
+    has_collections_fee = any(
+        "collection" in str(item.get("description") or item.get("raw_line") or "").lower()
+        or "agency assessment" in str(item.get("description") or item.get("raw_line") or "").lower()
+        for item in line_items
+    )
+    no_insurance_on_file = (
+        "none on file" in combined
+        or "self-pay" in combined
+        or "self pay" in combined
+        or "no insurance" in combined
+    )
+
+    return {
+        "no_insurance_or_self_pay_signal": no_insurance_on_file,
+        "collections_signal": "collections" in combined or has_collections_fee,
+        "collections_fee_signal": has_collections_fee,
+        "recommended_guidance_if_true": (
+            "If no_insurance_or_self_pay_signal or collections_signal is true, "
+            "explain that financial assistance may still be available, ask for "
+            "household size and annual income if missing, recommend calling "
+            "Cedars-Sinai Patient Financial Services at 866-803-1777, ask "
+            "billing/collections to pause collection activity during FAP review, "
+            "and ask whether any collections fee can be reviewed or waived."
+        ),
+    }
+
+
+def _suggested_next_steps(flags: dict[str, Any]) -> list[str]:
+    """Return patient-facing next steps triggered by parser flags."""
+    if not (
+        flags.get("no_insurance_or_self_pay_signal")
+        or flags.get("collections_signal")
+    ):
+        return []
+
+    steps = [
+        "Call Cedars-Sinai Patient Financial Services at 866-803-1777 and say you want to apply for financial assistance.",
+        "Ask billing or collections to pause collection activity while your financial-assistance application is reviewed.",
+        "Share household size and approximate annual household income so FPL can be estimated.",
+    ]
+    if flags.get("collections_fee_signal"):
+        steps.append(
+            "Ask whether the collections fee can be reviewed, waived, or adjusted if financial assistance is approved."
+        )
+    return steps
+
+
+def _line_item_total(line_items: list[dict[str, Any]]) -> float | None:
+    amounts = [
+        item.get("amount")
+        for item in line_items
+        if isinstance(item.get("amount"), (int, float))
+    ]
+    if not amounts:
+        return None
+    return round(sum(amounts), 2)
+
+
 def parse_bill_pdf(file_path: str) -> dict[str, Any]:
     """Parse a bill PDF and return structured extraction results."""
     path = _resolve_pdf_path(file_path)
@@ -314,6 +382,7 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
         for code in item.get("billing_codes", []):
             if code not in {entry["code"] for entry in billing_codes}:
                 billing_codes.append({"code": code, "type": "unknown"})
+    billing_flags = _bill_flags(text, line_items)
 
     return {
         "source_file": str(path),
@@ -324,6 +393,9 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
         "amounts": _extract_amounts(text),
         "line_items": line_items,
         "line_item_count": len(line_items),
+        "line_item_amount_total": _line_item_total(line_items),
+        "billing_flags": billing_flags,
+        "suggested_next_steps": _suggested_next_steps(billing_flags),
         "parse_method": "tables" if table_items else "text",
     }
 

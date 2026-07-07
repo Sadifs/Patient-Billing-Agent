@@ -21,10 +21,10 @@ HOW TO ADD A HOOK:
     3. Import it here and add an instance to the HOOKS list.
 """
 
-# from app.hooks.your_hook import YourHook
+from app.hooks.content_filter import ContentFilterHook
+from app.hooks.phi_redaction import PHIRedactionHook
 
 HOOKS = [
-    # ADD YOUR HOOK INSTANCES HERE
-    # Example:
-    # YourHook(config_param="value"),
+    ContentFilterHook(),
+    PHIRedactionHook(),
 ]

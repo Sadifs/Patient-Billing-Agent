@@ -123,6 +123,10 @@
             - Upload a bill image or PDF for analysis
             - Ask about financial assistance programs
             - Get help understanding your payment options
+
+            Privacy note: Please do not enter Social Security numbers, MRNs,
+            full dates of birth, full account numbers, bank details, credit
+            card numbers, or other sensitive personal information.
         </div>
     </div>
 
@@ -139,6 +143,7 @@
         const sendBtn = document.getElementById('send-btn');
         const fileInput = document.getElementById('file-input');
         let history = [];
+        let uploadedFilename = null;
 
         messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -165,8 +170,13 @@
                 const resp = await fetch('/upload', { method: 'POST', body: formData });
                 const data = await resp.json();
                 if (data.status === 'indexed') {
+                    uploadedFilename = data.filename || file.name;
                     addMessage('system', `${file.name} uploaded and indexed successfully.`);
-                    sendUserMessage(`I just uploaded a file called "${file.name}". Please analyze it and explain the key charges.`);
+                    messageInput.value = `I uploaded "${uploadedFilename}". `;
+                    messageInput.focus();
+                    messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
+                    messageInput.style.height = 'auto';
+                    messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
                 } else {
                     addMessage('system', `Upload failed: ${data.error || 'Unknown error'}`);
                 }
