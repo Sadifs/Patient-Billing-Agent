@@ -149,7 +149,7 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 | Total cases | 30 | 70 | **100** |
 | Fields per case | 23 | 23 | 23 |
 | Synthetic bills | 0 | 70 (JSON+PDF) | 70 unique bill sets |
-| FPL range | 0% – 689% | 75% – 914% | 0% – 914% |
+| FPL range | 0% – 689% | 0% – 915% | 0% – 915% |
 
 ---
 

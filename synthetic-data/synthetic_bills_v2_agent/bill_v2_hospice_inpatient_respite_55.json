@@ -29,9 +29,9 @@
         "quantity": 5,
         "unit": "day",
         "billed_amount": 4500,
-        "insurance_payments": 3600,
-        "adjustments": 0,
-        "patient_balance": 900
+        "insurance_payments": 4446.0,
+        "adjustments": 0.0,
+        "patient_balance": 54.0
       },
       {
         "service_name": "Palliative Consult",
@@ -47,13 +47,13 @@
     ],
     "totals": {
       "total_billed": 5180,
-      "total_insurance_payments": 4144,
-      "total_adjustments": 0,
-      "outstanding_balance": 1036,
-      "patient_balance": 1036
+      "total_insurance_payments": 4990.0,
+      "total_adjustments": 0.0,
+      "outstanding_balance": 190.0,
+      "patient_balance": 190.0
     }
   },
-  "total_amount_due": 1036,
+  "total_amount_due": 190.0,
   "patient_services": {
     "department": "Patient Financial Services",
     "phone": "866-803-1777",
