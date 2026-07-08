@@ -133,6 +133,31 @@ def _clean_duplicate_sensitive_notice(text: str) -> str:
     return cleaned.lstrip()
 
 
+def _clean_internal_tool_text(text: str) -> str:
+    """Remove accidental internal tool/function syntax from model text."""
+    cleaned = re.sub(r"<function\.[^>]*>", "", text, flags=re.IGNORECASE)
+    cleaned = re.sub(
+        r"^\s*Also,\s*I will call the [^\n.]*function[^\n.]*\.?\s*$",
+        "",
+        cleaned,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    cleaned = re.sub(
+        r"^\s*I will call the [^\n.]*function[^\n.]*\.?\s*$",
+        "",
+        cleaned,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    cleaned = re.sub(
+        r"^\s*The [a-z_]+ function is [^\n.]*\.?\s*$",
+        "",
+        cleaned,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 def _phi_redaction_context_message(original_text: str) -> Message | None:
     """Tell the model when user-entered sensitive identifiers were removed."""
     if not _message_has_phi(original_text):
@@ -164,15 +189,6 @@ def _technical_fallback_message(user_message: str) -> str:
             "read them."
         )
 
-    if any(word in text for word in ("bill", "charge", "charges", "uploaded", "pdf")):
-        return (
-            "I’m sorry, I ran into a technical issue while preparing that bill "
-            "explanation. Please try again without including sensitive details "
-            "like SSNs, MRNs, dates of birth, or account numbers. You can ask "
-            "something like: “I uploaded the bill. Can you explain the total "
-            "amount due and next steps?”"
-        )
-
     if any(
         phrase in text
         for phrase in (
@@ -192,6 +208,13 @@ def _technical_fallback_message(user_message: str) -> str:
             "financial-assistance answer. If you share your household size and "
             "approximate annual household income, I can estimate your FPL "
             "percentage and suggest next steps."
+        )
+
+    if any(word in text for word in ("bill", "charge", "charges", "uploaded", "pdf")):
+        return (
+            "I’m sorry, I ran into a technical issue while preparing that bill "
+            "explanation. Please try again, or ask about a specific line item, "
+            "total amount due, insurance adjustment, or next step."
         )
 
     return (
@@ -292,6 +315,11 @@ async def chat(request: Request):
             chunks = await loop.run_in_executor(None, run_agent)
         except Exception:
             logger.exception("Agent response generation failed")
+            chunks = [_technical_fallback_message(user_message)]
+        cleaned_text = _clean_internal_tool_text("".join(chunks))
+        if cleaned_text:
+            chunks = [cleaned_text]
+        else:
             chunks = [_technical_fallback_message(user_message)]
         if user_message_has_phi:
             combined = _clean_duplicate_sensitive_notice("".join(chunks))
