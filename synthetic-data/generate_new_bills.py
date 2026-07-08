@@ -524,16 +524,15 @@ BILLS.append({
 # ─── BILL 23: FAP Approved – $0 Balance ──────────────────────────────────────
 # HH=1, income $17,300 → 108% FPL → Charity Care approved; patient owes $0
 items23 = [
-    li("Emergency Department – Level 4",        "CPT",     "99284",  1, "each",  3200.0, 3200.0, 0.0),
-    li("CT Scan – Chest with contrast",         "CPT",     "71250",  1, "each",  5600.0, 5600.0, 0.0),
-    li("Pulmonary Function Test",               "CPT",     "94010",  1, "each",   560.0,  560.0, 0.0),
-    li("Chest X-Ray",                           "CPT",     "71046",  1, "each",   240.0,  240.0, 0.0),
-    li("CBC + CMP",                             "CPT",     "85025",  1, "each",   480.0,  480.0, 0.0),
-    li("Pharmacy – Bronchodilators",            "Revenue", "0250",   1, "each",   480.0,  480.0, 0.0),
-    li("IV Administration",                     "CPT",     "96365",  1, "each",   480.0,  480.0, 0.0),
-    li("Medical/Surgical Supplies",             "Revenue", "0270",   1, "each",   480.0,  480.0, 0.0),
-    li("Observation Services (12 hours)",       "Revenue", "0762",   1, "each",  7200.0, 7200.0, 0.0),
-    li("Financial Assistance Credit (FAP)",     "Revenue", "0399",   1, "each",    0.0,  0.0,   0.0),
+    li("Emergency Department – Level 4",        "CPT",     "99284",  1, "each",  3200.0, 0.0, 3200.0),
+    li("CT Scan – Chest with contrast",         "CPT",     "71250",  1, "each",  5600.0, 0.0, 5600.0),
+    li("Pulmonary Function Test",               "CPT",     "94010",  1, "each",   560.0, 0.0,  560.0),
+    li("Chest X-Ray",                           "CPT",     "71046",  1, "each",   240.0, 0.0,  240.0),
+    li("CBC + CMP",                             "CPT",     "85025",  1, "each",   480.0, 0.0,  480.0),
+    li("Pharmacy – Bronchodilators",            "Revenue", "0250",   1, "each",   480.0, 0.0,  480.0),
+    li("IV Administration",                     "CPT",     "96365",  1, "each",   480.0, 0.0,  480.0),
+    li("Medical/Surgical Supplies",             "Revenue", "0270",   1, "each",   480.0, 0.0,  480.0),
+    li("Observation Services (12 hours)",       "Revenue", "0762",   1, "each",  7200.0, 0.0, 7200.0),
 ]
 totals23 = make_totals(items23)
 BILLS.append({
@@ -560,10 +559,15 @@ BILLS.append({
         "totals": totals23
     },
     "payment_detail": {
-        "insurance_payments": [
-            {"payer_name": "Cedars-Sinai Financial Assistance Program (FAP)", "payment_amount": totals23["total_insurance_payments"], "payment_date": "2026-05-25", "check_or_ref_number": "FAP-2026-07005-APPROVED"}
+        "insurance_payments": [],
+        "adjustments": [
+            {
+                "description": "Cedars-Sinai Financial Assistance Program (Charity Care)",
+                "amount": totals23["total_adjustments"],
+                "adjustment_date": "2026-05-25",
+                "reference": "FAP-2026-07005-APPROVED",
+            }
         ],
-        "adjustments": []
     },
     "total_amount_due": 0.0,
     "patient_services": PATIENT_SERVICES,

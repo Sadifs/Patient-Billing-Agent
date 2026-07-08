@@ -29,8 +29,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 3200.0,
-        "insurance_payments": 3200.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 3200.0,
         "patient_balance": 0.0
       },
       {
@@ -40,8 +40,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 5600.0,
-        "insurance_payments": 5600.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 5600.0,
         "patient_balance": 0.0
       },
       {
@@ -51,8 +51,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 560.0,
-        "insurance_payments": 560.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 560.0,
         "patient_balance": 0.0
       },
       {
@@ -62,8 +62,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 240.0,
-        "insurance_payments": 240.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 240.0,
         "patient_balance": 0.0
       },
       {
@@ -73,8 +73,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 480.0,
-        "insurance_payments": 480.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 480.0,
         "patient_balance": 0.0
       },
       {
@@ -84,8 +84,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 480.0,
-        "insurance_payments": 480.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 480.0,
         "patient_balance": 0.0
       },
       {
@@ -95,8 +95,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 480.0,
-        "insurance_payments": 480.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 480.0,
         "patient_balance": 0.0
       },
       {
@@ -106,8 +106,8 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 480.0,
-        "insurance_payments": 480.0,
-        "adjustments": 0.0,
+        "insurance_payments": 0.0,
+        "adjustments": 480.0,
         "patient_balance": 0.0
       },
       {
@@ -117,40 +117,29 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 7200.0,
-        "insurance_payments": 7200.0,
-        "adjustments": 0.0,
-        "patient_balance": 0.0
-      },
-      {
-        "service_name": "Financial Assistance Credit (FAP)",
-        "code_type": "Revenue",
-        "code": "0399",
-        "quantity": 1,
-        "unit": "each",
-        "billed_amount": 0.0,
         "insurance_payments": 0.0,
-        "adjustments": 0.0,
+        "adjustments": 7200.0,
         "patient_balance": 0.0
       }
     ],
     "totals": {
       "total_billed": 18720.0,
-      "total_insurance_payments": 18720.0,
-      "total_adjustments": 0.0,
+      "total_insurance_payments": 0.0,
+      "total_adjustments": 18720.0,
       "outstanding_balance": 0.0,
       "patient_balance": 0.0
     }
   },
   "payment_detail": {
-    "insurance_payments": [
+    "insurance_payments": [],
+    "adjustments": [
       {
-        "payer_name": "Cedars-Sinai Financial Assistance Program (FAP)",
-        "payment_amount": 18720.0,
-        "payment_date": "2026-05-25",
-        "check_or_ref_number": "FAP-2026-07005-APPROVED"
+        "description": "Cedars-Sinai Financial Assistance Program (Charity Care)",
+        "amount": 18720.0,
+        "adjustment_date": "2026-05-25",
+        "reference": "FAP-2026-07005-APPROVED"
       }
-    ],
-    "adjustments": []
+    ]
   },
   "total_amount_due": 0.0,
   "patient_services": {

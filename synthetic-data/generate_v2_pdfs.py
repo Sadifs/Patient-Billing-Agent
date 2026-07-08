@@ -43,6 +43,26 @@ def money(v):
     return f"${v:,.2f}"
 
 
+def has_insurance_on_file(bill):
+    """True when primary insurance is a real payer (not self-pay / none on file)."""
+    primary = (bill.get("insurance", {}).get("primary") or "").strip()
+    if not primary:
+        return False
+    lower = primary.lower()
+    if lower in ("none", "n/a", "self-pay", "none / self-pay", "uninsured"):
+        return False
+    if lower.startswith("none on file"):
+        return False
+    return True
+
+
+def draw_cedars_sinai_logo(c, x, y, size=17):
+    """Render hospital name as one string so it reads Cedars-Sinai, not CedarSinai."""
+    c.setFillColor(WHITE)
+    c.setFont("Helvetica-Bold", size)
+    c.drawString(x, y, "Cedars-Sinai")
+
+
 def circle_label(c, cx, cy, r, letter):
     """Filled purple circle with white letter. Saves/restores canvas state."""
     c.saveState()
@@ -67,11 +87,8 @@ def draw_page1(c, bill):
     c.setFillColor(PURPLE)
     c.rect(0, PAGE_H - 68, PAGE_W, 68, fill=1, stroke=0)
 
+    draw_cedars_sinai_logo(c, L, PAGE_H - 28)
     c.setFillColor(WHITE)
-    c.setFont("Helvetica-Bold", 17)
-    c.drawString(L, PAGE_H - 28, "Cedars-")
-    c.setFont("Helvetica", 17)
-    c.drawString(L + 62, PAGE_H - 28, "Sinai")
     c.setFont("Helvetica", 8)
     c.drawString(L, PAGE_H - 43, "P.O. Box 48954")
     c.drawString(L, PAGE_H - 53, "Los Angeles, CA 90048-0954")
@@ -307,9 +324,7 @@ def draw_page1(c, bill):
     # Stub logo
     c.setFillColor(PURPLE)
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(L + 24, stub_top - 16, "Cedars-")
-    c.setFont("Helvetica", 13)
-    c.drawString(L + 78, stub_top - 16, "Sinai")
+    c.drawString(L + 24, stub_top - 16, "Cedars-Sinai")
 
     # Stub details (left)
     c.setFillColor(DARK_GRAY)
@@ -360,13 +375,13 @@ def draw_page1(c, bill):
     c.drawString(px + 5, stub_top - 119, "Print Cardholder's Name: _____________________________")
     c.drawString(px + 5, stub_top - 130, "Signature: ___________________________________________")
 
-    # Barcode number (machine-readable guarantor account for check processing)
+    # Machine-readable remittance barcode (guarantor account for lockbox processing)
     acct = guarantor["guarantor_account_number"].replace("GU-", "").replace("-", "")
     c.setFillColor(DARK_GRAY)
     c.setFont("Helvetica", 7)
-    c.drawString(L, 30, "Remittance ID:")
+    c.drawString(L, 42, "Remittance ID (include on check memo line):")
     c.setFont("Helvetica", 9)
-    c.drawString(L, 18, f"{'0'*10}{acct}{'0'*10}")
+    c.drawString(L, 28, f"{'0'*10}{acct}{'0'*10}")
 
 
 def draw_page2(c, bill):
@@ -381,11 +396,8 @@ def draw_page2(c, bill):
     c.setFillColor(PURPLE)
     c.rect(0, PAGE_H - 68, PAGE_W, 68, fill=1, stroke=0)
 
+    draw_cedars_sinai_logo(c, L, PAGE_H - 28)
     c.setFillColor(WHITE)
-    c.setFont("Helvetica-Bold", 17)
-    c.drawString(L, PAGE_H - 28, "Cedars-")
-    c.setFont("Helvetica", 17)
-    c.drawString(L + 62, PAGE_H - 28, "Sinai")
     c.setFont("Helvetica", 8)
     c.drawString(L, PAGE_H - 43, "P.O. Box 48954")
     c.drawString(L, PAGE_H - 53, "Los Angeles, CA 90048-0954")
@@ -394,7 +406,7 @@ def draw_page2(c, bill):
     c.drawRightString(R, PAGE_H - 24, "Statement of Hospital and Physician Services")
     c.setFont("Helvetica", 8.5)
     c.drawRightString(R, PAGE_H - 36, f"Date:  {bill['statement_date']}")
-    c.drawRightString(R, PAGE_H - 47, "Page 2 of 2")
+    c.drawRightString(R, PAGE_H - 47, f"Page 2 of 2")
 
     # Patient strip
     c.setFillColor(DARK_GRAY)
@@ -431,9 +443,7 @@ def draw_page2(c, bill):
             c.drawCentredString(xp + cw / 2, ty - rh + 5, h)
         xp += cw
 
-    # Determine if this bill has insurance on file
-    ins_primary = bill.get("insurance", {}).get("primary", "")
-    has_insurance = ins_primary not in ("", "None", "None / Self-Pay", "Self-Pay", "N/A")
+    has_insurance = has_insurance_on_file(bill)
 
     # Data rows
     ry = ty - rh
@@ -484,7 +494,8 @@ def draw_page2(c, bill):
         xp += cw
 
     # ── Payment detail ────────────────────────────────────────────────
-    if payments or adjustments:
+    insurance_payments = payments if has_insurance else []
+    if insurance_payments or adjustments:
         ry -= 22
         c.setFillColor(BLACK)
         c.setFont("Helvetica-Bold", 10)
@@ -495,7 +506,7 @@ def draw_page2(c, bill):
         ry -= 18
 
         c.setFont("Helvetica", 9)
-        for pmt in payments:
+        for pmt in insurance_payments:
             c.setFillColor(DARK_GRAY)
             c.drawString(L, ry, pmt["payer_name"])
             ref = pmt.get("check_or_ref_number", "")

@@ -8,15 +8,16 @@
 ## What This Dataset Is
 
 The synthetic validation dataset is the ground truth used to evaluate the AI
-billing agent. It contains **72 labeled test cases** across two dataset versions:
+billing agent. It contains **100 labeled test cases** across two dataset versions:
 
 | Version | Cases | Focus |
 |---------|-------|-------|
-| **V1** | 42 | Text-input scenarios, billing literacy, FAP routing, safety |
-| **V2** | 30 | Document-linked bills with diversified patient financial profiles |
+| **V1** | 30 | Text-input scenarios, billing literacy, FAP routing, safety |
+| **V2** | 70 | Document-linked bills with diversified patient financial profiles |
 
-Ten v1 document cases (DV-001 – DV-010) were superseded by v2 bills and
-are excluded from v1 to keep the combined total at **72 patients**.
+Ten v1 document cases (DV-001 – DV-010) were superseded by v2 bills.
+Older v1 text cases that duplicated v2 coverage were consolidated when expanding
+to **100 patients** and **70 bills** (July 2026).
 
 When the agent responds to a case, its output is compared against the labeled
 expected response to measure accuracy.
@@ -29,36 +30,40 @@ All cases use fictional patient profiles — no real PHI.
 
 | File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | **Master — 72 labeled test cases (v1 + v2 combined). Use this.** |
+| `synthetic_validation_dataset.csv` | **Master — 100 labeled test cases (v1 + v2 combined). Use this.** |
 | `generate_v2_bills.py` | Regenerates v2 bill JSON for bills 01–15 (evaluator + agent copies) |
 | `generate_v2_csv.py` | Regenerates v2 validation CSV for bills 01–15 |
 | `generate_new_bills.py` | Generates v2 bills 16–25 (reproducible) |
+| `generate_bills_31_70.py` | Generates v2 bills 31–70 (evaluator + agent copies) |
+| `generate_v1_text_24.py` | Generates 24 new v1 text-only validation cases |
+| `merge_expand_dataset.py` | Rebuilds master CSV after expansion |
 | `generate_v2_pdfs.py` | Generates PDFs for all v2 bills from JSON |
 | `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios (reference) |
-| `synthetic_bills_v2/` | V2 — 30 evaluator bills (JSON + PDF, full metadata) |
-| `synthetic_bills_v2_agent/` | V2 — 30 LLM-safe bills (JSON, metadata stripped) |
+| `synthetic_bills_v2/` | V2 — 70 evaluator bills (JSON + PDF, full metadata) |
+| `synthetic_bills_v2_agent/` | V2 — 70 LLM-safe bills (JSON, metadata stripped) |
 
 ---
 
 ## V1 vs V2
 
-### V1 (42-case CSV, text-input only)
+### V1 (30-case CSV, text-input only)
 
 - Text-input and document-parsing scenarios
 - No bill files — all cases are text-based patient questions
 - Covers billing understanding, FAP routing, safety, action planning
+- Includes 24 new cases (FA-013 – SAF-011) added July 2026
 
-### V2 (`synthetic_bills_v2/` + 30-case CSV)
+### V2 (`synthetic_bills_v2/` + 70-case CSV)
 
 - Cedars-style patient statement schema v2.0 (guarantor, summary of services, patient services contact)
-- **30 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, COB, collections, FAP-approved, surprise billing, payment plans, Medi-Cal share of cost, etc.)
+- **70 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, COB, collections, FAP-approved, surprise billing, payment plans, Medi-Cal share of cost, POS, PFFS-MA, D-SNP, CHAMPVA, IRMAA, oncology, NICU, air ambulance, etc.)
 - Diversified patient profiles in CSV (household size, income, FPL tier)
 - Bill JSON has **no FAP ground truth** — evaluation metadata lives in CSV only
 - `synthetic_bills_v2_agent/` strips `_schema_version`, `_note`, `_intentional_error_note` before LLM use
 
 ---
 
-## V2 Bill Inventory (DV2-001 – DV2-030)
+## V2 Bill Inventory (DV2-001 – DV2-070)
 
 Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a distinct insurance scenario. The evaluator folder (`synthetic_bills_v2/`) contains full metadata; the agent folder (`synthetic_bills_v2_agent/`) has evaluation fields stripped.
 
@@ -94,6 +99,46 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 | DV2-028 | `medicaid_share_of_cost_colonoscopy_28` | Molina (Medi-Cal MC) | Colonoscopy – share of cost | Medi-Cal managed care + contractual adj + SOC; FAP eligible (~116% FPL) |
 | DV2-029 | `pediatric_er_appendectomy_29` | Anthem PPO | Pediatric ER appendectomy | Minor patient; FAP eligibility based on parent (guarantor) income |
 | DV2-030 | `prior_auth_denial_30` | Kaiser HMO | MRI studies – prior auth denied | Denial pending appeal; patient near FAP threshold (~388% FPL) |
+| DV2-031 | `commercial_pos_outpatient_31` | Health Net POS | Outpatient POS tier cost-sharing | In-network vs out-of-network POS rules |
+| DV2-032 | `medicare_advantage_pffs_32` | PFFS MA | Cardiology outpatient | PFFS 20% coinsurance pattern |
+| DV2-033 | `medicare_advantage_snp_33` | D-SNP + Medi-Cal | Endocrinology visit | Dual special needs plan coordination |
+| DV2-034 | `medicaid_pending_er_34` | None (Medi-Cal pending) | ER + CT | Do not pay while Medi-Cal pending |
+| DV2-035 | `medicare_irmaa_partb_35` | Medicare Part B | Outpatient surgery | IRMAA affects premium not claim payment |
+| DV2-036 | `champva_outpatient_36` | CHAMPVA | Rheumatology | VA family coverage vs Cedars FAP |
+| DV2-037 | `commercial_epo_inpatient_37` | Oscar EPO | Appendectomy inpatient | EPO in-network cost-sharing |
+| DV2-038 | `marketplace_silver_plan_38` | Covered CA Silver | Urgent care | Marketplace ACA cost-sharing + FAP |
+| DV2-039 | `cobra_continuation_39` | COBRA PPO | MRI after job loss | FAP uses current income ($0) |
+| DV2-040 | `hdhp_family_deductible_40` | UHC HDHP family | Pediatric ER | Family deductible not met |
+| DV2-041 | `oncology_infusion_41` | Anthem PPO | Chemotherapy infusion | High-cost specialty drug coinsurance |
+| DV2-042 | `mental_health_inpatient_42` | Cigna PPO | Psychiatric inpatient | Behavioral health + empathy + FAP |
+| DV2-043 | `dialysis_outpatient_43` | Medicare ESRD + Medigap N | Hemodialysis | ESRD benefit + secondary gap |
+| DV2-044 | `air_ambulance_transfer_44` | Aetna PPO | Air ambulance | Surprise billing dispute + FAP |
+| DV2-045 | `dme_hospital_bill_45` | Medicare Part B | Wheelchair + hospital bed | DME 20% coinsurance |
+| DV2-046 | `nicu_newborn_46` | Kaiser HMO | NICU 12 days | Guarantor/parent FAP eligibility |
+| DV2-047 | `burn_unit_inpatient_47` | Blue Shield PPO | Burn unit 8 days | High-acuity inpatient FAP |
+| DV2-048 | `stroke_thrombectomy_48` | Medicare A+B | Stroke thrombectomy | Part A/B mix + coinsurance |
+| DV2-049 | `trauma_activation_er_49` | Health Net HMO | Trauma activation fee | ER vs trauma team charges |
+| DV2-050 | `fertility_not_covered_50` | UHC PPO | IVF cycle | Plan exclusion; Discount Payment tier |
+| DV2-051 | `student_health_plan_51` | Student Anthem | Orthopedic visit | Limited student plan + low FPL |
+| DV2-052 | `limited_benefit_plan_52` | Fixed indemnity | Inpatient surgery | Indemnity vs real insurance |
+| DV2-053 | `timely_filing_denial_53` | Blue Cross PPO | Outpatient surgery | Timely filing denial — rebill/appeal |
+| DV2-054 | `fap_pending_partial_54` | Self-pay (FAP pending) | ER + CT | Partial charity adj while pending |
+| DV2-055 | `hospice_inpatient_respite_55` | Medicare hospice | Respite stay | Hospice benefit cost-sharing |
+| DV2-056 | `home_health_services_56` | Medicare Part B | Skilled nursing home visits | Home health coinsurance |
+| DV2-057 | `inpatient_rehab_irf_57` | Cigna PPO | IRF 14 days | Inpatient rehab per-diem |
+| DV2-058 | `transplant_evaluation_58` | Anthem PPO | Transplant workup | Prior auth for evaluation |
+| DV2-059 | `international_selfpay_59` | None (international) | ER + MRI | Travel insurance denial |
+| DV2-060 | `association_health_plan_60` | Freelancers Union | Cardiac stress test | Association plan cost-sharing |
+| DV2-061 | `er_observation_multiday_61` | Blue Shield HMO | 48-hr observation | ER vs observation billing |
+| DV2-062 | `wrong_patient_billing_62` | Aetna PPO | Wrong patient (safety) | Do not pay — billing error |
+| DV2-063 | `duplicate_same_day_63` | Kaiser HMO | Duplicate ultrasound | Flag potential duplicate CPT |
+| DV2-064 | `selfpay_prompt_pay_64` | Self-pay | Colonoscopy | Prompt-pay discount vs FAP |
+| DV2-065 | `medicaid_mc_referral_65` | Medi-Cal MC | Specialist MRI | Missing referral liability |
+| DV2-066 | `medicare_advantage_oon_66` | SCAN MA HMO | OON specialist | MA HMO OON denial + appeal |
+| DV2-067 | `workers_comp_disputed_67` | WC disputed | Orthopedic surgery | Do not pay during WC dispute |
+| DV2-068 | `charity_partial_writeoff_68` | Self-pay (charity 70%) | Inpatient surgery | Partial vs full charity approval |
+| DV2-069 | `clinical_trial_billing_69` | Blue Cross PPO | Research + standard MRI | Sponsor vs insurance split |
+| DV2-070 | `high_balance_payment_plan_70` | Anthem PPO | Spine surgery | Payment plan vs Discount Payment FAP |
 
 ---
 
@@ -101,10 +146,10 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 
 | Field | V1 | V2 | Combined |
 |---|---|---|---|
-| Total cases | 42 | 30 | **72** |
+| Total cases | 30 | 70 | **100** |
 | Fields per case | 23 | 23 | 23 |
-| Synthetic bills | 0 | 30 (JSON+PDF) | 30 unique bill sets |
-| FPL range | 0% – 689% | 84.8% – 554.5% | 0% – 689% |
+| Synthetic bills | 0 | 70 (JSON+PDF) | 70 unique bill sets |
+| FPL range | 0% – 689% | 75% – 914% | 0% – 914% |
 
 ---
 
@@ -147,6 +192,14 @@ Regenerate bills 16–25 JSON (evaluator + agent):
 python3 generate_new_bills.py
 ```
 
+Regenerate bills 31–70 and merge master CSV:
+
+```bash
+python3 generate_bills_31_70.py
+python3 generate_v1_text_24.py
+python3 merge_expand_dataset.py
+```
+
 Requires: `csv`, `json`, `os`, `reportlab` (PDFs only).
 
 ---
@@ -155,9 +208,9 @@ Requires: `csv`, `json`, `os`, `reportlab` (PDFs only).
 
 | Dataset | Use this folder |
 |---|---|
-| V2 document cases (DV2-001 – DV2-030) | `synthetic_bills_v2_agent/` |
+| V2 document cases (DV2-001 – DV2-070) | `synthetic_bills_v2_agent/` |
 
-Use `synthetic_validation_dataset.csv` as the master answer key (**72 patients**).
+Use `synthetic_validation_dataset.csv` as the master answer key (**100 patients**, **70 bills**).
 
 ---
 

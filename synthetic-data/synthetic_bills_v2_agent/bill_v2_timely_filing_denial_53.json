@@ -1,0 +1,75 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "Christopher Dunn",
+    "patient_account_number": "CS-2026-11023",
+    "service_date": "2025-11-10"
+  },
+  "guarantor": {
+    "guarantor_name": "Christopher Dunn",
+    "guarantor_account_number": "GU-2026-11023"
+  },
+  "insurance": {
+    "primary": "Blue Cross \u2013 PPO (claim denied \u2013 timely filing)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Outpatient Surgery",
+        "code_type": "CPT",
+        "code": "45385",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 6800,
+        "insurance_payments": 0,
+        "adjustments": 0,
+        "patient_balance": 6800
+      },
+      {
+        "service_name": "Pathology",
+        "code_type": "CPT",
+        "code": "88305",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 680,
+        "insurance_payments": 0,
+        "adjustments": 0,
+        "patient_balance": 680
+      },
+      {
+        "service_name": "Facility Fee",
+        "code_type": "Revenue",
+        "code": "0490",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 3200,
+        "insurance_payments": 0,
+        "adjustments": 0,
+        "patient_balance": 3200
+      }
+    ],
+    "totals": {
+      "total_billed": 10680,
+      "total_insurance_payments": 0,
+      "total_adjustments": 0,
+      "outstanding_balance": 10680,
+      "patient_balance": 10680
+    }
+  },
+  "total_amount_due": 10680,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

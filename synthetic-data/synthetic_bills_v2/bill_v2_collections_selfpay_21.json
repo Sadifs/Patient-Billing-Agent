@@ -49,7 +49,7 @@
       {
         "service_name": "Laparoscopic Appendectomy",
         "code_type": "CPT",
-        "code": "44970",
+        "code": "44950",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 12000.0,
