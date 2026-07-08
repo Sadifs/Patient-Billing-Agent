@@ -386,8 +386,8 @@
     "case_id": "DV2-016",
     "household_size": 2,
     "annual_income_usd": 73000,
-    "fpl_percentage": 314.0,
-    "expected_eligibility_tier": "Charity Care (314% FPL, HH=2)",
+    "fpl_percentage": 337.3,
+    "expected_eligibility_tier": "Charity Care (337.3% FPL, HH=2)",
     "scenario_tags": [
       "complex_cardiac",
       "inpatient",

@@ -287,8 +287,8 @@
     "case_id": "DV2-018",
     "household_size": 4,
     "annual_income_usd": 105000,
-    "fpl_percentage": 318.0,
-    "expected_eligibility_tier": "Charity Care (318% FPL, HH=4)",
+    "fpl_percentage": 318.2,
+    "expected_eligibility_tier": "Discount Payment (318.2% FPL, HH=4)",
     "scenario_tags": [
       "secondary_insurance",
       "COB",

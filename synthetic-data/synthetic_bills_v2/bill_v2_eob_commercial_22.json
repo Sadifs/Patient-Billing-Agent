@@ -171,8 +171,8 @@
     "case_id": "DV2-022",
     "household_size": 2,
     "annual_income_usd": 82000,
-    "fpl_percentage": 254.0,
-    "expected_eligibility_tier": "Charity Care (254% FPL, HH=2)",
+    "fpl_percentage": 379.0,
+    "expected_eligibility_tier": "Charity Care (379.0% FPL, HH=2)",
     "scenario_tags": [
       "eob_style",
       "commercial_ppo",

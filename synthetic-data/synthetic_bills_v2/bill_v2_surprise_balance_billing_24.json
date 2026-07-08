@@ -171,8 +171,8 @@
     "case_id": "DV2-024",
     "household_size": 2,
     "annual_income_usd": 120000,
-    "fpl_percentage": 425.0,
-    "expected_eligibility_tier": "Discount Payment Plan (425% FPL, HH=2)",
+    "fpl_percentage": 554.5,
+    "expected_eligibility_tier": "Discount Payment (554.5% FPL, HH=2)",
     "scenario_tags": [
       "surprise_billing",
       "balance_billing",
