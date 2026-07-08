@@ -1,0 +1,64 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "Betty Coleman",
+    "patient_account_number": "CS-2026-11022",
+    "service_date": "2026-04-25"
+  },
+  "guarantor": {
+    "guarantor_name": "Betty Coleman",
+    "guarantor_account_number": "GU-2026-11022"
+  },
+  "insurance": {
+    "primary": "Fixed Indemnity Plan (Limited Benefit)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Inpatient 2 days",
+        "code_type": "Revenue",
+        "code": "0110",
+        "quantity": 2,
+        "unit": "day",
+        "billed_amount": 5600,
+        "insurance_payments": 1120,
+        "adjustments": 0,
+        "patient_balance": 4480
+      },
+      {
+        "service_name": "Surgery",
+        "code_type": "CPT",
+        "code": "47562",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 8200,
+        "insurance_payments": 1640,
+        "adjustments": 0,
+        "patient_balance": 6560
+      }
+    ],
+    "totals": {
+      "total_billed": 13800,
+      "total_insurance_payments": 2760,
+      "total_adjustments": 0,
+      "outstanding_balance": 11040,
+      "patient_balance": 11040
+    }
+  },
+  "total_amount_due": 11040,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

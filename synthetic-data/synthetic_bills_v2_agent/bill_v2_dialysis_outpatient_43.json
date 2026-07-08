@@ -1,0 +1,75 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "George Yamamoto",
+    "patient_account_number": "CS-2026-11013",
+    "service_date": "2026-05-20"
+  },
+  "guarantor": {
+    "guarantor_name": "George Yamamoto",
+    "guarantor_account_number": "GU-2026-11013"
+  },
+  "insurance": {
+    "primary": "Medicare Part B (ESRD)",
+    "secondary": "Medigap Plan N"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Hemodialysis Session",
+        "code_type": "CPT",
+        "code": "90935",
+        "quantity": 3,
+        "unit": "each",
+        "billed_amount": 1800,
+        "insurance_payments": 1440,
+        "adjustments": 0,
+        "patient_balance": 360
+      },
+      {
+        "service_name": "ESRD Lab Panel",
+        "code_type": "CPT",
+        "code": "80069",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 240,
+        "insurance_payments": 192,
+        "adjustments": 0,
+        "patient_balance": 48
+      },
+      {
+        "service_name": "EPO Injection",
+        "code_type": "HCPCS",
+        "code": "J0885",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 680,
+        "insurance_payments": 544,
+        "adjustments": 0,
+        "patient_balance": 136
+      }
+    ],
+    "totals": {
+      "total_billed": 2720,
+      "total_insurance_payments": 2176,
+      "total_adjustments": 0,
+      "outstanding_balance": 544,
+      "patient_balance": 544
+    }
+  },
+  "total_amount_due": 544,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

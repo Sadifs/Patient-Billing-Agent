@@ -243,25 +243,14 @@
         "insurance_payments": 256.0,
         "adjustments": 32.0,
         "patient_balance": 32.0
-      },
-      {
-        "service_name": "Secondary Insurance Credit (Kaiser Permanente COB)",
-        "code_type": "Revenue",
-        "code": "0399",
-        "quantity": 1,
-        "unit": "each",
-        "billed_amount": -11073.0,
-        "insurance_payments": 0.0,
-        "adjustments": 0.0,
-        "patient_balance": -11073.0
       }
     ],
     "totals": {
-      "total_billed": 104657.0,
+      "total_billed": 115730.0,
       "total_insurance_payments": 92584.0,
       "total_adjustments": 11573.0,
-      "outstanding_balance": 500.0,
-      "patient_balance": 500.0
+      "outstanding_balance": 11573.0,
+      "patient_balance": 11573.0
     }
   },
   "payment_detail": {
@@ -298,7 +287,7 @@
     "case_id": "DV2-018",
     "household_size": 4,
     "annual_income_usd": 105000,
-    "fpl_percentage": 318.2,
+    "fpl_percentage": 318.0,
     "expected_eligibility_tier": "Charity Care (318% FPL, HH=4)",
     "scenario_tags": [
       "secondary_insurance",

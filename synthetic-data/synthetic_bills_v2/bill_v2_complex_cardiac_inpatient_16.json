@@ -278,9 +278,9 @@
         "patient_balance": 90.0
       },
       {
-        "service_name": "Physical Therapy \u2013 Cardiac Rehab Evaluation",
+        "service_name": "Physical Therapy \u2013 Cardiac Rehab Eval",
         "code_type": "CPT",
-        "code": "97161",
+        "code": "97001",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 600.0,
@@ -322,9 +322,9 @@
         "patient_balance": 216.0
       },
       {
-        "service_name": "Cardiac Catheterization Lab \u2013 PCI Suite",
+        "service_name": "OR Facility Fee \u2013 PCI Suite",
         "code_type": "Revenue",
-        "code": "0481",
+        "code": "0360",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 4200.0,
@@ -386,8 +386,8 @@
     "case_id": "DV2-016",
     "household_size": 2,
     "annual_income_usd": 73000,
-    "fpl_percentage": 337.3,
-    "expected_eligibility_tier": "Charity Care (337.3% FPL, HH=2)",
+    "fpl_percentage": 314.0,
+    "expected_eligibility_tier": "Charity Care (314% FPL, HH=2)",
     "scenario_tags": [
       "complex_cardiac",
       "inpatient",

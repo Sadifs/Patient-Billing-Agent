@@ -47,9 +47,9 @@
         "patient_balance": 3200.0
       },
       {
-        "service_name": "Anesthesia \u2013 Total Hip Arthroplasty (in-network)",
+        "service_name": "Anesthesia \u2013 General (in-network)",
         "code_type": "CPT",
-        "code": "01214",
+        "code": "01402",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 6000.0,
@@ -102,9 +102,9 @@
         "patient_balance": 220.0
       },
       {
-        "service_name": "Assistant Surgeon \u2013 Out-of-Network (CPT 27130-80, OON provider)",
+        "service_name": "Assistant Surgeon \u2013 Out-of-Network",
         "code_type": "CPT",
-        "code": "27130",
+        "code": "27131",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 8500.0,
@@ -171,8 +171,8 @@
     "case_id": "DV2-024",
     "household_size": 2,
     "annual_income_usd": 120000,
-    "fpl_percentage": 554.5,
-    "expected_eligibility_tier": "Discount Payment Plan (554.5% FPL, HH=2)",
+    "fpl_percentage": 425.0,
+    "expected_eligibility_tier": "Discount Payment Plan (425% FPL, HH=2)",
     "scenario_tags": [
       "surprise_billing",
       "balance_billing",

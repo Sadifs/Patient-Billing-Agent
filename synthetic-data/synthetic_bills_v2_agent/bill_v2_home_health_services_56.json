@@ -1,0 +1,75 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "Dorothy Mills",
+    "patient_account_number": "CS-2026-11026",
+    "service_date": "2026-05-08"
+  },
+  "guarantor": {
+    "guarantor_name": "Dorothy Mills",
+    "guarantor_account_number": "GU-2026-11026"
+  },
+  "insurance": {
+    "primary": "Medicare Part B",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Skilled Nursing Visit",
+        "code_type": "CPT",
+        "code": "99213",
+        "quantity": 4,
+        "unit": "each",
+        "billed_amount": 600,
+        "insurance_payments": 480,
+        "adjustments": 0,
+        "patient_balance": 120
+      },
+      {
+        "service_name": "Physical Therapy Home",
+        "code_type": "CPT",
+        "code": "97110",
+        "quantity": 3,
+        "unit": "each",
+        "billed_amount": 480,
+        "insurance_payments": 384,
+        "adjustments": 0,
+        "patient_balance": 96
+      },
+      {
+        "service_name": "Medical Supplies",
+        "code_type": "Revenue",
+        "code": "0270",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 320,
+        "insurance_payments": 256,
+        "adjustments": 0,
+        "patient_balance": 64
+      }
+    ],
+    "totals": {
+      "total_billed": 1400,
+      "total_insurance_payments": 1120,
+      "total_adjustments": 0,
+      "outstanding_balance": 280,
+      "patient_balance": 280
+    }
+  },
+  "total_amount_due": 280,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

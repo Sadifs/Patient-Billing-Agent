@@ -1,0 +1,64 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "Isabella Romero",
+    "patient_account_number": "CS-2026-11035",
+    "service_date": "2026-05-16"
+  },
+  "guarantor": {
+    "guarantor_name": "Isabella Romero",
+    "guarantor_account_number": "GU-2026-11035"
+  },
+  "insurance": {
+    "primary": "Health Net \u2013 Medi-Cal Managed Care",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Specialist Consult",
+        "code_type": "CPT",
+        "code": "99244",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 680,
+        "insurance_payments": 612,
+        "adjustments": 0,
+        "patient_balance": 68
+      },
+      {
+        "service_name": "MRI Authorization",
+        "code_type": "CPT",
+        "code": "72148",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 6800,
+        "insurance_payments": 6120,
+        "adjustments": 0,
+        "patient_balance": 680
+      }
+    ],
+    "totals": {
+      "total_billed": 7480,
+      "total_insurance_payments": 6732,
+      "total_adjustments": 0,
+      "outstanding_balance": 748,
+      "patient_balance": 748
+    }
+  },
+  "total_amount_due": 748,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

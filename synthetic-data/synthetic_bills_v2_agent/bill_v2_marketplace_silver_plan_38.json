@@ -1,0 +1,75 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "Jasmine Ortiz",
+    "patient_account_number": "CS-2026-11008",
+    "service_date": "2026-05-19"
+  },
+  "guarantor": {
+    "guarantor_name": "Jasmine Ortiz",
+    "guarantor_account_number": "GU-2026-11008"
+  },
+  "insurance": {
+    "primary": "Covered California \u2013 Silver 87 (Anthem)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Urgent Care Visit",
+        "code_type": "CPT",
+        "code": "99213",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 480,
+        "insurance_payments": 384,
+        "adjustments": 48,
+        "patient_balance": 48
+      },
+      {
+        "service_name": "Strep Test",
+        "code_type": "CPT",
+        "code": "87880",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 120,
+        "insurance_payments": 96,
+        "adjustments": 12,
+        "patient_balance": 12
+      },
+      {
+        "service_name": "Antibiotics",
+        "code_type": "Revenue",
+        "code": "0250",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 85,
+        "insurance_payments": 68,
+        "adjustments": 8.5,
+        "patient_balance": 8.5
+      }
+    ],
+    "totals": {
+      "total_billed": 685,
+      "total_insurance_payments": 548,
+      "total_adjustments": 68.5,
+      "outstanding_balance": 68.5,
+      "patient_balance": 68.5
+    }
+  },
+  "total_amount_due": 68.5,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

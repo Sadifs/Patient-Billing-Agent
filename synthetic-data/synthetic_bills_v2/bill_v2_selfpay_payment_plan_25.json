@@ -211,8 +211,8 @@
     "case_id": "DV2-025",
     "household_size": 3,
     "annual_income_usd": 72000,
-    "fpl_percentage": 263.5,
-    "expected_eligibility_tier": "Charity Care (263.5% FPL, HH=3)",
+    "fpl_percentage": 285.0,
+    "expected_eligibility_tier": "Charity Care (285% FPL, HH=3)",
     "scenario_tags": [
       "self_pay",
       "payment_plan",

@@ -1,0 +1,64 @@
+{
+  "facility": {
+    "name": "Cedars-Sinai Medical Center",
+    "address": "8700 Beverly Blvd, Los Angeles, CA 90048",
+    "npi": "1316230813",
+    "tax_id": "95-2123461"
+  },
+  "statement_date": "2026-06-15",
+  "due_date": "2026-07-15",
+  "patient": {
+    "patient_name": "William Tate",
+    "patient_account_number": "CS-2026-11025",
+    "service_date": "2026-04-30"
+  },
+  "guarantor": {
+    "guarantor_name": "William Tate",
+    "guarantor_account_number": "GU-2026-11025"
+  },
+  "insurance": {
+    "primary": "Medicare Part A (Hospice Benefit)",
+    "secondary": "None on file"
+  },
+  "summary_of_services": {
+    "line_items": [
+      {
+        "service_name": "Inpatient Respite Care 5 days",
+        "code_type": "Revenue",
+        "code": "0656",
+        "quantity": 5,
+        "unit": "day",
+        "billed_amount": 4500,
+        "insurance_payments": 3600,
+        "adjustments": 0,
+        "patient_balance": 900
+      },
+      {
+        "service_name": "Palliative Consult",
+        "code_type": "CPT",
+        "code": "99254",
+        "quantity": 1,
+        "unit": "each",
+        "billed_amount": 680,
+        "insurance_payments": 544,
+        "adjustments": 0,
+        "patient_balance": 136
+      }
+    ],
+    "totals": {
+      "total_billed": 5180,
+      "total_insurance_payments": 4144,
+      "total_adjustments": 0,
+      "outstanding_balance": 1036,
+      "patient_balance": 1036
+    }
+  },
+  "total_amount_due": 1036,
+  "patient_services": {
+    "department": "Patient Financial Services",
+    "phone": "866-803-1777",
+    "hours": "Monday\u2013Friday, 8:00 AM \u2013 4:30 PM PT",
+    "online": "https://www.cedars-sinai.org/patients-visitors/billing.html",
+    "mail": "Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048"
+  }
+}

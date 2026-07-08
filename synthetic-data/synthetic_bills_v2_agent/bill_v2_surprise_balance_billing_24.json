@@ -45,9 +45,9 @@
         "patient_balance": 3200.0
       },
       {
-        "service_name": "Anesthesia \u2013 Total Hip Arthroplasty (in-network)",
+        "service_name": "Anesthesia \u2013 General (in-network)",
         "code_type": "CPT",
-        "code": "01214",
+        "code": "01402",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 6000.0,
@@ -100,9 +100,9 @@
         "patient_balance": 220.0
       },
       {
-        "service_name": "Assistant Surgeon \u2013 Out-of-Network (CPT 27130-80, OON provider)",
+        "service_name": "Assistant Surgeon \u2013 Out-of-Network",
         "code_type": "CPT",
-        "code": "27130",
+        "code": "27131",
         "quantity": 1,
         "unit": "each",
         "billed_amount": 8500.0,
