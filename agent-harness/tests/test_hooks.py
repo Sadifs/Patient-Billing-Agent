@@ -71,6 +71,17 @@ class PHIRedactionHookTest(unittest.TestCase):
         self.assertIn("[REDACTED:MRN]", redacted)
         self.assertIn("[REDACTED:DOB]", redacted)
 
+    def test_preserves_public_cedars_billing_email(self):
+        hook = PHIRedactionHook()
+
+        redacted = hook.redact(
+            "Contact patient.billing@cshs.org, not maria@example.com."
+        )
+
+        self.assertIn("patient.billing@cshs.org", redacted)
+        self.assertNotIn("maria@example.com", redacted)
+        self.assertIn("[REDACTED:EMAIL]", redacted)
+
     def test_preserves_file_path_arguments(self):
         hook = PHIRedactionHook()
 

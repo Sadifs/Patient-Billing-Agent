@@ -86,8 +86,9 @@ Use this skill when the user asks about:
    - If the user asks about affordability, financial assistance, eligibility,
      payment plans, or FPL and household size/income are missing, ask for those
      two details so FPL can be estimated.
-   - Recommend calling Cedars-Sinai Patient Financial Services at 866-803-1777
-     and saying they want to apply for financial assistance.
+   - Recommend contacting Cedars-Sinai Patient Financial Services by calling
+     [866-803-1777](tel:8668031777) or emailing patient.billing@cshs.org
+     (Monday–Friday, 8:00 AM – 4:30 PM PT) to apply for financial assistance.
    - Recommend asking billing/collections to pause collection activity while
      the financial-assistance application is under review.
    - If the bill has a collections fee or
