@@ -328,7 +328,7 @@ def _bill_flags(text: str, line_items: list[dict[str, Any]]) -> dict[str, Any]:
             "If no_insurance_or_self_pay_signal or collections_signal is true, "
             "explain that financial assistance may still be available, ask for "
             "household size and annual income if missing, recommend calling "
-            "Cedars-Sinai Patient Financial Services at 866-803-1777 or patient.billing@cshs.org (Monday–Friday, 8:00 AM – 4:30 PM PT), ask "
+            "Cedars-Sinai Patient Financial Services at [866-803-1777](tel:8668031777) or patient.billing@cshs.org (Monday–Friday, 8:00 AM – 4:30 PM PT), ask "
             "billing/collections to pause collection activity during FAP review, "
             "and ask whether any collections fee can be reviewed or waived."
         ),
@@ -344,7 +344,7 @@ def _suggested_next_steps(flags: dict[str, Any]) -> list[str]:
         return []
 
     steps = [
-        "Call 866-803-1777 or email patient.billing@cshs.org (Monday–Friday, 8:00 AM – 4:30 PM PT) to apply for financial assistance with Cedars-Sinai Patient Financial Services.",
+        "Call [866-803-1777](tel:8668031777) or email patient.billing@cshs.org (Monday–Friday, 8:00 AM – 4:30 PM PT) to apply for financial assistance with Cedars-Sinai Patient Financial Services.",
         "Ask billing or collections to pause collection activity while your financial-assistance application is reviewed.",
         "Share household size and approximate annual household income so FPL can be estimated.",
     ]
