@@ -51,7 +51,10 @@ class PHIRedactionHook(Hook):
             ),
             (
                 "EMAIL",
-                re.compile(r"\b(?!patient\.billing@cshs\.org\b)[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE),
+                re.compile(
+                    r"(?<![A-Z0-9._%+-])(?!patient\.billing@cshs\.org\b)[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
+                    re.IGNORECASE,
+                ),
             ),
             (
                 "PATIENT_PHONE",
