@@ -44,6 +44,26 @@ class ServerHelperTest(unittest.TestCase):
         self.assertEqual(inputs["household_size"], 5)
         self.assertEqual(inputs["annual_income_usd"], 115000)
 
+    def test_extracts_income_with_k_suffix(self):
+        inputs = _extract_fpl_inputs("household size is 1 and annual income is 30k")
+
+        self.assertEqual(inputs["household_size"], 1)
+        self.assertEqual(inputs["annual_income_usd"], 30000)
+
+    def test_extracts_fpl_inputs_across_history(self):
+        history = [{"role": "user", "content": "household size is 3"}]
+        inputs = _extract_fpl_inputs("my income is $45,000", history)
+
+        self.assertEqual(inputs["household_size"], 3)
+        self.assertEqual(inputs["annual_income_usd"], 45000)
+
+    def test_direct_fpl_answer_uses_history_for_missing_input(self):
+        history = [{"role": "user", "content": "household size is 2"}]
+        answer = _direct_fpl_answer("my income is $40,000", history)
+
+        self.assertIsNotNone(answer)
+        self.assertIn("household of 2", answer)
+
     def test_direct_fpl_answer_uses_calculated_values(self):
         answer = _direct_fpl_answer(
             "Household size: 5, household income: $115,000"

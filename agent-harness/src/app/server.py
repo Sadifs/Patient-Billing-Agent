@@ -63,31 +63,62 @@ search_service = LocalSearchService(indexer)
 input_redactor = PHIRedactionHook()
 
 
-def _extract_fpl_inputs(text: str) -> dict[str, int | float] | None:
-    """Extract simple household size and income values from patient text."""
-    household_match = re.search(
+def _extract_household_size(text: str) -> int | None:
+    """Extract household size from a single text string."""
+    match = re.search(
         r"\b(?:household|family)\s*(?:size)?\s*(?:is|:)?\s*(\d{1,2})\b",
         text,
         re.IGNORECASE,
     )
-    income_match = re.search(
-        r"\b(?:household\s*)?(?:income|make|earn|salary)\b[^$\d]{0,20}\$?\s*([\d,]+(?:\.\d{2})?)",
+    return int(match.group(1)) if match else None
+
+
+def _extract_income(text: str) -> float | None:
+    """Extract annual income from a single text string. Handles k/K suffix."""
+    match = re.search(
+        r"\b(?:household\s*)?(?:income|make|earn|salary)\b[^$\d]{0,20}\$?\s*([\d,]+(?:\.\d{2})?)([kK])?",
         text,
         re.IGNORECASE,
     )
+    if not match:
+        return None
+    value = float(match.group(1).replace(",", ""))
+    if match.group(2):
+        value *= 1000
+    return value
 
-    if not household_match or not income_match:
+
+def _extract_fpl_inputs(
+    text: str, history: list[dict] | None = None
+) -> dict[str, int | float] | None:
+    """Extract household size and income from text, falling back to recent history."""
+    household = _extract_household_size(text)
+    income = _extract_income(text)
+
+    if (household is None or income is None) and history:
+        for msg in reversed(history):
+            if msg.get("role") != "user":
+                continue
+            msg_text = msg.get("content", "")
+            if household is None:
+                household = _extract_household_size(msg_text)
+            if income is None:
+                income = _extract_income(msg_text)
+            if household is not None and income is not None:
+                break
+
+    if household is None or income is None:
         return None
 
     return {
-        "household_size": int(household_match.group(1)),
-        "annual_income_usd": float(income_match.group(1).replace(",", "")),
+        "household_size": household,
+        "annual_income_usd": income,
     }
 
 
-def _fpl_context_message(user_message: str) -> Message | None:
+def _fpl_context_message(user_message: str, history: list[dict] | None = None) -> Message | None:
     """Pre-calculate FPL context when the user supplies both required values."""
-    fpl_inputs = _extract_fpl_inputs(user_message)
+    fpl_inputs = _extract_fpl_inputs(user_message, history)
     if not fpl_inputs:
         return None
 
@@ -136,9 +167,9 @@ def _direct_fpl_definition_answer(user_message: str) -> str | None:
     )
 
 
-def _direct_fpl_answer(user_message: str) -> str | None:
+def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> str | None:
     """Return a deterministic FPL answer when both required inputs are present."""
-    fpl_inputs = _extract_fpl_inputs(user_message)
+    fpl_inputs = _extract_fpl_inputs(user_message, history)
     if not fpl_inputs:
         return None
 
@@ -363,7 +394,7 @@ async def chat(request: Request):
             content_type="text/event-stream",
         )
 
-    direct_fpl_answer = _direct_fpl_answer(user_message)
+    direct_fpl_answer = _direct_fpl_answer(user_message, history)
     if direct_fpl_answer:
         async def stream_direct_fpl(resp):
             await resp.write(
@@ -385,7 +416,7 @@ async def chat(request: Request):
                 content=_redact_message_for_model(msg["content"]),
             )
         )
-    fpl_context = _fpl_context_message(user_message)
+    fpl_context = _fpl_context_message(user_message, history)
     if fpl_context:
         messages.append(fpl_context)
     phi_context = _phi_redaction_context_message(user_message)
