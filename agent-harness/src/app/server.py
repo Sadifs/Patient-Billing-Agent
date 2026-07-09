@@ -103,6 +103,73 @@ def _fpl_context_message(user_message: str) -> Message | None:
     )
 
 
+def _format_usd(value: int | float) -> str:
+    """Format a dollar value for patient-facing responses."""
+    return f"${value:,.0f}"
+
+
+def _is_fpl_definition_question(text: str) -> bool:
+    """Return whether the user is asking what FPL means."""
+    normalized = text.lower().strip()
+    return bool(
+        re.search(r"\bwhat(?:'s| is)\s+(?:an?\s+)?fpl\b", normalized)
+        or re.search(r"\bwhat\s+does\s+fpl\s+(?:mean|stand for)\b", normalized)
+        or re.search(r"\bdefine\s+fpl\b", normalized)
+    )
+
+
+def _direct_fpl_definition_answer(user_message: str) -> str | None:
+    """Return a plain-language FPL definition without requiring income details."""
+    if not _is_fpl_definition_question(user_message):
+        return None
+
+    return (
+        "FPL stands for Federal Poverty Level. It is an income guideline used "
+        "to estimate whether a household may qualify for certain assistance "
+        "programs.\n\n"
+        "For hospital financial assistance, your FPL percentage compares your "
+        "annual household income to the federal guideline for your household "
+        "size. A lower FPL percentage usually means a stronger chance of "
+        "qualifying for help, but Cedars-Sinai makes the final decision.\n\n"
+        "If you want, share your household size and approximate annual "
+        "household income, and I can estimate your FPL percentage."
+    )
+
+
+def _direct_fpl_answer(user_message: str) -> str | None:
+    """Return a deterministic FPL answer when both required inputs are present."""
+    fpl_inputs = _extract_fpl_inputs(user_message)
+    if not fpl_inputs:
+        return None
+
+    result = json.loads(calculate_fpl.handler(fpl_inputs))
+    if "error" in result:
+        return None
+
+    household_size = result["household_size"]
+    annual_income = result["annual_income_usd"]
+    fpl_100 = result["fpl_100_percent_usd"]
+    fpl_percentage = result["fpl_percentage"]
+    assistance_tier = result["assistance_tier"]
+    guidance = result["guidance"]
+
+    return (
+        "Based on the household size and income you shared, you may be a "
+        f"{assistance_tier.lower()}.\n\n"
+        f"For a household of {household_size}, 100% of the {result['fpl_year']} "
+        f"Federal Poverty Level is {_format_usd(fpl_100)}. Your household "
+        f"income is {_format_usd(annual_income)}, so your estimated FPL is "
+        f"{fpl_percentage}%.\n\n"
+        f"What this means: {guidance} This does not guarantee approval, but it "
+        "means applying is worth asking about.\n\n"
+        "Next step: contact Cedars-Sinai Patient Financial Services at "
+        "[866-803-1777](tel:8668031777) or patient.billing@cshs.org and ask "
+        "for the financial-assistance application. You can tell them your "
+        f"household size is {household_size} and your approximate annual "
+        f"household income is {_format_usd(annual_income)}."
+    )
+
+
 def _redact_message_for_model(text: str) -> str:
     """Remove obvious PHI before sending user text to the model."""
     return input_redactor.redact(text)
@@ -282,6 +349,32 @@ async def chat(request: Request):
 
     if not user_message:
         return response.json({"error": "message is required"}, status=400)
+
+    direct_fpl_definition = _direct_fpl_definition_answer(user_message)
+    if direct_fpl_definition:
+        async def stream_direct_fpl_definition(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_fpl_definition})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_fpl_definition,
+            content_type="text/event-stream",
+        )
+
+    direct_fpl_answer = _direct_fpl_answer(user_message)
+    if direct_fpl_answer:
+        async def stream_direct_fpl(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_fpl_answer})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_fpl,
+            content_type="text/event-stream",
+        )
 
     user_message_has_phi = _message_has_phi(user_message)
     messages = []

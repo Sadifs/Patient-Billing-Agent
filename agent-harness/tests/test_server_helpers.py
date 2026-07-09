@@ -3,6 +3,9 @@ import unittest
 from app.server import (
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
+    _direct_fpl_definition_answer,
+    _direct_fpl_answer,
+    _extract_fpl_inputs,
     _message_has_phi,
     _sensitive_info_notice,
     _technical_fallback_message,
@@ -32,6 +35,42 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("financial-assistance answer", fallback)
         self.assertIn("household size", fallback)
         self.assertNotIn("sensitive details", fallback)
+
+    def test_extracts_household_size_and_income_for_fpl(self):
+        inputs = _extract_fpl_inputs(
+            "Household size: 5, household income: $115,000"
+        )
+
+        self.assertEqual(inputs["household_size"], 5)
+        self.assertEqual(inputs["annual_income_usd"], 115000)
+
+    def test_direct_fpl_answer_uses_calculated_values(self):
+        answer = _direct_fpl_answer(
+            "Household size: 5, household income: $115,000"
+        )
+
+        self.assertIn("Based on the household size and income you shared", answer)
+        self.assertIn("household of 5", answer)
+        self.assertIn("$38,680", answer)
+        self.assertIn("297.3%", answer)
+        self.assertIn("charity care candidate", answer)
+        self.assertIn("does not guarantee approval", answer)
+        self.assertIn("applying is worth asking about", answer)
+        self.assertNotIn("may not qualify", answer.lower())
+
+    def test_direct_fpl_definition_answer_explains_term(self):
+        answer = _direct_fpl_definition_answer("What is FPL?")
+
+        self.assertIn("Federal Poverty Level", answer)
+        self.assertIn("household income", answer)
+        self.assertIn("household size", answer)
+        self.assertIn("Cedars-Sinai makes the final decision", answer)
+        self.assertNotIn("technical issue", answer.lower())
+
+    def test_direct_fpl_definition_handles_common_variations(self):
+        self.assertIsNotNone(_direct_fpl_definition_answer("What does FPL mean?"))
+        self.assertIsNotNone(_direct_fpl_definition_answer("define FPL"))
+        self.assertIsNone(_direct_fpl_definition_answer("Household size is 5"))
 
     def test_removes_internal_tool_syntax_from_response_text(self):
         model_text = (
