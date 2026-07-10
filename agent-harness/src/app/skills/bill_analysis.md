@@ -65,6 +65,10 @@ Use this skill when the user asks about:
    - Use plain language.
    - Distinguish billed charges, insurance payments, adjustments, outstanding
      balance, patient balance, and total amount due.
+   - If the user asks which insurance paid or covered the bill, answer from the
+     parsed bill's `insurance.primary` value. Do not guess an insurer name from
+     nearby examples, prior conversations, or general knowledge. If the parsed
+     bill does not show a primary payer, say the bill does not clearly show one.
    - Summarize what is visible on the bill before giving next steps.
    - If important information is missing, say what is missing and ask for it.
    - For vague follow-ups like "Why is this charge on here?", use the most
