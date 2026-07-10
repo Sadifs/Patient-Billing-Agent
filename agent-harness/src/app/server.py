@@ -116,8 +116,28 @@ def _extract_fpl_inputs(
     }
 
 
+def _should_use_fpl_from_message(text: str) -> bool:
+    """Return whether this turn is actually asking for FPL/payment assistance."""
+    normalized = text.lower()
+    if _extract_household_size(text) is not None or _extract_income(text) is not None:
+        return True
+    return bool(
+        re.search(
+            r"\b("
+            r"fpl|federal poverty|poverty level|financial assistance|charity care|"
+            r"payment assistance|discount|discount payment|payment plan|hardship|"
+            r"afford|affordable|qualify|eligib|help paying|paying my bill"
+            r")\b",
+            normalized,
+        )
+    )
+
+
 def _fpl_context_message(user_message: str, history: list[dict] | None = None) -> Message | None:
     """Pre-calculate FPL context when the user supplies both required values."""
+    if not _should_use_fpl_from_message(user_message):
+        return None
+
     fpl_inputs = _extract_fpl_inputs(user_message, history)
     if not fpl_inputs:
         return None
@@ -167,8 +187,88 @@ def _direct_fpl_definition_answer(user_message: str) -> str | None:
     )
 
 
+def _is_charity_care_definition_question(text: str) -> bool:
+    """Return whether the user is asking what Charity Care means."""
+    normalized = text.lower().strip()
+    return bool(
+        re.search(r"\bwhat(?:'s| is)\s+(?:cedars[- ]sinai\s+)?charity care\b", normalized)
+        or re.search(r"\bwhat\s+does\s+(?:cedars[- ]sinai\s+)?charity care\s+mean\b", normalized)
+        or re.search(r"\bdefine\s+(?:cedars[- ]sinai\s+)?charity care\b", normalized)
+    )
+
+
+def _direct_charity_care_definition_answer(user_message: str) -> str | None:
+    """Return a Cedars-specific Charity Care definition without recalculating FPL."""
+    if not _is_charity_care_definition_question(user_message):
+        return None
+
+    return (
+        "**Summary**\n"
+        "Cedars-Sinai Charity Care is a financial-assistance option for "
+        "patients who may need help paying eligible hospital bills.\n\n"
+        "**What It Means**\n"
+        "If a patient qualifies, Charity Care may reduce or cover part of the "
+        "patient balance. Eligibility is reviewed by Cedars-Sinai and usually "
+        "depends on information like household size, household income, and the "
+        "bill or services involved.\n\n"
+        "**Important Note**\n"
+        "I can help estimate whether applying may be worth asking about, but "
+        "I cannot approve Charity Care or guarantee that a bill will be "
+        "forgiven.\n\n"
+        "**Next Steps**\n"
+        "- Contact Cedars-Sinai Patient Financial Services at "
+        "[866-803-1777](tel:8668031777) or patient.billing@cshs.org.\n"
+        "- Ask for the financial-assistance or Charity Care application.\n"
+        "- Ask what documents they need, such as proof of income or household "
+        "information."
+    )
+
+
+def _is_charity_care_coverage_question(text: str) -> bool:
+    """Return whether the user asks whether assistance will cover the whole bill."""
+    normalized = text.lower().strip()
+    mentions_assistance = bool(
+        re.search(r"\b(charity care|financial assistance|assistance|if i qualify|if approved)\b", normalized)
+    )
+    asks_full_coverage = bool(
+        re.search(r"\b(pay|cover|forgive|waive)\b.*\b(all|full|entire|everything|whole)\b", normalized)
+        or re.search(r"\b(all|full|entire|everything|whole)\b.*\b(bill|balance|amount)\b", normalized)
+    )
+    return mentions_assistance and asks_full_coverage
+
+
+def _direct_charity_care_coverage_answer(user_message: str) -> str | None:
+    """Answer whether Charity Care will cover the entire bill without recalculating FPL."""
+    if not _is_charity_care_coverage_question(user_message):
+        return None
+
+    return (
+        "**Summary**\n"
+        "Not necessarily. Qualifying for Cedars-Sinai Charity Care or financial "
+        "assistance does not automatically mean the entire bill will be paid, "
+        "forgiven, or reduced to $0.\n\n"
+        "**What This Means**\n"
+        "Cedars-Sinai reviews the application and decides what assistance applies "
+        "to the eligible patient balance. Depending on the review, assistance may "
+        "cover part of the balance or, in some cases, more of it. The final decision "
+        "has to come from Cedars-Sinai.\n\n"
+        "**What To Ask Cedars-Sinai**\n"
+        "- If I qualify, could my full patient balance be reduced or forgiven?\n"
+        "- Would financial assistance apply to every charge on this bill?\n"
+        "- Are any fees, prior balances, or collection-related charges treated differently?\n"
+        "- Can billing or collections pause activity while my application is reviewed?\n\n"
+        "**Next Steps**\n"
+        "Contact Cedars-Sinai Patient Financial Services at "
+        "[866-803-1777](tel:8668031777) or patient.billing@cshs.org and ask them "
+        "to review your financial-assistance options."
+    )
+
+
 def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> str | None:
     """Return a deterministic FPL answer when both required inputs are present."""
+    if not _should_use_fpl_from_message(user_message):
+        return None
+
     fpl_inputs = _extract_fpl_inputs(user_message, history)
     if not fpl_inputs:
         return None
@@ -183,21 +283,57 @@ def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> 
     fpl_percentage = result["fpl_percentage"]
     assistance_tier = result["assistance_tier"]
     guidance = result["guidance"]
+    if assistance_tier == "Above standard FAP threshold":
+        summary = (
+            "Based on the household size and income you shared, this screening "
+            "estimate is above the standard Cedars-Sinai financial-assistance "
+            "income thresholds."
+        )
+        meaning = (
+            f"{guidance} This does not mean you are approved or denied. It means "
+            "income-based Charity Care or Discount Payment assistance may be less "
+            "likely based on this estimate, but you can still ask Cedars-Sinai "
+            "about payment plans or hardship review options."
+        )
+        next_steps = (
+            "- Contact Cedars-Sinai Patient Financial Services.\n"
+            "  - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
+            "  - Email: patient.billing@cshs.org\n"
+            "- Ask about payment plan options and whether hardship review is available.\n"
+            f"- Tell them your household size is {household_size} and your "
+            f"approximate annual household income is {_format_usd(annual_income)}."
+        )
+    else:
+        summary = (
+            "Based on the household size and income you shared, you may be a "
+            f"{assistance_tier.lower()}."
+        )
+        meaning = (
+            f"{guidance} This does not guarantee approval, but it means applying "
+            "is worth asking about."
+        )
+        next_steps = (
+            "- Contact Cedars-Sinai Patient Financial Services.\n"
+            "  - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
+            "  - Email: patient.billing@cshs.org\n"
+            "- Ask for the financial-assistance application.\n"
+            f"- Tell them your household size is {household_size} and your "
+            f"approximate annual household income is {_format_usd(annual_income)}."
+        )
 
     return (
-        "Based on the household size and income you shared, you may be a "
-        f"{assistance_tier.lower()}.\n\n"
-        f"For a household of {household_size}, 100% of the {result['fpl_year']} "
-        f"Federal Poverty Level is {_format_usd(fpl_100)}. Your household "
-        f"income is {_format_usd(annual_income)}, so your estimated FPL is "
-        f"{fpl_percentage}%.\n\n"
-        f"What this means: {guidance} This does not guarantee approval, but it "
-        "means applying is worth asking about.\n\n"
-        "Next step: contact Cedars-Sinai Patient Financial Services at "
-        "[866-803-1777](tel:8668031777) or patient.billing@cshs.org and ask "
-        "for the financial-assistance application. You can tell them your "
-        f"household size is {household_size} and your approximate annual "
-        f"household income is {_format_usd(annual_income)}."
+        "**Summary**\n"
+        f"{summary}\n\n"
+        "**FPL Calculation Breakdown**\n"
+        f"- Household size: {household_size}\n"
+        f"- Annual household income: {_format_usd(annual_income)}\n"
+        f"- 100% of the {result['fpl_year']} Federal Poverty Level for a "
+        f"household of {household_size}: {_format_usd(fpl_100)}\n"
+        f"- Estimated FPL percentage: {fpl_percentage}%\n\n"
+        "**What This Means**\n"
+        f"{meaning}\n\n"
+        "**Next Steps**\n"
+        f"{next_steps}"
     )
 
 
@@ -391,6 +527,32 @@ async def chat(request: Request):
 
         return response.ResponseStream(
             stream_direct_fpl_definition,
+            content_type="text/event-stream",
+        )
+
+    direct_charity_care_definition = _direct_charity_care_definition_answer(user_message)
+    if direct_charity_care_definition:
+        async def stream_direct_charity_care_definition(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_charity_care_definition})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_charity_care_definition,
+            content_type="text/event-stream",
+        )
+
+    direct_charity_care_coverage = _direct_charity_care_coverage_answer(user_message)
+    if direct_charity_care_coverage:
+        async def stream_direct_charity_care_coverage(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_charity_care_coverage})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_charity_care_coverage,
             content_type="text/event-stream",
         )
 

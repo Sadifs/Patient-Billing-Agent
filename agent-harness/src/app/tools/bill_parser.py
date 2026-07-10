@@ -221,6 +221,18 @@ def _cell_value(row: list[Any], index: int | None) -> str | None:
     return text or None
 
 
+def _amounts_from_cell(value: str | None) -> list[float]:
+    """Return all dollar amounts found in a table cell."""
+    if not value:
+        return []
+    amounts: list[float] = []
+    for match in AMOUNT_PATTERN.finditer(value):
+        amount = _parse_amount(match.group(0))
+        if amount is not None:
+            amounts.append(amount)
+    return amounts
+
+
 def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -233,9 +245,13 @@ def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[st
         date_idx = _header_index(headers, "date", "service date", "dos")
         desc_idx = _header_index(headers, "description", "service", "procedure", "item")
         code_idx = _header_index(headers, "code", "cpt", "hcpcs", "procedure code")
-        amount_idx = _header_index(headers, "charge", "amount", "billed", "total", "balance")
+        billed_idx = _header_index(headers, "billed", "charge", "amount")
+        insurance_idx = _header_index(headers, "ins pmts", "insurance payments", "insurance paid", "pmts")
+        adjustment_idx = _header_index(headers, "adjustment", "adjustments", "adj")
+        patient_balance_idx = _header_index(headers, "patient bal", "patient balance", "responsibility")
+        amount_idx = billed_idx or _header_index(headers, "total", "balance")
 
-        if desc_idx is None and code_idx is None and amount_idx is None:
+        if desc_idx is None and code_idx is None:
             continue
 
         for row in table[1:]:
@@ -248,8 +264,26 @@ def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[st
                 date_value = _normalize_date(date_value)
 
             description = _cell_value(row, desc_idx)
+            if description and description.strip().lower() in {"total", "totals"}:
+                continue
+
             code_value = _cell_value(row, code_idx)
             amount_value = _cell_value(row, amount_idx)
+            billed_value = _cell_value(row, billed_idx)
+            insurance_value = _cell_value(row, insurance_idx)
+            adjustment_value = _cell_value(row, adjustment_idx)
+            patient_balance_value = _cell_value(row, patient_balance_idx)
+
+            billed_amount = _parse_amount(billed_value) if billed_value else None
+            insurance_payments = _parse_amount(insurance_value) if insurance_value else None
+            adjustments = _parse_amount(adjustment_value) if adjustment_value else None
+            patient_balance = _parse_amount(patient_balance_value) if patient_balance_value else None
+
+            if adjustment_idx == patient_balance_idx:
+                combined_amounts = _amounts_from_cell(adjustment_value)
+                if len(combined_amounts) >= 2:
+                    adjustments = combined_amounts[0]
+                    patient_balance = combined_amounts[1]
 
             amount = _parse_amount(amount_value) if amount_value else None
             if amount is None:
@@ -269,6 +303,10 @@ def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[st
                 "description": description,
                 "billing_codes": codes,
                 "amount": amount,
+                "billed_amount": billed_amount,
+                "insurance_payments": insurance_payments,
+                "adjustments": adjustments,
+                "patient_balance": patient_balance,
                 "raw_line": row_text,
             }
             if item["raw_line"] not in seen:
@@ -313,11 +351,26 @@ def _bill_flags(text: str, line_items: list[dict[str, Any]]) -> dict[str, Any]:
         or "agency assessment" in str(item.get("description") or item.get("raw_line") or "").lower()
         for item in line_items
     )
+    self_pay_signal = bool(
+        re.search(r"\b(self-pay|self pay|no insurance|uninsured)\b", combined)
+    )
+    primary_no_insurance = bool(
+        re.search(
+            r"\bprimary\s+insurance\s*:?\s*(none on file|self-pay|self pay|no insurance|uninsured)\b",
+            combined,
+        )
+    )
+    primary_has_payer = bool(
+        re.search(
+            r"\bprimary\s+insurance\s*:?\s*(?!none on file|self-pay|self pay|no insurance|uninsured)[a-z0-9]",
+            combined,
+        )
+    )
+    none_on_file_without_primary_payer = "none on file" in combined and not primary_has_payer
     no_insurance_on_file = (
-        "none on file" in combined
-        or "self-pay" in combined
-        or "self pay" in combined
-        or "no insurance" in combined
+        self_pay_signal
+        or primary_no_insurance
+        or none_on_file_without_primary_payer
     )
 
     return {
@@ -328,7 +381,8 @@ def _bill_flags(text: str, line_items: list[dict[str, Any]]) -> dict[str, Any]:
             "If no_insurance_or_self_pay_signal or collections_signal is true, "
             "explain that financial assistance may still be available, ask for "
             "household size and annual income if missing, recommend calling "
-            "Cedars-Sinai Patient Financial Services at [866-803-1777](tel:8668031777) or patient.billing@cshs.org (Monday–Friday, 8:00 AM – 4:30 PM PT), ask "
+            "Cedars-Sinai Patient Financial Services at [866-803-1777](tel:8668031777) "
+            "(Monday–Friday, 8:00 AM–4:30 PM PT) or emailing patient.billing@cshs.org, ask "
             "billing/collections to pause collection activity during FAP review, "
             "and ask whether any collections fee can be reviewed or waived."
         ),
@@ -344,9 +398,9 @@ def _suggested_next_steps(flags: dict[str, Any]) -> list[str]:
         return []
 
     steps = [
-        "Call [866-803-1777](tel:8668031777) or email patient.billing@cshs.org (Monday–Friday, 8:00 AM – 4:30 PM PT) to apply for financial assistance with Cedars-Sinai Patient Financial Services.",
+        "Call [866-803-1777](tel:8668031777) (Monday–Friday, 8:00 AM–4:30 PM PT) or email patient.billing@cshs.org to apply for financial assistance with Cedars-Sinai Patient Financial Services.",
         "Ask billing or collections to pause collection activity while your financial-assistance application is reviewed.",
-        "Share household size and approximate annual household income so FPL can be estimated.",
+        "Cedars-Sinai may offer payment assistance based partly on your Federal Poverty Level (FPL). If you share your household size and approximate annual household income, I can estimate your FPL percentage and suggest next steps.",
     ]
     if flags.get("collections_fee_signal"):
         steps.append(
