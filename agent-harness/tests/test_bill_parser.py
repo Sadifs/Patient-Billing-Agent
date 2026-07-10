@@ -2,6 +2,7 @@ import unittest
 
 from app.tools.bill_parser import (
     _bill_flags,
+    _extract_insurance_info,
     _line_item_total,
     _parse_line_items_from_tables,
     _suggested_next_steps,
@@ -69,6 +70,17 @@ class BillParserHelperTest(unittest.TestCase):
         self.assertEqual(items[0]["patient_balance"], 84.0)
         self.assertEqual(items[1]["insurance_payments"], 544.0)
         self.assertEqual(items[2]["insurance_payments"], 144.0)
+
+    def test_extracts_primary_insurance_without_address_noise(self):
+        text = (
+            "Primary Insurance: Aetna – PPO P.O. Box 48750, Los Angeles, CA 90048\n"
+            "Secondary Insurance: None on file\n"
+        )
+
+        insurance = _extract_insurance_info(text)
+
+        self.assertEqual(insurance["primary"], "Aetna – PPO")
+        self.assertEqual(insurance["secondary"], "None on file")
 
     def test_line_item_total(self):
         self.assertEqual(
