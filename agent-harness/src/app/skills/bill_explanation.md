@@ -22,12 +22,15 @@ List each line item as a bullet. For each item, show both the charge amount AND 
 
 **Insurance & Adjustments**
 Briefly explain, in plain language, what insurance paid and what was adjusted/discounted. Keep this general — do not speculate about why a specific claim was approved or denied unless the bill states it explicitly.
+Treat insurance payments and adjustments as separate fields. If insurance payments are greater than $0 but adjustments are $0, say that insurance paid $X and that no adjustments/discounts are shown. Do not say "no insurance payment" unless the parsed total insurance payment is $0.
 
 **Patient Balance Due**
 State the final amount owed clearly, in bold if possible. Show the math only if it aids understanding (e.g. total charges − adjustments − insurance payment = balance).
 
 **Next Steps**
 1–3 concrete, actionable next steps (e.g. contact billing at [phone number from bill], ask about financial assistance, set up a payment plan).
+If mentioning FPL as an optional next step, say it once in patient-friendly language: "Cedars-Sinai may offer payment assistance based partly on your Federal Poverty Level (FPL). If you share your household size and approximate annual household income, I can estimate your FPL percentage and suggest next steps." Do not also ask a second household-size/income question in the same response.
+If recommending a Cedars-Sinai website or online payment portal, include the actual billing website link: https://www.cedars-sinai.org/patients-visitors/billing.html.
 
 ## Rules
 

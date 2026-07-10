@@ -79,16 +79,25 @@ Use this skill when the user asks about:
    collections fee, agency assessment, collection activity, or the bill parser
    returns `billing_flags.no_insurance_or_self_pay_signal`,
    `billing_flags.collections_signal`, or `billing_flags.collections_fee_signal`:
-   - State the amount due and that no insurance payment/adjustment appears on
-     the bill.
+   - Only call a bill self-pay/no-insurance when primary insurance is missing,
+     listed as none/self-pay, or total insurance payments are $0. Do not infer
+     self-pay from secondary insurance being "None on file" if a primary payer
+     or insurance payments are present.
+   - If the bill is truly self-pay/no-insurance, state the amount due and that
+     no insurance payment appears on the bill.
+   - If the bill has insurance payments, explain those payments separately from
+     adjustments and do not call the patient self-pay.
+   - If the bill shows collections, explain the collections signal or fee
+     without changing the insurance status.
    - Explain that financial help may still be available, including retroactive
      Financial Assistance/Charity Care review.
    - If the user asks about affordability, financial assistance, eligibility,
      payment plans, or FPL and household size/income are missing, ask for those
      two details so FPL can be estimated.
-   - Recommend contacting Cedars-Sinai Patient Financial Services by calling
-     [866-803-1777](tel:8668031777) or emailing patient.billing@cshs.org
-     (Monday–Friday, 8:00 AM – 4:30 PM PT) to apply for financial assistance.
+   - Recommend contacting Cedars-Sinai Patient Financial Services to apply for
+     financial assistance. Format the contact details as:
+     "Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT"
+     and "Email: patient.billing@cshs.org".
    - Recommend asking billing/collections to pause collection activity while
      the financial-assistance application is under review.
    - If the bill has a collections fee or
@@ -104,10 +113,54 @@ Use this skill when the user asks about:
    illegal. For those questions, suggest specific follow-up questions for
    Cedars-Sinai billing or the user's insurer.
 
+8. **Cedars-Sinai contact formatting.**
+   When recommending that the user contact Cedars-Sinai, always include the
+   actual contact details in the same answer. Do not say only "contact billing"
+   or "go to the website" without giving the phone, email, or link.
+   For Cedars-Sinai Patient Financial Services, keep phone, hours, and email
+   easy to scan:
+   - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT
+   - Email: patient.billing@cshs.org
+   - Billing website: https://www.cedars-sinai.org/patients-visitors/billing.html
+   Do not put the Monday–Friday hours next to the email address.
+
+9. **Financial assistance and FPL offer.**
+   Any time the answer mentions financial assistance, Charity Care, payment
+   assistance, discounts, or FPL, tell the user that you can estimate their FPL
+   percentage if they share household size and approximate annual household
+   income. Phrase it simply, for example: "If you share your household size and
+   approximate annual household income, I can estimate your FPL percentage and
+   suggest next steps." Do not imply this is a final approval decision.
+
 ## Output Format
 
-Use short, patient-friendly paragraphs or bullets. For financial-assistance
-questions, prefer this structure:
+Use short, patient-friendly paragraphs or bullets. Every patient-facing answer
+should do three things when relevant:
+
+1. Answer the user's question directly.
+2. Mention anything the patient may need to have ready, provide, or check.
+3. Suggest practical next steps.
+
+For very simple factual questions, such as "what is the phone number?" or "what
+is FPL?", answer directly and keep the needed-information and next-step details
+brief or omit them if they would be unnecessary.
+
+Split patient-facing answers into bolded section headers whenever the response
+has more than one idea or action step.
+
+For practical "how do I..." questions about payment plans, financial assistance,
+calling billing, contacting insurance, or preparing next steps, use concise
+headers such as:
+
+- **How**
+- **What To Say**
+- **What You May Need**
+- **Next Steps**
+
+Only include sections that fit the user's question. Keep each section short and
+avoid repeating the same contact details or request in multiple sections.
+
+For financial-assistance questions, prefer this structure:
 
 1. Brief reassurance that help may be available.
 2. The missing information needed, if any.

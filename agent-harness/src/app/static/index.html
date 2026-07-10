@@ -211,9 +211,17 @@
             return marked.parse(content, { breaks: true });
         }
 
+        function makeLinksOpenInNewTab(container) {
+            container.querySelectorAll('a[href]').forEach((link) => {
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+            });
+        }
+
         function setMessageContent(div, role, content) {
             if (role === 'assistant') {
                 div.innerHTML = renderAssistantMarkdown(content);
+                makeLinksOpenInNewTab(div);
             } else {
                 div.textContent = content;
             }
