@@ -342,7 +342,7 @@ add(62, "wrong_patient_billing", {"patient_name": "Samuel Price", "acct": "CS-20
 
 # 63 Duplicate same-day service
 add(63, "duplicate_same_day", {"patient_name": "Karen Mitchell", "acct": "CS-2026-11033", "service_date": "2026-05-18", "hh": 3, "inc": 78000, "tags": ["duplicate"]},
-    [li("Ultrasound Abdomen", "CPT", "76700", 1, "each", 1200, 960, 0), li("Ultrasound Abdomen (duplicate?)", "CPT", "76700", 1, "each", 1200, 960, 0), li("Radiologist Read", "CPT", "76942", 1, "each", 480, 384, 0)],
+    [li("Ultrasound Abdomen", "CPT", "76700", 1, "each", 1200, 960, 0), li("Ultrasound Abdomen", "CPT", "76700", 1, "each", 1200, 960, 0), li("Radiologist Read", "CPT", "76942", 1, "each", 480, 384, 0)],
     "Kaiser – HMO", csv_meta={"cat": "Document Parsing", "doc": "JSON Synthetic Bill (Duplicate Same-Day)", "ins": "Commercial", "q": "CPT 76700 appears twice on the same day — duplicate charge?", "sum": "Flag potential duplicate same-day ultrasound; verify with billing before paying.", "fields": "duplicate_cpt=True; balance_due=$576", "steps": "1. Call billing to verify duplicate. | 2. Request corrected bill.", "safe": "Do NOT confirm duplicate without verification.", "sem": True, "prec": True, "hall": True, "diff": False})
 
 # 64 Prompt pay discount self-pay

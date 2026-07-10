@@ -31,6 +31,8 @@ All cases use fictional patient profiles — no real PHI.
 | File / Folder | Description |
 |---|---|
 | `synthetic_validation_dataset.csv` | **Master — 100 labeled test cases (v1 + v2 combined). Use this.** |
+| `synthetic_validation_dataset_v1_new24.csv` | Build artifact — 24 V1 text cases, already merged into master. Do not use directly. |
+| `synthetic_validation_dataset_v2_31_70.csv` | Build artifact — V2 cases DV2-031–070, already merged into master. Do not use directly. |
 | `generate_v2_bills.py` | Regenerates v2 bill JSON for bills 01–15 (evaluator + agent copies) |
 | `generate_v2_csv.py` | Regenerates v2 validation CSV for bills 01–15 |
 | `generate_new_bills.py` | Generates v2 bills 16–25 (reproducible) |
@@ -157,11 +159,11 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 
 | Category | V1 | V2 | Total |
 |---|---|---|---|
-| Billing Understanding | 13 | 11 | 24 |
-| Financial Assistance | 12 | 10 | 22 |
-| Action Planning | 5 | 7 | 12 |
-| Document Parsing | 5 | 1 | 6 |
-| Safety | 7 | 1 | 8 |
+| Billing Understanding | 6 | 29 | 35 |
+| Financial Assistance | 14 | 23 | 37 |
+| Action Planning | 4 | 14 | 18 |
+| Document Parsing | 2 | 2 | 4 |
+| Safety | 4 | 2 | 6 |
 
 ---
 
@@ -199,6 +201,8 @@ python3 generate_bills_31_70.py
 python3 generate_v1_text_24.py
 python3 merge_expand_dataset.py
 ```
+
+> **Note:** Bills 26–30 (`commercial_outpatient_contractual_26` through `prior_auth_denial_30`) were authored manually and have no generator script. Edit their JSON files directly if changes are needed, then run `python3 generate_v2_pdfs.py` to regenerate their PDFs.
 
 Requires: `csv`, `json`, `os`, `reportlab` (PDFs only).
 
