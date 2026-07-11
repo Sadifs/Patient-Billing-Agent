@@ -65,12 +65,19 @@ input_redactor = PHIRedactionHook()
 
 def _extract_household_size(text: str) -> int | None:
     """Extract household size from a single text string."""
-    match = re.search(
-        r"\b(?:household|family)\s*(?:size)?\s*(?:is|:)?\s*(\d{1,2})\b",
-        text,
-        re.IGNORECASE,
-    )
-    return int(match.group(1)) if match else None
+    patterns = [
+        r"\b(?:household|family)\s*(?:size|of)?\s*(?:is|:)?\s*(\d{1,2})\b",
+        r"\b(\d{1,2})\s+(?:people|persons?|members?)\b",
+        r"\bi\s+have\s+(\d{1,2})\s+(?:people|persons?|members?)\b",
+        r"\bjust\s+(?:me|myself)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            if "just" in pattern:
+                return 1
+            return int(match.group(1))
+    return None
 
 
 def _extract_income(text: str) -> float | None:
