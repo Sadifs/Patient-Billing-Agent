@@ -306,6 +306,7 @@ def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> 
             "- Contact Cedars-Sinai Patient Financial Services.\n"
             "  - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
             "  - Email: patient.billing@cshs.org\n"
+            "  - Website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)\n"
             "- Ask about payment plan options and whether hardship review is available."
         )
     else:
@@ -321,6 +322,7 @@ def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> 
             "- Contact Cedars-Sinai Patient Financial Services.\n"
             "  - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
             "  - Email: patient.billing@cshs.org\n"
+            "  - Website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)\n"
             "- Ask for the financial-assistance application."
         )
 
