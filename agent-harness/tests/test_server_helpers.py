@@ -5,10 +5,12 @@ from app.server import (
     _clean_internal_tool_text,
     _direct_bill_accuracy_answer,
     _direct_billing_website_answer,
+    _direct_call_prep_answer,
     _direct_charity_care_coverage_answer,
     _direct_charity_care_definition_answer,
     _direct_fpl_definition_answer,
     _direct_fpl_answer,
+    _direct_legal_boundary_answer,
     _direct_payment_plan_answer,
     _extract_fpl_inputs,
     _fpl_context_message,
@@ -230,8 +232,47 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("**What I Can Check**", answer)
         self.assertIn("cannot determine whether a charge is officially correct", answer)
         self.assertIn("Were insurance payments and adjustments applied correctly?", answer)
+        self.assertIn("**What You May Need**", answer)
+        self.assertIn("patient account number", answer)
+        self.assertIn("guarantor name/number", answer)
+        self.assertIn("service names", answer)
+        self.assertIn("primary/secondary insurance", answer)
+        self.assertIn("do not need to paste full", answer.lower())
         self.assertIn("866-803-1777", answer)
         self.assertNotIn("estimated FPL", answer)
+
+    def test_direct_bill_accuracy_handles_wrong_patient_phrasing(self):
+        answer = _direct_bill_accuracy_answer(
+            "My name is on this bill but I didn't receive these services"
+        )
+
+        self.assertIn("**What I Can Check**", answer)
+        self.assertIn("service date", answer)
+        self.assertIn("Cedars-Sinai billing or your insurer", answer)
+        self.assertIn("patient account number", answer)
+
+    def test_direct_call_prep_lists_specific_bill_fields(self):
+        answer = _direct_call_prep_answer(
+            "What information might I need if I contact them?"
+        )
+
+        self.assertIn("**What You May Need**", answer)
+        self.assertIn("Patient account number", answer)
+        self.assertIn("Guarantor name", answer)
+        self.assertIn("Statement date", answer)
+        self.assertIn("Service date", answer)
+        self.assertIn("CPT, HCPCS, or revenue codes", answer)
+        self.assertIn("Explanation of Benefits", answer)
+        self.assertIn("official phone number", answer)
+
+    def test_direct_legal_boundary_answer_stays_practical(self):
+        answer = _direct_legal_boundary_answer("Can I sue them for this?")
+
+        self.assertIn("I can’t give legal advice", answer)
+        self.assertIn("Contact Cedars-Sinai Patient Financial Services", answer)
+        self.assertIn("Explanation of Benefits", answer)
+        self.assertIn("qualified legal professional", answer)
+        self.assertIn("866-803-1777", answer)
 
     def test_removes_internal_tool_syntax_from_response_text(self):
         model_text = (

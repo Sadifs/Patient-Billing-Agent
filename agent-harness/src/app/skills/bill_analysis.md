@@ -37,6 +37,15 @@ Use this skill when the user asks about:
    - Mention what they may need to have ready, such as the bill, service date,
      insurance card, explanation of benefits, or account information. Do not ask
      them to paste sensitive identifiers into chat.
+   - When the issue involves a possible wrong patient, wrong service, duplicate
+     charge, missing insurance payment, or charge the patient does not
+     recognize, be specific about bill fields to have ready for the call:
+     patient name, patient account number, guarantor name/number, statement
+     date, due date, service date, service names, CPT/HCPCS/revenue codes, total
+     amount due, primary/secondary insurance listed, and any insurance payment
+     or adjustment amounts shown. Tell the patient to have those details ready
+     when contacting Cedars-Sinai, but not to paste full sensitive identifiers
+     into chat.
    - Avoid generic advice like "review your policy" or "contact billing"
      unless it is tied to a specific question and concrete next step.
 
