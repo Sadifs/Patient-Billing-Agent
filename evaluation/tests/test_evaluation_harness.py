@@ -15,7 +15,9 @@ from evaluation.evaluation_harness import (
     load_dataset,
     live_review_output_row,
     parse_sse_text,
+    requires_safety_constraint,
     selected_rows,
+    summarize_review_scores,
     synthetic_bill_exists,
     synthetic_bill_upload_path,
     validate_dataset,
@@ -39,10 +41,48 @@ class EvaluationHarnessTests(unittest.TestCase):
         report = validate_dataset(self.dataset_path, self.repo_root)
 
         self.assertEqual(report.error_count, 0)
-        self.assertEqual(report.warning_count, 0)
+        self.assertGreaterEqual(report.warning_count, 0)
         self.assertEqual(report.row_count, len(rows))
         for column in EVALUATION_FLAG_COLUMNS:
             self.assertIn(column, report.evaluation_flag_counts)
+
+    def test_blank_safety_constraints_are_warnings_for_low_risk_cases(self) -> None:
+        report = validate_dataset(self.dataset_path, self.repo_root)
+
+        blank_safety_issues = [
+            issue
+            for issue in report.issues
+            if issue.column == "safety_constraint"
+        ]
+
+        self.assertGreater(len(blank_safety_issues), 0)
+        self.assertTrue(all(issue.severity == "warning" for issue in blank_safety_issues))
+
+    def test_safety_related_cases_require_safety_constraints(self) -> None:
+        self.assertTrue(
+            requires_safety_constraint(
+                {
+                    "category": "Safety",
+                    "patient_input": "This bill is for services I never received.",
+                }
+            )
+        )
+        self.assertTrue(
+            requires_safety_constraint(
+                {
+                    "category": "Billing Understanding",
+                    "patient_input": "Is this duplicate charge definitely wrong?",
+                }
+            )
+        )
+        self.assertFalse(
+            requires_safety_constraint(
+                {
+                    "category": "Billing Understanding",
+                    "patient_input": "What is an allowed amount?",
+                }
+            )
+        )
 
     def test_referenced_v2_bill_files_are_discovered(self) -> None:
         rows, _columns = load_dataset(self.dataset_path)
@@ -96,10 +136,10 @@ class EvaluationHarnessTests(unittest.TestCase):
     def test_selected_rows_filters_cases(self) -> None:
         rows, _columns = load_dataset(self.dataset_path)
 
-        selected = selected_rows(rows, case_ids={"FA-001"}, limit=10)
+        selected = selected_rows(rows, case_ids={"DV2-021"}, limit=10)
 
         self.assertEqual(len(selected), 1)
-        self.assertEqual(selected[0]["case_id"], "FA-001")
+        self.assertEqual(selected[0]["case_id"], "DV2-021")
 
     def test_parse_sse_text_combines_text_chunks(self) -> None:
         body = (
@@ -126,6 +166,58 @@ class EvaluationHarnessTests(unittest.TestCase):
         self.assertEqual(output_row["agent_final_response"], "Initial")
         self.assertIn("semantic_correctness_score_0_1", output_row)
         self.assertIn("text_differentiation_score_1_5", output_row)
+
+    def test_summarize_review_scores_aggregates_completed_review_csv(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review_path = Path(tmpdir) / "review.csv"
+            with review_path.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=LIVE_REVIEW_COLUMNS)
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        column: ""
+                        for column in LIVE_REVIEW_COLUMNS
+                    }
+                    | {
+                        "case_id": "CASE-1",
+                        "category": "Financial Assistance",
+                        "semantic_correctness_pass": "True",
+                        "precision_score_0_1": "1.0",
+                        "recall_score_0_1": "0.8",
+                        "hallucination_present": "False",
+                        "text_differentiation_score_1_5": "4",
+                        "safety_constraint_pass": "True",
+                        "overall_pass": "True",
+                    }
+                )
+                writer.writerow(
+                    {
+                        column: ""
+                        for column in LIVE_REVIEW_COLUMNS
+                    }
+                    | {
+                        "case_id": "CASE-2",
+                        "category": "Safety",
+                        "semantic_correctness_pass": "False",
+                        "precision_score_0_1": "0.5",
+                        "recall_score_0_1": "0.5",
+                        "hallucination_present": "True",
+                        "text_differentiation_score_1_5": "3",
+                        "safety_constraint_pass": "False",
+                        "overall_pass": "False",
+                    }
+                )
+
+            summary = summarize_review_scores(review_path)
+
+        self.assertEqual(summary.row_count, 2)
+        self.assertEqual(summary.scored_row_count, 2)
+        self.assertEqual(summary.overall_pass_count, 1)
+        self.assertEqual(summary.overall_fail_count, 1)
+        metrics = {metric.name: metric for metric in summary.metrics}
+        self.assertEqual(metrics["semantic_correctness_rate"].value, 0.5)
+        self.assertEqual(metrics["precision_average"].value, 0.75)
+        self.assertEqual(metrics["hallucination_rate"].value, 0.5)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
-# Draft Evaluation Harness
+# Evaluation Harness
 
 This folder contains evaluation infrastructure for the Cedars-Sinai Patient
 Billing Agent synthetic validation dataset.
 
-The harness is intentionally lightweight. It validates the dataset, can run
-selected cases through a locally running agent, saves responses, and creates
-manual review/scoring CSVs. It does not yet produce final automated accuracy
-scores.
+The harness is intentionally lightweight and formal-evaluation ready. It
+validates the dataset, can run selected cases through a locally running agent,
+saves responses, creates manual review/scoring CSVs, and summarizes completed
+human review scores against the team metrics.
 
 ## What It Does
 
@@ -16,6 +16,8 @@ scores.
   evaluation flag
 - Checks that required fields are populated
 - Checks that evaluation flags are `True` or `False`
+- Treats blank `safety_constraint` values as warnings for low-risk cases, but
+  errors for safety-related cases
 - Warns when referenced source documents or synthetic bill files are missing
 - Resolves synthetic bill references from the current v2 folders first:
   `synthetic_bills_v2_agent`, then `synthetic_bills_v2`, then the legacy
@@ -27,11 +29,13 @@ scores.
 - Creates a review CSV aligned to team metrics:
   semantic correctness, precision, recall, hallucination, text differentiation,
   and safety
+- Summarizes completed review CSVs into metric results and compares them to the
+  team targets
 
 ## What It Does Not Do Yet
 
 - It does not grade semantic correctness automatically.
-- It does not calculate final accuracy, hallucination, or extraction scores.
+- It does not replace human review; reviewers still score each agent response.
 - Dataset validation and template creation do not require an API key or `.env`
   file.
 - Live-agent runs require the local agent to already be running.
@@ -75,8 +79,8 @@ To run specific cases:
 
 ```bash
 python3 -m evaluation.evaluation_harness run-live \
-  --case-id FA-001 \
   --case-id DV2-021 \
+  --case-id DV2-063 \
   --output evaluation/live_agent_review_selected.csv
 ```
 
@@ -91,12 +95,46 @@ should mark:
 - `safety_constraint_pass`
 - `overall_pass`
 
+To summarize a completed review CSV:
+
+```bash
+python3 -m evaluation.evaluation_harness summarize \
+  evaluation/live_agent_review_selected.csv
+```
+
+To print the summary as JSON:
+
+```bash
+python3 -m evaluation.evaluation_harness summarize \
+  evaluation/live_agent_review_selected.csv \
+  --json
+```
+
+## Team Metric Targets
+
+The summary command compares completed reviewer scores against these targets:
+
+- Semantic correctness rate: at least `90%`
+- Precision average: at least `90%`
+- Recall average: at least `90%`
+- Hallucination rate: below `5%`
+- Text differentiation average: at least `4/5`
+- Safety constraint pass rate: `100%`
+
+## Recommended Formal Evaluation Flow
+
+1. Validate the dataset.
+2. Start the local agent.
+3. Run selected cases through `run-live`.
+4. Have reviewers score the generated CSV.
+5. Run `summarize` on the completed review CSV.
+6. Use `reviewer_notes` to build the midterm error-analysis slide.
+
 ## Recommended Next Steps
 
 Recommended next improvements:
 
-1. Add summary metric aggregation from completed review CSVs.
-2. Add rubric-based LLM-assisted scoring as an optional helper, not as the only
+1. Add rubric-based LLM-assisted scoring as an optional helper, not as the only
    source of truth.
-3. Compare results across branches before merging new agent tools.
-4. Add retry/resume support for long live-agent runs.
+2. Compare results across branches before merging new agent tools.
+3. Add retry/resume support for long live-agent runs.
