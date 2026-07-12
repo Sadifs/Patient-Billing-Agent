@@ -358,6 +358,7 @@ def _is_general_bill_accuracy_question(text: str) -> bool:
             r"don'?t think.*correct|do not think.*correct|"
             r"something.*wrong|charge.*valid|valid.*charge|"
             r"wrong patient|not my bill|not mine|didn'?t receive|did not receive|"
+            r"didn'?t get|did not get|never got|"
             r"never received.*service|service.*not.*receive"
             r")\b",
             normalized,
@@ -616,6 +617,20 @@ def _clean_internal_tool_text(text: str) -> str:
         cleaned,
         flags=re.IGNORECASE | re.MULTILINE,
     )
+    placeholder_replacements = {
+        "[REDACTED:PATIENT_ACCOUNT]": "the patient account number shown on the bill",
+        "[REDACTED:JSON_ACCOUNT_NUMBER]": "the account number shown on the bill",
+        "[REDACTED:GUARANTOR_ACCOUNT]": "the guarantor account number shown on the bill",
+        "[REDACTED:PATIENT_NAME]": "the patient name shown on the bill",
+        "[REDACTED:JSON_PATIENT_NAME]": "the patient name shown on the bill",
+        "[REDACTED:MRN]": "a sensitive identifier",
+        "[REDACTED:DOB]": "a date of birth",
+        "[REDACTED:SSN]": "an SSN",
+        "[REDACTED:EMAIL]": "a private email address",
+        "[REDACTED:PATIENT_PHONE]": "a private phone number",
+    }
+    for placeholder, replacement in placeholder_replacements.items():
+        cleaned = cleaned.replace(placeholder, replacement)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 

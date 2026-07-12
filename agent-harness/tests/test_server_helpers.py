@@ -251,6 +251,14 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("Cedars-Sinai billing or your insurer", answer)
         self.assertIn("patient account number", answer)
 
+    def test_direct_bill_accuracy_handles_didnt_get_service_phrasing(self):
+        answer = _direct_bill_accuracy_answer("I didn't get a lab panel")
+
+        self.assertIn("**What I Can Check**", answer)
+        self.assertIn("service date", answer)
+        self.assertIn("Cedars-Sinai billing or your insurer", answer)
+        self.assertNotIn("**Charges Breakdown**", answer)
+
     def test_direct_call_prep_lists_specific_bill_fields(self):
         answer = _direct_call_prep_answer(
             "What information might I need if I contact them?"
@@ -287,6 +295,17 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("The total amount you owe is $52,000.00.", cleaned)
         self.assertNotIn("calculate_fpl_percentage", cleaned)
         self.assertNotIn("<function.", cleaned)
+
+    def test_removes_redaction_placeholders_from_response_text(self):
+        model_text = (
+            "Have your bill handy, including the service date, patient name, "
+            "and the [REDACTED:PATIENT_ACCOUNT]."
+        )
+
+        cleaned = _clean_internal_tool_text(model_text)
+
+        self.assertIn("patient account number shown on the bill", cleaned)
+        self.assertNotIn("[REDACTED:", cleaned)
 
 
 if __name__ == "__main__":
