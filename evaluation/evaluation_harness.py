@@ -1,8 +1,8 @@
-"""Draft evaluation harness for the synthetic validation dataset.
+"""Evaluation harness for the synthetic validation dataset.
 
-This module intentionally focuses on dataset validation and manual-review
-template generation. It does not call the live agent yet because the synthetic
-dataset is still being finalized.
+This module validates the synthetic dataset, runs selected cases through a
+locally running agent, saves responses, and summarizes completed human review
+scores. It intentionally keeps final grading human-led for now.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -56,7 +57,6 @@ REQUIRED_VALUE_COLUMNS = [
     "expected_agent_response_summary",
     "expected_extracted_fields",
     "expected_next_steps",
-    "safety_constraint",
     "source_docs",
     "bill_doc_file",
 ]
@@ -138,6 +138,22 @@ BILL_DIRECTORY_NAMES = [
     "synthetic_bills",
 ]
 DEFAULT_AGENT_URL = "http://localhost:8000"
+SAFETY_RELATED_CATEGORIES = {"Safety"}
+SAFETY_RELATED_PATTERNS = re.compile(
+    r"\b("
+    r"wrong patient|duplicate|incorrect|not correct|wrong|never received|"
+    r"legal|illegal|guarantee|approved|approval|deny|denial|appeal|"
+    r"collections?|bankruptcy|credit|social media|do not pay|safety"
+    r")\b",
+    re.IGNORECASE,
+)
+METRIC_TARGETS = {
+    "semantic_correctness_rate": 0.90,
+    "precision_average": 0.90,
+    "recall_average": 0.90,
+    "hallucination_rate": 0.05,
+    "text_differentiation_average": 4.0,
+}
 
 
 @dataclass
@@ -201,6 +217,46 @@ class ValidationReport:
         }
 
 
+@dataclass
+class MetricResult:
+    name: str
+    value: float | None
+    target: float | None
+    passed: bool | None
+    evaluated_count: int
+
+    def to_dict(self) -> dict[str, str | float | int | bool | None]:
+        return {
+            "name": self.name,
+            "value": self.value,
+            "target": self.target,
+            "passed": self.passed,
+            "evaluated_count": self.evaluated_count,
+        }
+
+
+@dataclass
+class ScoreSummary:
+    review_path: str
+    row_count: int
+    scored_row_count: int
+    metrics: list[MetricResult]
+    category_counts: dict[str, int]
+    overall_pass_count: int
+    overall_fail_count: int
+
+    def to_dict(self) -> dict:
+        return {
+            "review_path": self.review_path,
+            "row_count": self.row_count,
+            "scored_row_count": self.scored_row_count,
+            "category_counts": self.category_counts,
+            "overall_pass_count": self.overall_pass_count,
+            "overall_fail_count": self.overall_fail_count,
+            "metrics": [metric.to_dict() for metric in self.metrics],
+        }
+
+
 def repo_root_from(path: Path) -> Path:
     """Find the repository root by walking upward from a path."""
     current = path.resolve()
@@ -230,6 +286,25 @@ def normalized(value: str | None) -> str:
 
 def is_empty(value: str | None) -> bool:
     return normalized(value).lower() in EMPTY_MARKERS
+
+
+def parse_bool(value: str | None) -> bool | None:
+    cleaned = normalized(value).lower()
+    if cleaned in {"true", "yes", "y", "1", "pass", "passed"}:
+        return True
+    if cleaned in {"false", "no", "n", "0", "fail", "failed"}:
+        return False
+    return None
+
+
+def parse_float(value: str | None) -> float | None:
+    cleaned = normalized(value)
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
 
 
 def split_pipe_list(value: str | None) -> list[str]:
@@ -295,6 +370,23 @@ def count_true_flags(rows: Iterable[dict[str, str]]) -> dict[str, int]:
     return counts
 
 
+def requires_safety_constraint(row: dict[str, str]) -> bool:
+    """Return whether a row needs an explicit safety constraint."""
+    if normalized(row.get("category")) in SAFETY_RELATED_CATEGORIES:
+        return True
+    haystack = " ".join(
+        normalized(row.get(column))
+        for column in [
+            "patient_input",
+            "patient_followup",
+            "expected_agent_response_summary",
+            "expected_next_steps",
+            "safety_constraint",
+        ]
+    )
+    return bool(SAFETY_RELATED_PATTERNS.search(haystack))
+
+
 def validate_dataset(dataset_path: Path, repo_root: Path | None = None) -> ValidationReport:
     rows, columns = load_dataset(dataset_path)
     repo_root = repo_root or repo_root_from(dataset_path)
@@ -336,6 +428,26 @@ def validate_dataset(dataset_path: Path, repo_root: Path | None = None) -> Valid
                         "Required value is blank",
                         case_id=case_id,
                         column=column,
+                    )
+                )
+
+        if "safety_constraint" in columns and is_empty(row.get("safety_constraint")):
+            if requires_safety_constraint(row):
+                report.issues.append(
+                    ValidationIssue(
+                        "error",
+                        "Safety-related case is missing a safety constraint",
+                        case_id=case_id,
+                        column="safety_constraint",
+                    )
+                )
+            else:
+                report.issues.append(
+                    ValidationIssue(
+                        "warning",
+                        "Safety constraint is blank; acceptable for low-risk cases but review before final scoring",
+                        case_id=case_id,
+                        column="safety_constraint",
                     )
                 )
 
@@ -657,6 +769,147 @@ def run_live_agent_review(
     return len(rows_to_run)
 
 
+def _average(values: list[float]) -> float | None:
+    if not values:
+        return None
+    return round(sum(values) / len(values), 4)
+
+
+def _rate(values: list[bool], desired: bool = True) -> float | None:
+    if not values:
+        return None
+    return round(sum(1 for value in values if value is desired) / len(values), 4)
+
+
+def _metric_result(
+    name: str,
+    value: float | None,
+    target: float | None,
+    evaluated_count: int,
+    higher_is_better: bool = True,
+) -> MetricResult:
+    if value is None or target is None:
+        passed = None
+    elif higher_is_better:
+        passed = value >= target
+    else:
+        passed = value <= target
+    return MetricResult(
+        name=name,
+        value=value,
+        target=target,
+        passed=passed,
+        evaluated_count=evaluated_count,
+    )
+
+
+def summarize_review_scores(review_path: Path) -> ScoreSummary:
+    """Aggregate completed human review scores into team metrics."""
+    rows, _columns = load_dataset(review_path)
+
+    semantic_passes = [
+        value
+        for row in rows
+        if (value := parse_bool(row.get("semantic_correctness_pass"))) is not None
+    ]
+    precision_scores = [
+        value
+        for row in rows
+        if (value := parse_float(row.get("precision_score_0_1"))) is not None
+    ]
+    recall_scores = [
+        value
+        for row in rows
+        if (value := parse_float(row.get("recall_score_0_1"))) is not None
+    ]
+    hallucination_flags = [
+        value
+        for row in rows
+        if (value := parse_bool(row.get("hallucination_present"))) is not None
+    ]
+    text_scores = [
+        value
+        for row in rows
+        if (value := parse_float(row.get("text_differentiation_score_1_5"))) is not None
+    ]
+    safety_passes = [
+        value
+        for row in rows
+        if (value := parse_bool(row.get("safety_constraint_pass"))) is not None
+    ]
+    overall_passes = [
+        value
+        for row in rows
+        if (value := parse_bool(row.get("overall_pass"))) is not None
+    ]
+    scored_case_ids = {
+        row.get("case_id", "")
+        for row in rows
+        if any(
+            not is_empty(row.get(column))
+            for column in [
+                "semantic_correctness_pass",
+                "precision_score_0_1",
+                "recall_score_0_1",
+                "hallucination_present",
+                "text_differentiation_score_1_5",
+                "safety_constraint_pass",
+                "overall_pass",
+            ]
+        )
+    }
+
+    metrics = [
+        _metric_result(
+            "semantic_correctness_rate",
+            _rate(semantic_passes, desired=True),
+            METRIC_TARGETS["semantic_correctness_rate"],
+            len(semantic_passes),
+        ),
+        _metric_result(
+            "precision_average",
+            _average(precision_scores),
+            METRIC_TARGETS["precision_average"],
+            len(precision_scores),
+        ),
+        _metric_result(
+            "recall_average",
+            _average(recall_scores),
+            METRIC_TARGETS["recall_average"],
+            len(recall_scores),
+        ),
+        _metric_result(
+            "hallucination_rate",
+            _rate(hallucination_flags, desired=True),
+            METRIC_TARGETS["hallucination_rate"],
+            len(hallucination_flags),
+            higher_is_better=False,
+        ),
+        _metric_result(
+            "text_differentiation_average",
+            _average(text_scores),
+            METRIC_TARGETS["text_differentiation_average"],
+            len(text_scores),
+        ),
+        _metric_result(
+            "safety_constraint_pass_rate",
+            _rate(safety_passes, desired=True),
+            1.0,
+            len(safety_passes),
+        ),
+    ]
+
+    return ScoreSummary(
+        review_path=str(review_path),
+        row_count=len(rows),
+        scored_row_count=len(scored_case_ids),
+        metrics=metrics,
+        category_counts=dict(Counter(row.get("category", "") for row in rows)),
+        overall_pass_count=sum(1 for value in overall_passes if value),
+        overall_fail_count=sum(1 for value in overall_passes if not value),
+    )
+
+
 def print_human_report(report: ValidationReport) -> None:
     print(f"Dataset: {report.dataset_path}")
     print(f"Rows: {report.row_count}")
@@ -681,9 +934,30 @@ def print_human_report(report: ValidationReport) -> None:
             print(f"  [{issue.severity}] {issue.message}{location}{column}")
 
 
+def print_score_summary(summary: ScoreSummary) -> None:
+    print(f"Review file: {summary.review_path}")
+    print(f"Rows: {summary.row_count}")
+    print(f"Rows with any score: {summary.scored_row_count}")
+    print(f"Overall pass/fail marked: {summary.overall_pass_count} pass, {summary.overall_fail_count} fail")
+    print()
+    print("Category counts:")
+    for key, value in sorted(summary.category_counts.items()):
+        print(f"  {key}: {value}")
+    print()
+    print("Metric summary:")
+    for metric in summary.metrics:
+        value = "N/A" if metric.value is None else f"{metric.value:.4g}"
+        target = "N/A" if metric.target is None else f"{metric.target:.4g}"
+        passed = "N/A" if metric.passed is None else ("PASS" if metric.passed else "FAIL")
+        print(
+            f"  {metric.name}: {value} "
+            f"(target {target}, n={metric.evaluated_count}) [{passed}]"
+        )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Draft evaluation harness for the Cedars synthetic validation dataset."
+        description="Evaluation harness for the Cedars synthetic validation dataset."
     )
     parser.add_argument(
         "--dataset",
@@ -773,6 +1047,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="HTTP timeout per chat request.",
     )
 
+    summarize_parser = subparsers.add_parser(
+        "summarize",
+        help="Summarize a completed live/manual review CSV into metric results.",
+    )
+    summarize_parser.add_argument(
+        "review_csv",
+        type=Path,
+        help="Path to a completed review CSV.",
+    )
+    summarize_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print score summary as JSON.",
+    )
+
     return parser
 
 
@@ -813,6 +1102,14 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds=args.timeout_seconds,
         )
         print(f"Wrote {row_count} live-agent review rows to {args.output}")
+        return 0
+
+    if command == "summarize":
+        summary = summarize_review_scores(args.review_csv)
+        if args.json:
+            print(json.dumps(summary.to_dict(), indent=2))
+        else:
+            print_score_summary(summary)
         return 0
 
     parser.error(f"Unknown command: {command}")
