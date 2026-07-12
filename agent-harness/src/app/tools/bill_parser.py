@@ -142,6 +142,30 @@ def _extract_amounts(text: str) -> list[dict[str, Any]]:
     return amounts
 
 
+def _clean_insurance_value(value: str | None) -> str | None:
+    """Clean payer text extracted from PDF lines."""
+    if not value:
+        return None
+    cleaned = re.sub(r"\s+", " ", value).strip(" -:\t")
+    cleaned = re.split(
+        r"\s+(?:P\.?\s*O\.?\s*Box|Guarantor|Secondary Insurance:|Patient:|Account #:)",
+        cleaned,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" -:\t")
+    return cleaned or None
+
+
+def _extract_insurance_info(text: str) -> dict[str, str | None]:
+    """Extract primary and secondary insurance labels from bill text."""
+    primary_match = re.search(r"Primary Insurance:\s*([^\n\r]+)", text, re.IGNORECASE)
+    secondary_match = re.search(r"Secondary Insurance:\s*([^\n\r]+)", text, re.IGNORECASE)
+    return {
+        "primary": _clean_insurance_value(primary_match.group(1) if primary_match else None),
+        "secondary": _clean_insurance_value(secondary_match.group(1) if secondary_match else None),
+    }
+
+
 def _codes_in_text(text: str) -> list[str]:
     return [entry["code"] for entry in _extract_billing_codes(text)]
 
@@ -443,6 +467,7 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
         "filename": path.name,
         "page_count": page_count,
         "dates": _extract_dates(text),
+        "insurance": _extract_insurance_info(text),
         "billing_codes": billing_codes,
         "amounts": _extract_amounts(text),
         "line_items": line_items,

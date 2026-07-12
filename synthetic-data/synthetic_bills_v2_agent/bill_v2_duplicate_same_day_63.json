@@ -34,7 +34,7 @@
         "patient_balance": 240
       },
       {
-        "service_name": "Ultrasound Abdomen (duplicate?)",
+        "service_name": "Ultrasound Abdomen",
         "code_type": "CPT",
         "code": "76700",
         "quantity": 1,
