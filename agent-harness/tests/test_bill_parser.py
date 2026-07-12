@@ -3,6 +3,7 @@ import unittest
 from app.tools.bill_parser import (
     _bill_flags,
     _extract_insurance_info,
+    _line_item_duplicate_signals,
     _line_item_total,
     _parse_line_items_from_tables,
     _suggested_next_steps,
@@ -70,6 +71,31 @@ class BillParserHelperTest(unittest.TestCase):
         self.assertEqual(items[0]["patient_balance"], 84.0)
         self.assertEqual(items[1]["insurance_payments"], 544.0)
         self.assertEqual(items[2]["insurance_payments"], 144.0)
+
+    def test_preserves_duplicate_same_day_line_items(self):
+        tables = [
+            [
+                ["Service", "Code", "Qty", "Billed", "Ins Pmts", "Adj Patient Bal"],
+                ["Ultrasound Abdomen", "CPT 76700", "1", "$1,200.00", "$960.00", "$0.00 $240.00"],
+                ["Ultrasound Abdomen", "CPT 76700", "1", "$1,200.00", "$960.00", "$0.00 $240.00"],
+                ["Radiologist Read", "CPT 76942", "1", "$480.00", "$384.00", "$0.00 $96.00"],
+            ],
+        ]
+
+        items = _parse_line_items_from_tables(tables)
+        duplicate_signals = _line_item_duplicate_signals(items)
+        flags = _bill_flags("Primary Insurance: Kaiser – HMO", items)
+
+        self.assertEqual(len(items), 3)
+        self.assertEqual(items[0]["description"], "Ultrasound Abdomen")
+        self.assertEqual(items[1]["description"], "Ultrasound Abdomen")
+        self.assertEqual(items[0]["patient_balance"], 240.0)
+        self.assertEqual(items[1]["patient_balance"], 240.0)
+        self.assertEqual(sum(item["patient_balance"] for item in items), 576.0)
+        self.assertEqual(len(duplicate_signals), 1)
+        self.assertEqual(duplicate_signals[0]["code"], "CPT 76700")
+        self.assertEqual(duplicate_signals[0]["occurrences"], 2)
+        self.assertTrue(flags["potential_duplicate_line_item_signal"])
 
     def test_extracts_primary_insurance_without_address_noise(self):
         text = (
