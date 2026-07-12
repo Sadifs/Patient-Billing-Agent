@@ -53,6 +53,24 @@ class ServerHelperTest(unittest.TestCase):
         self.assertEqual(inputs["household_size"], 1)
         self.assertEqual(inputs["annual_income_usd"], 30000)
 
+    def test_extracts_household_size_from_natural_phrasing(self):
+        inputs = _extract_fpl_inputs("my income is 40k and i have 2 people in my household")
+
+        self.assertEqual(inputs["household_size"], 2)
+        self.assertEqual(inputs["annual_income_usd"], 40000)
+
+    def test_extracts_household_size_family_of(self):
+        inputs = _extract_fpl_inputs("family of 3, income is $60,000")
+
+        self.assertEqual(inputs["household_size"], 3)
+        self.assertEqual(inputs["annual_income_usd"], 60000)
+
+    def test_extracts_household_size_just_me(self):
+        inputs = _extract_fpl_inputs("it's just me, i earn $25,000")
+
+        self.assertEqual(inputs["household_size"], 1)
+        self.assertEqual(inputs["annual_income_usd"], 25000)
+
     def test_extracts_fpl_inputs_across_history(self):
         history = [{"role": "user", "content": "household size is 3"}]
         inputs = _extract_fpl_inputs("my income is $45,000", history)

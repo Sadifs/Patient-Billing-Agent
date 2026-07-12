@@ -65,12 +65,19 @@ input_redactor = PHIRedactionHook()
 
 def _extract_household_size(text: str) -> int | None:
     """Extract household size from a single text string."""
-    match = re.search(
-        r"\b(?:household|family)\s*(?:size)?\s*(?:is|:)?\s*(\d{1,2})\b",
-        text,
-        re.IGNORECASE,
-    )
-    return int(match.group(1)) if match else None
+    patterns = [
+        r"\b(?:household|family)\s*(?:size|of)?\s*(?:is|:)?\s*(\d{1,2})\b",
+        r"\b(\d{1,2})\s+(?:people|persons?|members?)\b",
+        r"\bi\s+have\s+(\d{1,2})\s+(?:people|persons?|members?)\b",
+        r"\bjust\s+(?:me|myself)\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            if "just" in pattern:
+                return 1
+            return int(match.group(1))
+    return None
 
 
 def _extract_income(text: str) -> float | None:
@@ -299,9 +306,8 @@ def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> 
             "- Contact Cedars-Sinai Patient Financial Services.\n"
             "  - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
             "  - Email: patient.billing@cshs.org\n"
-            "- Ask about payment plan options and whether hardship review is available.\n"
-            f"- Tell them your household size is {household_size} and your "
-            f"approximate annual household income is {_format_usd(annual_income)}."
+            "  - Website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)\n"
+            "- Ask about payment plan options and whether hardship review is available."
         )
     else:
         summary = (
@@ -316,9 +322,8 @@ def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> 
             "- Contact Cedars-Sinai Patient Financial Services.\n"
             "  - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
             "  - Email: patient.billing@cshs.org\n"
-            "- Ask for the financial-assistance application.\n"
-            f"- Tell them your household size is {household_size} and your "
-            f"approximate annual household income is {_format_usd(annual_income)}."
+            "  - Website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)\n"
+            "- Ask for the financial-assistance application."
         )
 
     return (
@@ -327,9 +332,8 @@ def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> 
         "**FPL Calculation Breakdown**\n"
         f"- Household size: {household_size}\n"
         f"- Annual household income: {_format_usd(annual_income)}\n"
-        f"- 100% of the {result['fpl_year']} Federal Poverty Level for a "
-        f"household of {household_size}: {_format_usd(fpl_100)}\n"
-        f"- Estimated FPL percentage: {fpl_percentage}%\n\n"
+        f"- {result['fpl_year']} Federal Poverty Guideline for household of {household_size}: {_format_usd(fpl_100)}\n"
+        f"- Your estimated FPL: {fpl_percentage}% ({_format_usd(annual_income)} ÷ {_format_usd(fpl_100)})\n\n"
         "**What This Means**\n"
         f"{meaning}\n\n"
         "**Next Steps**\n"
