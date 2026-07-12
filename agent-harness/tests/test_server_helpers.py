@@ -3,10 +3,13 @@ import unittest
 from app.server import (
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
+    _direct_bill_accuracy_answer,
+    _direct_billing_website_answer,
     _direct_charity_care_coverage_answer,
     _direct_charity_care_definition_answer,
     _direct_fpl_definition_answer,
     _direct_fpl_answer,
+    _direct_payment_plan_answer,
     _extract_fpl_inputs,
     _fpl_context_message,
     _message_has_phi,
@@ -200,6 +203,35 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("pause activity", answer)
         self.assertNotIn("estimated FPL", answer)
         self.assertNotIn("310.2%", answer)
+
+    def test_direct_billing_website_answer_gives_actual_link(self):
+        answer = _direct_billing_website_answer("Where is their online portal?")
+
+        self.assertIn("**Billing Website**", answer)
+        self.assertIn("https://www.cedars-sinai.org/patients-visitors/billing.html", answer)
+        self.assertIn("866-803-1777", answer)
+        self.assertIn("patient.billing@cshs.org", answer)
+        self.assertNotIn("search for", answer.lower())
+
+    def test_direct_payment_plan_answer_is_cedars_specific(self):
+        answer = _direct_payment_plan_answer("How do I set up a payment plan?")
+
+        self.assertIn("**How**", answer)
+        self.assertIn("**What To Say**", answer)
+        self.assertIn("**What You May Need**", answer)
+        self.assertIn("866-803-1777", answer)
+        self.assertIn("estimate your FPL percentage", answer)
+
+    def test_direct_bill_accuracy_answer_stays_in_scope(self):
+        answer = _direct_bill_accuracy_answer(
+            "I don't think all the information on my bill is correct"
+        )
+
+        self.assertIn("**What I Can Check**", answer)
+        self.assertIn("cannot determine whether a charge is officially correct", answer)
+        self.assertIn("Were insurance payments and adjustments applied correctly?", answer)
+        self.assertIn("866-803-1777", answer)
+        self.assertNotIn("estimated FPL", answer)
 
     def test_removes_internal_tool_syntax_from_response_text(self):
         model_text = (
