@@ -271,6 +271,175 @@ def _direct_charity_care_coverage_answer(user_message: str) -> str | None:
     )
 
 
+def _is_billing_website_question(text: str) -> bool:
+    """Return whether the user is asking for the Cedars billing/payment website."""
+    normalized = text.lower().strip()
+    return bool(
+        re.search(
+            r"\b("
+            r"online portal|payment portal|billing portal|pay online|pay my bill online|"
+            r"website|web site|link|url"
+            r")\b",
+            normalized,
+        )
+        and re.search(r"\b(bill|billing|payment|pay|portal|cedars|link|website)\b", normalized)
+    )
+
+
+def _direct_billing_website_answer(user_message: str) -> str | None:
+    """Return the Cedars-Sinai billing website without sending the user in circles."""
+    if not _is_billing_website_question(user_message):
+        return None
+
+    return (
+        "**Billing Website**\n"
+        "You can start from Cedars-Sinai's billing page here: "
+        "[https://www.cedars-sinai.org/patients-visitors/billing.html]"
+        "(https://www.cedars-sinai.org/patients-visitors/billing.html).\n\n"
+        "**What You May Need**\n"
+        "Have your bill available when using the site or contacting Cedars-Sinai. "
+        "You may need details from the bill, such as the patient or guarantor "
+        "information, service date, and amount due. You do not need to paste full "
+        "account numbers or sensitive identifiers here.\n\n"
+        "**Other Ways To Get Help**\n"
+        "- Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
+        "- Email: patient.billing@cshs.org"
+    )
+
+
+def _is_payment_plan_question(text: str) -> bool:
+    """Return whether the user is asking how to set up or compare payment options."""
+    normalized = text.lower().strip()
+    return bool(
+        re.search(
+            r"\b("
+            r"payment plan|payment plans|payment option|payment options|pay over time|"
+            r"installment|installments|set up.*payment|make payments|monthly payment"
+            r")\b",
+            normalized,
+        )
+    )
+
+
+def _direct_payment_plan_answer(user_message: str) -> str | None:
+    """Return a consistent Cedars-specific payment-plan answer."""
+    if not _is_payment_plan_question(user_message):
+        return None
+
+    return (
+        "**How**\n"
+        "Payment plans are handled through Cedars-Sinai Patient Financial "
+        "Services. They can talk through options for paying the balance over "
+        "time and whether financial assistance should be reviewed first.\n\n"
+        "**What To Say**\n"
+        "\"I received a Cedars-Sinai bill and would like to ask about payment "
+        "plan options. Can you explain what monthly payment options are "
+        "available and whether I should also apply for financial assistance?\"\n\n"
+        "**What You May Need**\n"
+        "Have the bill, service date, insurance information, and approximate "
+        "household income ready. If you share your household size and approximate "
+        "annual household income here, I can estimate your FPL percentage and "
+        "suggest next steps before you call.\n\n"
+        "**Next Steps**\n"
+        "- Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
+        "- Email: patient.billing@cshs.org\n"
+        "- Billing website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)"
+    )
+
+
+def _is_call_prep_question(text: str) -> bool:
+    """Return whether the user asks what information to have ready for contact."""
+    normalized = text.lower().strip()
+    return bool(
+        re.search(
+            r"\b("
+            r"what information|what info|what details|what should i have|"
+            r"what do i need|what might i need|what should i bring|"
+            r"before i call|when i call|if i contact"
+            r")\b",
+            normalized,
+        )
+        and re.search(r"\b(contact|call|email|cedars|billing|them|insurance)\b", normalized)
+    )
+
+
+def _direct_call_prep_answer(user_message: str) -> str | None:
+    """Return a concrete list of bill fields to have ready before contacting Cedars."""
+    if not _is_call_prep_question(user_message):
+        return None
+
+    return (
+        "**What You May Need**\n"
+        "Have the bill in front of you before contacting Cedars-Sinai. They may "
+        "ask for:\n"
+        "- Patient name shown on the bill\n"
+        "- Patient account number\n"
+        "- Guarantor name and guarantor account number\n"
+        "- Statement date and due date\n"
+        "- Service date\n"
+        "- Service names or line items you are asking about\n"
+        "- CPT, HCPCS, or revenue codes shown on those line items\n"
+        "- Total amount due and patient balance\n"
+        "- Primary and secondary insurance listed\n"
+        "- Insurance payment, adjustment, or denial amounts shown\n"
+        "- Any Explanation of Benefits (EOB) from your insurer\n\n"
+        "**Privacy Note**\n"
+        "You do not need to paste full account numbers, MRNs, SSNs, dates of "
+        "birth, or other sensitive identifiers here. If you call Cedars-Sinai "
+        "using the official phone number, they may ask you to verify some bill "
+        "details directly with them.\n\n"
+        "**What To Say**\n"
+        "\"I have a question about a Cedars-Sinai bill. Can you help me verify "
+        "the patient information, service date, listed services, insurance "
+        "payments, and total balance?\"\n\n"
+        "**Contact**\n"
+        "- Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
+        "- Email: patient.billing@cshs.org\n"
+        "- Billing website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)"
+    )
+
+
+def _is_legal_action_question(text: str) -> bool:
+    """Return whether the user is asking for legal action advice."""
+    normalized = text.lower().strip()
+    return bool(
+        re.search(r"\b(can i|should i|could i|do i)\b.*\b(sue|lawsuit|legal action|lawyer|attorney)\b", normalized)
+        or re.search(r"\b(sue|lawsuit|legal action|lawyer|attorney)\b", normalized)
+    )
+
+
+def _direct_legal_boundary_answer(user_message: str) -> str | None:
+    """Return scoped, practical guidance for legal-action questions."""
+    if not _is_legal_action_question(user_message):
+        return None
+
+    return (
+        "**Summary**\n"
+        "I can’t give legal advice or tell you whether you should sue. What I "
+        "can do is help you organize the billing issue so you can try to resolve "
+        "it with Cedars-Sinai and your insurer first.\n\n"
+        "**What To Do First**\n"
+        "- Contact Cedars-Sinai Patient Financial Services and ask them to review "
+        "the bill, patient information, service date, and listed services.\n"
+        "- Contact your insurer and ask whether a claim for those services was "
+        "processed under your plan.\n"
+        "- Ask for an itemized statement and compare it with your Explanation of "
+        "Benefits (EOB), if you have one.\n"
+        "- Keep notes from every call, including dates, names, reference numbers, "
+        "and what each person told you.\n\n"
+        "**What You May Need**\n"
+        "Have the bill, service date, patient/guarantor information, insurance "
+        "information, total amount due, and any EOB ready. You do not need to "
+        "paste full sensitive identifiers here.\n\n"
+        "**Next Steps**\n"
+        "- Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
+        "- Email: patient.billing@cshs.org\n"
+        "- If the issue is not resolved or you believe you were harmed, consider "
+        "speaking with a qualified legal professional for advice specific to "
+        "your situation."
+    )
+
+
 def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> str | None:
     """Return a deterministic FPL answer when both required inputs are present."""
     if not _should_use_fpl_from_message(user_message):
@@ -392,6 +561,20 @@ def _clean_internal_tool_text(text: str) -> str:
         cleaned,
         flags=re.IGNORECASE | re.MULTILINE,
     )
+    placeholder_replacements = {
+        "[REDACTED:PATIENT_ACCOUNT]": "the patient account number shown on the bill",
+        "[REDACTED:JSON_ACCOUNT_NUMBER]": "the account number shown on the bill",
+        "[REDACTED:GUARANTOR_ACCOUNT]": "the guarantor account number shown on the bill",
+        "[REDACTED:PATIENT_NAME]": "the patient name shown on the bill",
+        "[REDACTED:JSON_PATIENT_NAME]": "the patient name shown on the bill",
+        "[REDACTED:MRN]": "a sensitive identifier",
+        "[REDACTED:DOB]": "a date of birth",
+        "[REDACTED:SSN]": "an SSN",
+        "[REDACTED:EMAIL]": "a private email address",
+        "[REDACTED:PATIENT_PHONE]": "a private phone number",
+    }
+    for placeholder, replacement in placeholder_replacements.items():
+        cleaned = cleaned.replace(placeholder, replacement)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 
@@ -557,6 +740,58 @@ async def chat(request: Request):
 
         return response.ResponseStream(
             stream_direct_charity_care_coverage,
+            content_type="text/event-stream",
+        )
+
+    direct_billing_website = _direct_billing_website_answer(user_message)
+    if direct_billing_website:
+        async def stream_direct_billing_website(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_billing_website})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_billing_website,
+            content_type="text/event-stream",
+        )
+
+    direct_payment_plan = _direct_payment_plan_answer(user_message)
+    if direct_payment_plan:
+        async def stream_direct_payment_plan(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_payment_plan})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_payment_plan,
+            content_type="text/event-stream",
+        )
+
+    direct_call_prep = _direct_call_prep_answer(user_message)
+    if direct_call_prep:
+        async def stream_direct_call_prep(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_call_prep})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_call_prep,
+            content_type="text/event-stream",
+        )
+
+    direct_legal_boundary = _direct_legal_boundary_answer(user_message)
+    if direct_legal_boundary:
+        async def stream_direct_legal_boundary(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_legal_boundary})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_legal_boundary,
             content_type="text/event-stream",
         )
 
