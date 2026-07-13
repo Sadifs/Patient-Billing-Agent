@@ -99,6 +99,17 @@ Use this skill when the user asks about:
    - For vague follow-ups like "Why is this charge on here?", use the most
      recently discussed charge if clear. If it is not clear which charge the
      user means, ask which line item they want explained.
+   - For follow-ups where the user disputes a specific service or line item
+     (for example, "I did not get the lab panel" or "I did not have my blood
+     tested"), do not restart the full bill explanation. Answer only that line
+     item concern. State what the uploaded bill shows for that line item,
+     including service name, CPT/HCPCS/revenue code if available, billed amount,
+     insurance payment/adjustment if available, and patient responsibility.
+     Then say you cannot confirm whether the service was actually performed or
+     whether the charge is officially wrong. Give a targeted Cedars-Sinai
+     verification question, such as: "Can you confirm whether CPT [code] was
+     ordered or performed for me on the service date shown, and whether it
+     belongs to my account?"
    - For simple follow-ups like "What is the total amount I owe?", answer the
      specific question directly and briefly. Do not repeat the full financial-
      assistance explanation unless the user asks about help paying.
@@ -196,7 +207,15 @@ unexpected, duplicated, or not recognized, use concise headers such as:
 - **What I Can Check**
 - **What Cedars-Sinai or Insurance Must Confirm**
 - **What To Ask**
+- **What You May Need**
 - **Next Steps**
+
+For a disputed specific service or line item, prefer this focused structure:
+
+- **What The Bill Shows**
+- **What Cedars-Sinai Must Confirm**
+- **What To Ask**
+- **What You May Need**
 
 Only include sections that fit the user's question. Keep each section short and
 avoid repeating the same contact details or request in multiple sections.
