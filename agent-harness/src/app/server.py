@@ -347,62 +347,6 @@ def _direct_payment_plan_answer(user_message: str) -> str | None:
     )
 
 
-def _is_general_bill_accuracy_question(text: str) -> bool:
-    """Return whether the user is broadly worried the bill may be wrong."""
-    normalized = text.lower().strip()
-    return bool(
-        re.search(
-            r"\b("
-            r"bill.*wrong|wrong.*bill|bill.*incorrect|incorrect.*bill|"
-            r"information.*not.*correct|not.*correct|doesn'?t look right|"
-            r"don'?t think.*correct|do not think.*correct|"
-            r"something.*wrong|charge.*valid|valid.*charge|"
-            r"wrong patient|not my bill|not mine|didn'?t receive|did not receive|"
-            r"didn'?t get|did not get|never got|"
-            r"never received.*service|service.*not.*receive"
-            r")\b",
-            normalized,
-        )
-    )
-
-
-def _direct_bill_accuracy_answer(user_message: str) -> str | None:
-    """Give scoped guidance for possible bill errors without deciding correctness."""
-    if not _is_general_bill_accuracy_question(user_message):
-        return None
-
-    return (
-        "**What I Can Check**\n"
-        "I can help compare what is visible on the bill, such as the patient "
-        "name, service date, insurance listed, line items, payments, adjustments, "
-        "and total balance. If you mean a specific charge or section, tell me "
-        "which one and I can help explain what it appears to be.\n\n"
-        "**What Cedars-Sinai or Insurance Must Confirm**\n"
-        "I cannot determine whether a charge is officially correct, incorrect, "
-        "valid, or invalid. Cedars-Sinai billing or your insurer would need to "
-        "confirm that.\n\n"
-        "**What To Ask**\n"
-        "- \"Can you confirm this bill belongs to me and matches the service date shown?\"\n"
-        "- \"Can you explain why this charge appears on my bill?\"\n"
-        "- \"Were insurance payments and adjustments applied correctly?\"\n"
-        "- \"Is there an itemized statement or explanation of benefits I should compare this to?\"\n\n"
-        "**What You May Need**\n"
-        "Have the bill in front of you. Cedars-Sinai may ask for the patient "
-        "name, patient account number, guarantor name/number, statement date, "
-        "due date, service date, service names, CPT/HCPCS/revenue codes, total "
-        "amount due, primary/secondary insurance listed, and any insurance "
-        "payment or adjustment amounts shown. You do not need to paste full "
-        "account numbers or sensitive identifiers here, but you may need them "
-        "when speaking directly with Cedars-Sinai.\n\n"
-        "**Next Steps**\n"
-        "- Contact Cedars-Sinai Patient Financial Services.\n"
-        "  - Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
-        "  - Email: patient.billing@cshs.org\n"
-        "  - Billing website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)\n"
-        "- Have the bill and insurance Explanation of Benefits ready if you have one."
-    )
-
-
 def _is_call_prep_question(text: str) -> bool:
     """Return whether the user asks what information to have ready for contact."""
     normalized = text.lower().strip()
@@ -822,19 +766,6 @@ async def chat(request: Request):
 
         return response.ResponseStream(
             stream_direct_payment_plan,
-            content_type="text/event-stream",
-        )
-
-    direct_bill_accuracy = _direct_bill_accuracy_answer(user_message)
-    if direct_bill_accuracy:
-        async def stream_direct_bill_accuracy(resp):
-            await resp.write(
-                f"data: {json.dumps({'text': direct_bill_accuracy})}\n\n".encode()
-            )
-            await resp.write(b"data: [DONE]\n\n")
-
-        return response.ResponseStream(
-            stream_direct_bill_accuracy,
             content_type="text/event-stream",
         )
 

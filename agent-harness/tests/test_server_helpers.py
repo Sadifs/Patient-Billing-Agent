@@ -3,7 +3,6 @@ import unittest
 from app.server import (
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
-    _direct_bill_accuracy_answer,
     _direct_billing_website_answer,
     _direct_call_prep_answer,
     _direct_charity_care_coverage_answer,
@@ -223,41 +222,6 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("**What You May Need**", answer)
         self.assertIn("866-803-1777", answer)
         self.assertIn("estimate your FPL percentage", answer)
-
-    def test_direct_bill_accuracy_answer_stays_in_scope(self):
-        answer = _direct_bill_accuracy_answer(
-            "I don't think all the information on my bill is correct"
-        )
-
-        self.assertIn("**What I Can Check**", answer)
-        self.assertIn("cannot determine whether a charge is officially correct", answer)
-        self.assertIn("Were insurance payments and adjustments applied correctly?", answer)
-        self.assertIn("**What You May Need**", answer)
-        self.assertIn("patient account number", answer)
-        self.assertIn("guarantor name/number", answer)
-        self.assertIn("service names", answer)
-        self.assertIn("primary/secondary insurance", answer)
-        self.assertIn("do not need to paste full", answer.lower())
-        self.assertIn("866-803-1777", answer)
-        self.assertNotIn("estimated FPL", answer)
-
-    def test_direct_bill_accuracy_handles_wrong_patient_phrasing(self):
-        answer = _direct_bill_accuracy_answer(
-            "My name is on this bill but I didn't receive these services"
-        )
-
-        self.assertIn("**What I Can Check**", answer)
-        self.assertIn("service date", answer)
-        self.assertIn("Cedars-Sinai billing or your insurer", answer)
-        self.assertIn("patient account number", answer)
-
-    def test_direct_bill_accuracy_handles_didnt_get_service_phrasing(self):
-        answer = _direct_bill_accuracy_answer("I didn't get a lab panel")
-
-        self.assertIn("**What I Can Check**", answer)
-        self.assertIn("service date", answer)
-        self.assertIn("Cedars-Sinai billing or your insurer", answer)
-        self.assertNotIn("**Charges Breakdown**", answer)
 
     def test_direct_call_prep_lists_specific_bill_fields(self):
         answer = _direct_call_prep_answer(
