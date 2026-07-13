@@ -38,6 +38,40 @@ LINE_ITEM_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
+PATIENT_NAME_PATTERN = re.compile(
+    r"Patient:\s*(.+?)\s+Account\s*#?:",
+    re.IGNORECASE,
+)
+PATIENT_NAME_FALLBACK_PATTERN = re.compile(
+    r"^(.+?)\s+A l Pay Online:",
+    re.MULTILINE,
+)
+GUARANTOR_NAME_PATTERN = re.compile(r"Guarantor Name:\s*(.+)", re.IGNORECASE)
+ACCOUNT_NUMBER_PATTERN = re.compile(r"Account\s*#:\s*(\S+)", re.IGNORECASE)
+SERVICE_DATE_PATTERN = re.compile(r"Service Date:\s*(\S+)", re.IGNORECASE)
+PAY_ONLINE_PATTERN = re.compile(r"Pay Online:\s*(\S+)", re.IGNORECASE)
+PAY_BY_PHONE_PATTERN = re.compile(r"Pay by Phone:\s*([\d-]+)", re.IGNORECASE)
+CALL_PHONE_PATTERN = re.compile(
+    r"\b(?:call|assistance, call)\s+([\d-]+)",
+    re.IGNORECASE,
+)
+PATIENT_SERVICES_EMAIL_PATTERN = re.compile(
+    r"\b([A-Z0-9._%+-]+@cshs\.org)\b",
+    re.IGNORECASE,
+)
+PATIENT_SERVICES_HOURS_PATTERN = re.compile(
+    r"(Monday[–-]Friday,[^,\n]*?\bPT\b)",
+    re.IGNORECASE,
+)
+PATIENT_SERVICES_MAIL_PATTERN = re.compile(
+    r"(Cedars-Sinai Medical Center, P\.O\. Box \d+, Los Angeles, CA \d{5})",
+    re.IGNORECASE,
+)
+PO_BOX_MERGE_PATTERN = re.compile(
+    r"(?:P[\.\)\s]*O[\.\)\s]*\.?\s*Box|Box\s+48750|Los Angeles, CA 90048|\)\s*48750)",
+    re.IGNORECASE,
+)
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
 DEFAULT_KNOWLEDGE_DIRS = [
@@ -70,10 +104,12 @@ def _normalize_date(raw: str) -> str:
             parts = raw.split(sep)
             if len(parts) == 3:
                 a, b, c = parts
-                if len(c) == 2:
-                    c = f"20{c}" if int(c) < 50 else f"19{c}"
                 if len(a) == 4:
                     return f"{b.zfill(2)}/{c.zfill(2)}/{a}"
+                if len(c) == 4:
+                    return f"{a.zfill(2)}/{b.zfill(2)}/{c}"
+                if len(c) == 2:
+                    c = f"20{c}" if int(c) < 50 else f"19{c}"
                 return f"{a.zfill(2)}/{b.zfill(2)}/{c}"
     return raw
 
@@ -142,18 +178,59 @@ def _extract_amounts(text: str) -> list[dict[str, Any]]:
     return amounts
 
 
-def _clean_insurance_value(value: str | None) -> str | None:
-    """Clean payer text extracted from PDF lines."""
+def _first_line(value: str | None) -> str | None:
     if not value:
         return None
-    cleaned = re.sub(r"\s+", " ", value).strip(" -:\t")
+    line = value.strip().split("\n", 1)[0].strip()
+    return line or None
+
+
+def _strip_corrupted_parenthetical(value: str) -> str:
+    """Remove parentheticals corrupted by PDF text-merge with mailing addresses."""
+
+    def is_corrupted(inner: str) -> bool:
+        if re.search(r"Box|48750|Los Angeles|P[\.\)]\s*O", inner, re.IGNORECASE):
+            return True
+        if len(re.findall(r"\b[A-Za-z]\.", inner)) >= 2:
+            return True
+        if len(re.findall(r"[^\w\s\-–(),./&+]", inner)) > 2:
+            return True
+        return False
+
+    cleaned = value
+    changed = True
+    while changed:
+        changed = False
+        match = re.search(r"\([^)]*\)", cleaned)
+        if not match:
+            break
+        inner = match.group(0)[1:-1]
+        if is_corrupted(inner):
+            cleaned = (cleaned[: match.start()] + cleaned[match.end() :]).strip()
+            changed = True
+    cleaned = re.sub(r"\([^)]*$", "", cleaned).strip()
+    return cleaned
+
+
+def _clean_insurance_value(value: str | None) -> str | None:
+    """Clean payer text extracted from PDF lines."""
+    cleaned = _first_line(value)
+    if not cleaned:
+        return None
+
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:\t")
+    cleaned = re.split(r"\s+Secondary Insurance:", cleaned, maxsplit=1)[0].strip()
     cleaned = re.split(
-        r"\s+(?:P\.?\s*O\.?\s*Box|Guarantor|Secondary Insurance:|Patient:|Account #:)",
+        r"\s+(?:Guarantor|Patient:|Account #:)",
         cleaned,
         maxsplit=1,
         flags=re.IGNORECASE,
     )[0].strip(" -:\t")
-    return cleaned or None
+    merge = PO_BOX_MERGE_PATTERN.search(cleaned)
+    if merge:
+        cleaned = cleaned[: merge.start()]
+    cleaned = _strip_corrupted_parenthetical(cleaned)
+    return cleaned.strip(" ,") or None
 
 
 def _extract_insurance_info(text: str) -> dict[str, str | None]:
@@ -433,6 +510,88 @@ def _suggested_next_steps(flags: dict[str, Any]) -> list[str]:
     return steps
 
 
+def _extract_patient_name(text: str) -> str | None:
+    match = PATIENT_NAME_PATTERN.search(text)
+    if match:
+        return match.group(1).strip()
+
+    match = PATIENT_NAME_FALLBACK_PATTERN.search(text)
+    if match:
+        name = match.group(1).strip()
+        if not name.startswith("Cedars") and "Los Angeles" not in name:
+            return name
+
+    match = GUARANTOR_NAME_PATTERN.search(text)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _extract_contact_info(text: str) -> dict[str, str | None]:
+    contact: dict[str, str | None] = {
+        "department": None,
+        "phone": None,
+        "hours": None,
+        "online": None,
+        "email": None,
+        "mail": None,
+    }
+
+    if re.search(r"Patient Financial Services|Patient Services", text, re.IGNORECASE):
+        contact["department"] = "Patient Financial Services"
+
+    match = PAY_ONLINE_PATTERN.search(text)
+    if match:
+        contact["online"] = match.group(1).strip()
+
+    match = PAY_BY_PHONE_PATTERN.search(text)
+    if match:
+        contact["phone"] = match.group(1).strip()
+    else:
+        match = CALL_PHONE_PATTERN.search(text)
+        if match:
+            contact["phone"] = match.group(1).strip()
+
+    match = PATIENT_SERVICES_EMAIL_PATTERN.search(text)
+    if match:
+        contact["email"] = match.group(1).strip()
+
+    match = PATIENT_SERVICES_HOURS_PATTERN.search(text)
+    if match:
+        contact["hours"] = match.group(1).strip().rstrip(",")
+
+    match = PATIENT_SERVICES_MAIL_PATTERN.search(text)
+    if match:
+        contact["mail"] = match.group(1).strip()
+    elif "P.O. Box 48750, Los Angeles, CA 90048" in text:
+        contact["mail"] = "P.O. Box 48750, Los Angeles, CA 90048"
+
+    return contact
+
+
+def _extract_bill_header_fields(text: str) -> dict[str, Any]:
+    """Extract patient, insurance, and contact fields from bill header text."""
+    service_date = None
+    match = SERVICE_DATE_PATTERN.search(text)
+    if match:
+        service_date = _normalize_date(match.group(1))
+
+    account_number = None
+    match = ACCOUNT_NUMBER_PATTERN.search(text)
+    if match:
+        account_number = match.group(1).strip()
+
+    return {
+        "patient": {
+            "patient_name": _extract_patient_name(text),
+            "patient_account_number": account_number,
+            "service_date": service_date,
+        },
+        "insurance": _extract_insurance_info(text),
+        "contact_info": _extract_contact_info(text),
+    }
+
+
 def _line_item_total(line_items: list[dict[str, Any]]) -> float | None:
     amounts = [
         item.get("amount")
@@ -461,13 +620,14 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
             if code not in {entry["code"] for entry in billing_codes}:
                 billing_codes.append({"code": code, "type": "unknown"})
     billing_flags = _bill_flags(text, line_items)
+    header_fields = _extract_bill_header_fields(text)
 
     return {
         "source_file": str(path),
         "filename": path.name,
         "page_count": page_count,
+        **header_fields,
         "dates": _extract_dates(text),
-        "insurance": _extract_insurance_info(text),
         "billing_codes": billing_codes,
         "amounts": _extract_amounts(text),
         "line_items": line_items,
@@ -483,8 +643,9 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
     name="bill_parser",
     description=(
         "Parse an uploaded patient bill PDF and return structured JSON with "
-        "line items, billing codes (CPT, HCPCS, ICD-10), service dates, "
-        "and dollar amounts. Pass the uploaded filename or full path."
+        "patient name, service date, insurance, contact info, line items, "
+        "billing codes (CPT, HCPCS, ICD-10), service dates, and dollar amounts. "
+        "Pass the uploaded filename or full path."
     ),
     parameters={
         "type": "object",
