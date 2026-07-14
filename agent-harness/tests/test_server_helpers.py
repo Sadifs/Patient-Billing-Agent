@@ -3,10 +3,14 @@ import unittest
 from app.server import (
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
+    _direct_billing_website_answer,
+    _direct_call_prep_answer,
     _direct_charity_care_coverage_answer,
     _direct_charity_care_definition_answer,
     _direct_fpl_definition_answer,
     _direct_fpl_answer,
+    _direct_legal_boundary_answer,
+    _direct_payment_plan_answer,
     _extract_fpl_inputs,
     _fpl_context_message,
     _message_has_phi,
@@ -201,6 +205,47 @@ class ServerHelperTest(unittest.TestCase):
         self.assertNotIn("estimated FPL", answer)
         self.assertNotIn("310.2%", answer)
 
+    def test_direct_billing_website_answer_gives_actual_link(self):
+        answer = _direct_billing_website_answer("Where is their online portal?")
+
+        self.assertIn("**Billing Website**", answer)
+        self.assertIn("https://www.cedars-sinai.org/patients-visitors/billing.html", answer)
+        self.assertIn("866-803-1777", answer)
+        self.assertIn("patient.billing@cshs.org", answer)
+        self.assertNotIn("search for", answer.lower())
+
+    def test_direct_payment_plan_answer_is_cedars_specific(self):
+        answer = _direct_payment_plan_answer("How do I set up a payment plan?")
+
+        self.assertIn("**How**", answer)
+        self.assertIn("**What To Say**", answer)
+        self.assertIn("**What You May Need**", answer)
+        self.assertIn("866-803-1777", answer)
+        self.assertIn("estimate your FPL percentage", answer)
+
+    def test_direct_call_prep_lists_specific_bill_fields(self):
+        answer = _direct_call_prep_answer(
+            "What information might I need if I contact them?"
+        )
+
+        self.assertIn("**What You May Need**", answer)
+        self.assertIn("Patient account number", answer)
+        self.assertIn("Guarantor name", answer)
+        self.assertIn("Statement date", answer)
+        self.assertIn("Service date", answer)
+        self.assertIn("CPT, HCPCS, or revenue codes", answer)
+        self.assertIn("Explanation of Benefits", answer)
+        self.assertIn("official phone number", answer)
+
+    def test_direct_legal_boundary_answer_stays_practical(self):
+        answer = _direct_legal_boundary_answer("Can I sue them for this?")
+
+        self.assertIn("I can’t give legal advice", answer)
+        self.assertIn("Contact Cedars-Sinai Patient Financial Services", answer)
+        self.assertIn("Explanation of Benefits", answer)
+        self.assertIn("qualified legal professional", answer)
+        self.assertIn("866-803-1777", answer)
+
     def test_removes_internal_tool_syntax_from_response_text(self):
         model_text = (
             "The total amount you owe is $52,000.00.\n\n"
@@ -214,6 +259,17 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("The total amount you owe is $52,000.00.", cleaned)
         self.assertNotIn("calculate_fpl_percentage", cleaned)
         self.assertNotIn("<function.", cleaned)
+
+    def test_removes_redaction_placeholders_from_response_text(self):
+        model_text = (
+            "Have your bill handy, including the service date, patient name, "
+            "and the [REDACTED:PATIENT_ACCOUNT]."
+        )
+
+        cleaned = _clean_internal_tool_text(model_text)
+
+        self.assertIn("patient account number shown on the bill", cleaned)
+        self.assertNotIn("[REDACTED:", cleaned)
 
 
 if __name__ == "__main__":

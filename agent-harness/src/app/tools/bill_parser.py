@@ -294,11 +294,9 @@ def _line_item_from_text(line: str) -> dict[str, Any] | None:
 
 def _parse_line_items_from_text(text: str) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
-    seen: set[str] = set()
     for line in text.splitlines():
         item = _line_item_from_text(line)
-        if item and item["raw_line"] not in seen:
-            seen.add(item["raw_line"])
+        if item:
             items.append(item)
     return items
 
@@ -336,7 +334,6 @@ def _amounts_from_cell(value: str | None) -> list[float]:
 
 def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
-    seen: set[str] = set()
 
     for table in tables:
         if not table or len(table) < 2:
@@ -410,11 +407,54 @@ def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[st
                 "patient_balance": patient_balance,
                 "raw_line": row_text,
             }
-            if item["raw_line"] not in seen:
-                seen.add(item["raw_line"])
-                items.append(item)
+            items.append(item)
 
     return items
+
+
+def _line_item_duplicate_signals(line_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return potential duplicate line-item signals for repeated bill rows."""
+    grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for index, item in enumerate(line_items, start=1):
+        codes = item.get("billing_codes") or []
+        primary_code = codes[0] if codes else None
+        description = str(item.get("description") or "").strip().lower()
+        if not primary_code and not description:
+            continue
+
+        key = (
+            item.get("date"),
+            primary_code,
+            description,
+            item.get("billed_amount") if item.get("billed_amount") is not None else item.get("amount"),
+            item.get("patient_balance"),
+        )
+        grouped.setdefault(key, []).append({"index": index, "item": item})
+
+    signals: list[dict[str, Any]] = []
+    for entries in grouped.values():
+        if len(entries) < 2:
+            continue
+        first = entries[0]["item"]
+        signals.append(
+            {
+                "description": first.get("description"),
+                "code": (first.get("billing_codes") or [None])[0],
+                "date": first.get("date"),
+                "occurrences": len(entries),
+                "line_item_numbers": [entry["index"] for entry in entries],
+                "billed_amount_each": first.get("billed_amount")
+                if first.get("billed_amount") is not None
+                else first.get("amount"),
+                "patient_balance_each": first.get("patient_balance"),
+                "guidance": (
+                    "Potential duplicate line item. Do not say it is definitely "
+                    "incorrect; tell the patient to ask Cedars-Sinai billing to "
+                    "verify why the same service/code appears more than once."
+                ),
+            }
+        )
+    return signals
 
 
 def _extract_pdf_content(path: Path) -> tuple[str, list[list[list[Any]]], int]:
@@ -473,11 +513,14 @@ def _bill_flags(text: str, line_items: list[dict[str, Any]]) -> dict[str, Any]:
         or primary_no_insurance
         or none_on_file_without_primary_payer
     )
+    duplicate_signals = _line_item_duplicate_signals(line_items)
 
     return {
         "no_insurance_or_self_pay_signal": no_insurance_on_file,
         "collections_signal": "collections" in combined or has_collections_fee,
         "collections_fee_signal": has_collections_fee,
+        "potential_duplicate_line_item_signal": bool(duplicate_signals),
+        "potential_duplicate_line_items": duplicate_signals,
         "recommended_guidance_if_true": (
             "If no_insurance_or_self_pay_signal or collections_signal is true, "
             "explain that financial assistance may still be available, ask for "
@@ -485,7 +528,10 @@ def _bill_flags(text: str, line_items: list[dict[str, Any]]) -> dict[str, Any]:
             "Cedars-Sinai Patient Financial Services at [866-803-1777](tel:8668031777) "
             "(Monday–Friday, 8:00 AM–4:30 PM PT) or emailing patient.billing@cshs.org, ask "
             "billing/collections to pause collection activity during FAP review, "
-            "and ask whether any collections fee can be reviewed or waived."
+            "and ask whether any collections fee can be reviewed or waived. "
+            "If potential_duplicate_line_item_signal is true, explain that the "
+            "same service/code appears more than once and suggest asking "
+            "Cedars-Sinai billing to verify before paying."
         ),
     }
 
