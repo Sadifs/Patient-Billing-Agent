@@ -39,7 +39,7 @@ LINE_ITEM_KEYWORDS = re.compile(
 )
 
 PATIENT_NAME_PATTERN = re.compile(
-    r"Patient:\s*(.+?)\s+Account\s*#?:",
+    r"Patient:\s*(.+?)\s+(?:DOB|Address|Account\s*#?):",
     re.IGNORECASE,
 )
 PATIENT_NAME_FALLBACK_PATTERN = re.compile(
@@ -344,9 +344,24 @@ def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[st
         desc_idx = _header_index(headers, "description", "service", "procedure", "item")
         code_idx = _header_index(headers, "code", "cpt", "hcpcs", "procedure code")
         billed_idx = _header_index(headers, "billed", "charge", "amount")
-        insurance_idx = _header_index(headers, "ins pmts", "insurance payments", "insurance paid", "pmts")
+        insurance_idx = _header_index(
+            headers,
+            "ins pmts",
+            "insurance payments",
+            "insurance paid",
+            "ins. paid",
+            "ins paid",
+            "pmts",
+        )
         adjustment_idx = _header_index(headers, "adjustment", "adjustments", "adj")
-        patient_balance_idx = _header_index(headers, "patient bal", "patient balance", "responsibility")
+        patient_balance_idx = _header_index(
+            headers,
+            "patient bal",
+            "patient balance",
+            "responsibility",
+            "pt. resp",
+            "pt resp",
+        )
         amount_idx = billed_idx or _header_index(headers, "total", "balance")
 
         if desc_idx is None and code_idx is None:
