@@ -455,6 +455,46 @@ def _direct_bill_header_answer(
     return f"{labels[field]} is {value}."
 
 
+
+def _bill_parser_context_message(
+    user_message: str,
+    history: list[dict] | None = None,
+    upload_dir: Path | None = None,
+) -> Message | None:
+    """Freshly re-parse the uploaded bill and attach JSON for this LLM call.
+
+    Shortcut header answers and prior tool calls are not persisted in chat
+    history, so any message that reaches the LLM must re-fetch bill_parser
+    output for the current session bill instead of relying on earlier turns.
+    """
+    filename = _latest_uploaded_filename(user_message, history)
+    if not filename:
+        return None
+
+    base_dir = upload_dir or UPLOAD_DIR
+    try:
+        parsed = parse_bill_pdf(str(base_dir / filename))
+    except Exception:
+        logger.exception("Failed to re-parse uploaded bill for LLM context")
+        return None
+
+    # Match bill_parser tool behavior: keep patient names, redact account IDs.
+    redacted = input_redactor.redact(parsed, preserve_names=True)
+    return Message(
+        role="system",
+        content=(
+            "Authoritative parsed bill data for the patient's uploaded file "
+            f'"{filename}". This JSON was freshly retrieved from bill_parser '
+            "for this request. Treat it as the source of truth for bill facts "
+            "(patient header fields, insurance, line items, balances, codes). "
+            "Do not invent charges or balances that are absent from this data. "
+            "Prefer line_items[].patient_balance and related structured fields "
+            "when explaining charges.\n\n"
+            f"{json.dumps(redacted, default=str)}"
+        ),
+    )
+
+
 def _is_payment_plan_question(text: str) -> bool:
     """Return whether the user is asking how to set up or compare payment options."""
     normalized = text.lower().strip()
@@ -984,6 +1024,9 @@ async def chat(request: Request):
     phi_context = _phi_redaction_context_message(user_message)
     if phi_context:
         messages.append(phi_context)
+    bill_context = _bill_parser_context_message(user_message, history)
+    if bill_context:
+        messages.append(bill_context)
     messages.append(Message(role="user", content=_redact_message_for_model(user_message)))
 
     harness = _build_harness()

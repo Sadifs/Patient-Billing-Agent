@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 
 from app.server import (
+    _bill_parser_context_message,
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
     _direct_bill_header_answer,
@@ -378,6 +379,43 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("can’t display full account numbers", answer)
         self.assertNotIn("CS-2026-09540", answer)
+
+    def test_bill_parser_context_message_refreshes_parsed_json(self):
+        upload_dir = Path(__file__).resolve().parent.parent / "testdata"
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_commercial_outpatient_01.pdf". what is my name?',
+            },
+            {
+                "role": "assistant",
+                "content": "The patient name shown on the uploaded bill is Sarah Kim.",
+            },
+        ]
+
+        msg = _bill_parser_context_message(
+            "can you explain the charges?",
+            history,
+            upload_dir=upload_dir,
+        )
+
+        self.assertIsNotNone(msg)
+        self.assertEqual(msg.role, "system")
+        self.assertIn("Authoritative parsed bill data", msg.content)
+        self.assertIn("line_items", msg.content)
+        self.assertIn("Operating Room Facility Fee", msg.content)
+        self.assertIn('"patient_balance": 800.0', msg.content)
+        self.assertIn('"patient_balance": 200.0', msg.content)
+        self.assertIn('"patient_balance": 100.0', msg.content)
+        self.assertIn('"patient_balance": 300.0', msg.content)
+        # Account number should be redacted; patient name preserved.
+        self.assertNotIn("CS-2026-776203", msg.content)
+        self.assertIn("Sarah Kim", msg.content)
+
+    def test_bill_parser_context_message_returns_none_without_upload(self):
+        self.assertIsNone(
+            _bill_parser_context_message("can you explain the charges?", history=[])
+        )
 
     def test_direct_payment_plan_answer_is_cedars_specific(self):
         answer = _direct_payment_plan_answer("How do I set up a payment plan?")
