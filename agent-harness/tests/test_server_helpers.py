@@ -297,6 +297,8 @@ class ServerHelperTest(unittest.TestCase):
             "Which insurance provider is listed?": "Aetna",
             "Does this show another insurance?": "None on file",
             "Is the insurance on this bill right?": "Cedars-Sinai would need to confirm",
+            "Who is responsible for paying this bill?": "Diane Walters",
+            "Who is the guarantor?": "Diane Walters",
         }
 
         for question, expected in examples.items():
@@ -307,6 +309,23 @@ class ServerHelperTest(unittest.TestCase):
                     upload_dir=self.synthetic_bill_dir,
                 )
                 self.assertIn(expected, answer)
+
+    def test_direct_bill_header_answer_reads_minor_guarantor_for_payment_responsibility(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_pediatric_er_appendectomy_29.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "Who is responsible for paying this bill?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("David Chen", answer)
+        self.assertIn("financially responsible", answer)
 
     def test_direct_bill_header_answer_does_not_hijack_coverage_explanations(self):
         history = [

@@ -347,6 +347,14 @@ def _bill_header_question_field(text: str) -> str | None:
         re.search(r"\b(why|how come|did(?:n't| not)|does(?:n't| not)|cover|covered|pay|paid)\b", normalized)
     )
 
+    if re.search(
+        r"\b(?:who|whose|which person)\b.*\b(?:responsible|paying|pay)\b.*\b(?:bill|balance|charges?)\b",
+        normalized,
+    ) or re.search(
+        r"\b(?:responsible party|financially responsible|guarantor)\b",
+        normalized,
+    ):
+        return "guarantor_name"
     if (
         has_lookup_intent
         and not asks_explanation
@@ -433,12 +441,14 @@ def _direct_bill_header_answer(
     values = {
         "patient_name": patient.get("patient_name"),
         "service_date": patient.get("service_date"),
+        "guarantor_name": (parsed.get("guarantor") or {}).get("guarantor_name"),
         "primary_insurance": insurance.get("primary"),
         "secondary_insurance": insurance.get("secondary"),
     }
     labels = {
         "patient_name": "The patient name shown on the uploaded bill",
         "service_date": "The service date shown on the uploaded bill",
+        "guarantor_name": "The guarantor listed as financially responsible on the uploaded bill",
         "primary_insurance": "The primary insurance shown on the uploaded bill",
         "secondary_insurance": "The secondary insurance shown on the uploaded bill",
     }
