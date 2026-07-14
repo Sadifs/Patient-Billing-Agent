@@ -100,36 +100,40 @@ class PHIRedactionHook(Hook):
 
     def after_tool_call(self, tool_name: str, args: dict[str, Any], result: str) -> str:
         """Redact PHI from tool output before it reaches the model."""
-        return self.redact(result)
+        return self.redact(result, preserve_names=tool_name == "bill_parser")
 
-    def redact(self, value: Any) -> Any:
+    def redact(self, value: Any, preserve_names: bool = False) -> Any:
         """Redact PHI in strings, lists, and dictionaries."""
         if isinstance(value, str):
-            return self._redact_text(value)
+            return self._redact_text(value, preserve_names=preserve_names)
         if isinstance(value, list):
-            return [self.redact(item) for item in value]
+            return [self.redact(item, preserve_names=preserve_names) for item in value]
         if isinstance(value, dict):
             return {
                 key: (
                     f"[REDACTED:{self._redaction_label_for_key(key)}]"
-                    if self._is_sensitive_key(key)
-                    else self.redact(item)
+                    if self._is_sensitive_key(key, preserve_names=preserve_names)
+                    else self.redact(item, preserve_names=preserve_names)
                 )
                 for key, item in value.items()
             }
         return value
 
-    def _redact_text(self, text: str) -> str:
+    def _redact_text(self, text: str, preserve_names: bool = False) -> str:
         redacted = text
         for pattern_name, pattern in self.patterns:
+            if preserve_names and pattern_name == "JSON_PATIENT_NAME":
+                continue
             if pattern_name.startswith("JSON_"):
                 redacted = pattern.sub(rf"\1[REDACTED:{pattern_name}]\3", redacted)
             else:
                 redacted = pattern.sub(f"[REDACTED:{pattern_name}]", redacted)
         return redacted
 
-    def _is_sensitive_key(self, key: str) -> bool:
+    def _is_sensitive_key(self, key: str, preserve_names: bool = False) -> bool:
         normalized = key.lower().strip()
+        if preserve_names and normalized in {"patient_name", "guarantor_name"}:
+            return False
         return normalized in self.sensitive_keys
 
     def _redaction_label_for_key(self, key: str) -> str:

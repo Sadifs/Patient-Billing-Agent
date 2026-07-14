@@ -1,8 +1,10 @@
 import unittest
+from pathlib import Path
 
 from app.server import (
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
+    _direct_bill_header_answer,
     _direct_billing_website_answer,
     _direct_call_prep_answer,
     _direct_charity_care_coverage_answer,
@@ -20,6 +22,12 @@ from app.server import (
 
 
 class ServerHelperTest(unittest.TestCase):
+    synthetic_bill_dir = (
+        Path(__file__).resolve().parents[2]
+        / "synthetic-data"
+        / "synthetic_bills_v2"
+    )
+
     def test_detects_phi_in_user_message(self):
         self.assertTrue(_message_has_phi("My SSN is 123-45-6789."))
         self.assertFalse(_message_has_phi("Can you explain my bill?"))
@@ -213,6 +221,163 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("866-803-1777", answer)
         self.assertIn("patient.billing@cshs.org", answer)
         self.assertNotIn("search for", answer.lower())
+
+    def test_direct_bill_header_answer_reads_patient_name_from_uploaded_bill(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_pediatric_er_appendectomy_29.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "What is my name?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("Emily Chen", answer)
+        self.assertNotIn("Alex Johnson", answer)
+
+    def test_direct_bill_header_answer_handles_name_correct_question(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_medicaid_er_09.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "Is the name on my bill correct?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("Sofia Ramirez", answer)
+        self.assertIn("what the bill shows", answer)
+        self.assertIn("Cedars-Sinai would need to confirm", answer)
+
+    def test_direct_bill_header_answer_handles_this_bill_name_wording(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_surprise_balance_billing_24.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "What is the name on this bill?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+        correct_answer = _direct_bill_header_answer(
+            "Is the name on this bill correct?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("Diane Walters", answer)
+        self.assertIn("Diane Walters", correct_answer)
+        self.assertIn("Cedars-Sinai would need to confirm", correct_answer)
+
+    def test_direct_bill_header_answer_handles_natural_header_phrasings(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_surprise_balance_billing_24.pdf".',
+            }
+        ]
+        examples = {
+            "Whose name is listed here?": "Diane Walters",
+            "Can you tell me the patient name?": "Diane Walters",
+            "Who does this bill belong to?": "Diane Walters",
+            "Is the name correct?": "Diane Walters",
+            "What day did this happen?": "05/20/2026",
+            "Which insurance provider is listed?": "Aetna",
+            "Does this show another insurance?": "None on file",
+            "Is the insurance on this bill right?": "Cedars-Sinai would need to confirm",
+        }
+
+        for question, expected in examples.items():
+            with self.subTest(question=question):
+                answer = _direct_bill_header_answer(
+                    question,
+                    history,
+                    upload_dir=self.synthetic_bill_dir,
+                )
+                self.assertIn(expected, answer)
+
+    def test_direct_bill_header_answer_does_not_hijack_coverage_explanations(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_medicaid_er_09.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "I have another insurance though, why didn't they cover the rest?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
+    def test_direct_bill_header_answer_reads_service_date_from_uploaded_bill(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_pediatric_er_appendectomy_29.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "When was the date of my service?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("06/01/2026", answer)
+        self.assertNotIn("September 29, 2023", answer)
+
+    def test_direct_bill_header_answer_reads_insurance_from_uploaded_bill(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_pediatric_er_appendectomy_29.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "What is the name of my insurance?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+        secondary = _direct_bill_header_answer(
+            "What about my other insurance?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("Anthem Blue Cross", answer)
+        self.assertIn("None on file", secondary)
+
+    def test_direct_bill_header_answer_does_not_expose_account_number(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_pediatric_er_appendectomy_29.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "What is my account number?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("can’t display full account numbers", answer)
+        self.assertNotIn("CS-2026-09540", answer)
 
     def test_direct_payment_plan_answer_is_cedars_specific(self):
         answer = _direct_payment_plan_answer("How do I set up a payment plan?")

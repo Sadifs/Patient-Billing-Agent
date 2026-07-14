@@ -29,7 +29,7 @@ class ContentFilterHookTest(unittest.TestCase):
 
 
 class PHIRedactionHookTest(unittest.TestCase):
-    def test_redacts_patient_identifiers_from_tool_results(self):
+    def test_preserves_bill_parser_names_but_redacts_identifiers(self):
         hook = PHIRedactionHook()
         tool_result = json.dumps(
             {
@@ -45,12 +45,11 @@ class PHIRedactionHookTest(unittest.TestCase):
 
         redacted = hook.after_tool_call("bill_parser", {}, tool_result)
 
-        self.assertNotIn("Maria Gutierrez", redacted)
+        self.assertIn("Maria Gutierrez", redacted)
         self.assertNotIn("CS-2026-00441", redacted)
         self.assertNotIn("123456789", redacted)
         self.assertNotIn("01/02/1980", redacted)
         self.assertNotIn("maria@example.com", redacted)
-        self.assertIn("[REDACTED:JSON_PATIENT_NAME]", redacted)
         self.assertIn("[REDACTED:JSON_ACCOUNT_NUMBER]", redacted)
         self.assertIn("[REDACTED:MRN]", redacted)
         self.assertIn("[REDACTED:DOB]", redacted)

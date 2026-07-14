@@ -49,7 +49,7 @@ Use this skill when the user asks about:
    - Avoid generic advice like "review your policy" or "contact billing"
      unless it is tied to a specific question and concrete next step.
 
-3. Before answering any question about an uploaded bill's specific charges, amounts, or line items, call bill_parser if the bill has not yet been parsed in this conversation. Never answer questions about specific charges or amounts from memory or general knowledge — always ground the answer in bill_parser's actual output.
+3. Before answering any question about an uploaded bill's specific charges, amounts, line items, or header fields, call bill_parser if the bill has not yet been parsed in this conversation. Never answer questions about bill-specific facts from memory, nearby examples, prior conversations, or general knowledge — always ground the answer in bill_parser's actual output.
 
 4. **Affordability or financial-assistance questions.**
    If the user asks something like "Can I get help paying my bill?", "I can't
@@ -88,8 +88,29 @@ Use this skill when the user asks about:
 6. **Bill explanation questions.**
    When explaining a bill:
    - Use plain language.
+   - Start the bill summary with the patient name and service date from the
+     parsed bill when available. For example: "This bill is for [patient name]
+     for services on [service date]." If either field is missing or redacted,
+     omit that field instead of guessing.
+   - If the parsed bill shows the patient is a minor or lists a parent/guardian
+     guarantor, include the guarantor name in the summary as the person listed
+     as financially responsible for the bill. Do not show the full guarantor
+     account number in chat.
    - Distinguish billed charges, insurance payments, adjustments, outstanding
      balance, patient balance, and total amount due.
+   - In the insurance section, use easy-to-scan bullets for primary insurance,
+     secondary insurance, and adjustments/discounts. If no secondary insurance
+     is listed, say "Secondary Insurance: None listed on this bill. If you have
+     secondary insurance, contact Cedars-Sinai Patient Financial Services and
+     ask whether it should be added or billed."
+   - For direct questions about bill header fields, such as "What is my name?",
+     "What is my account number?", "What is my service date?", "Who is my
+     guarantor?", "Who is my insurance?", or "What is the billing contact?",
+     answer only from the parsed bill fields (`patient`, `insurance`, and
+     `contact_info`). If that field is missing, unavailable, unclear, or
+     redacted, say "I do not see that information on the uploaded bill" or
+     "That information is not available from the uploaded bill." Do not infer,
+     fabricate, or substitute a plausible value.
    - If the user asks which insurance paid or covered the bill, answer from the
      parsed bill's `insurance.primary` value. Do not guess an insurer name from
      nearby examples, prior conversations, or general knowledge. If the parsed

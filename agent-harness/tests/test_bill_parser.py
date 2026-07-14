@@ -2,15 +2,97 @@ import unittest
 
 from app.tools.bill_parser import (
     _bill_flags,
+    _extract_bill_header_fields,
     _extract_insurance_info,
     _line_item_duplicate_signals,
     _line_item_total,
     _parse_line_items_from_tables,
     _suggested_next_steps,
+    parse_bill_pdf,
 )
 
 
+SAMPLE_BILL_TEXT = """
+Cedars-Sinai Statement of Hospital and Physician Services
+Date: 2026-04-01
+Maria Gutierrez A l Pay Online: cedars-sinai.org/billing
+l Pay by Phone: 866-803-1777
+Account #: CS-2026-00441
+Service Date: 2026-03-15
+Primary Insurance: None on file P.O. Box 48750, Los Angeles, CA 90048
+Secondary Insurance: None on file
+Guarantor Name: Maria Gutierrez
+For account information or to discuss financial assistance, call 866-803-1777,
+Monday–Friday, 8:00 AM – 4:30 PM PT, or email patient.billing@cshs.org.
+Patient: Maria Gutierrez Account #: CS-2026-00441 Service Date: 2026-03-15
+Cedars-Sinai Medical Center, P.O. Box 48750, Los Angeles, CA 90048
+"""
+
+
 class BillParserHelperTest(unittest.TestCase):
+    def test_extract_bill_header_fields(self):
+        fields = _extract_bill_header_fields(SAMPLE_BILL_TEXT)
+
+        self.assertEqual(fields["patient"]["patient_name"], "Maria Gutierrez")
+        self.assertEqual(fields["patient"]["patient_account_number"], "CS-2026-00441")
+        self.assertEqual(fields["patient"]["service_date"], "03/15/2026")
+        self.assertEqual(fields["guarantor"]["guarantor_name"], "Maria Gutierrez")
+        self.assertEqual(fields["insurance"]["primary"], "None on file")
+        self.assertEqual(fields["insurance"]["secondary"], "None on file")
+        self.assertEqual(fields["contact_info"]["phone"], "866-803-1777")
+        self.assertEqual(fields["contact_info"]["online"], "cedars-sinai.org/billing")
+        self.assertEqual(fields["contact_info"]["email"], "patient.billing@cshs.org")
+        self.assertIn("Monday", fields["contact_info"]["hours"])
+        self.assertIn("48750", fields["contact_info"]["mail"])
+
+    def test_extract_bill_header_fields_insured_patient(self):
+        text = """
+David Chen A l Pay Online: cedars-sinai.org/billing
+Account #: CS-2026-01154
+Service Date: 2026-03-22
+Primary Insurance: Anthem Blue Cross PPO P.O. Box 48750, Los Angeles, CA 90048
+Secondary Insurance: None on file
+Patient: David Chen Account #: CS-2026-01154 Service Date: 2026-03-22
+Pay by Phone: 866-803-1777
+"""
+        fields = _extract_bill_header_fields(text)
+
+        self.assertEqual(fields["patient"]["patient_name"], "David Chen")
+        self.assertEqual(fields["patient"]["service_date"], "03/22/2026")
+        self.assertEqual(fields["insurance"]["primary"], "Anthem Blue Cross PPO")
+        self.assertEqual(fields["insurance"]["secondary"], "None on file")
+
+    def test_parse_bill_pdf_includes_header_fields(self):
+        result = parse_bill_pdf(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_selfpay_er_01.pdf"
+        )
+
+        self.assertEqual(result["patient"]["patient_name"], "Maria Gutierrez")
+        self.assertEqual(result["patient"]["service_date"], "03/15/2026")
+        self.assertEqual(result["insurance"]["primary"], "None on file")
+        self.assertEqual(result["contact_info"]["phone"], "866-803-1777")
+
+    def test_parse_bill_pdf_cleans_merged_insurance_address_noise(self):
+        result = parse_bill_pdf(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_pediatric_er_appendectomy_29.pdf"
+        )
+
+        self.assertEqual(result["patient"]["patient_name"], "Emily Chen (minor)")
+        self.assertEqual(
+            result["guarantor"]["guarantor_name"],
+            "David Chen (parent/guardian)",
+        )
+        self.assertEqual(
+            result["guarantor"]["guarantor_account_number"],
+            "GU-2026-09540",
+        )
+        self.assertEqual(
+            result["insurance"]["primary"],
+            "Anthem Blue Cross – PPO (parent employer-sponsored)",
+        )
+        self.assertNotIn("Pre.Od", result["insurance"]["primary"])
+        self.assertNotIn("Box 48750", result["insurance"]["primary"])
+
     def test_flags_self_pay_collections_bill(self):
         line_items = [
             {"description": "Emergency Department", "amount": 4200.0},
@@ -107,6 +189,19 @@ class BillParserHelperTest(unittest.TestCase):
 
         self.assertEqual(insurance["primary"], "Aetna – PPO")
         self.assertEqual(insurance["secondary"], "None on file")
+
+    def test_extracts_bare_insurance_label_with_wrapped_payer_name(self):
+        text = (
+            "Patient: Sarah Kim DOB: 1982-11-05 Address: 3390 Account #: CS-2026-776203\n"
+            "Roxbury Drive, Beverly Hills, CA 90210 Insurance: Anthem Date: 2026-06-18 "
+            "Service Date: 2026-04-28 Service Type:\n"
+            "Blue Cross PPO Policy #: XBP-44821-001 Status: Active Outpatient Surgery\n"
+        )
+
+        insurance = _extract_insurance_info(text)
+
+        self.assertEqual(insurance["primary"], "Anthem Blue Cross PPO")
+        self.assertIsNone(insurance["secondary"])
 
     def test_line_item_total(self):
         self.assertEqual(
