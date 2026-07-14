@@ -225,6 +225,13 @@ def _clean_insurance_value(value: str | None) -> str | None:
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:\t")
     cleaned = re.split(r"\s+Secondary Insurance:", cleaned, maxsplit=1)[0].strip()
     cleaned = re.split(
+        r"\s+(?:Date|Service Date|Service Type|Due Date|Statement Date|"
+        r"Policy\s*#|Policy Number|Status)\s*:",
+        cleaned,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip()
+    cleaned = re.split(
         r"\s+(?:Guarantor|Patient:|Account #:)",
         cleaned,
         maxsplit=1,
@@ -245,11 +252,49 @@ def _clean_insurance_value(value: str | None) -> str | None:
 
 def _extract_insurance_info(text: str) -> dict[str, str | None]:
     """Extract primary and secondary insurance labels from bill text."""
-    primary_match = re.search(r"Primary Insurance:\s*([^\n\r]+)", text, re.IGNORECASE)
     secondary_match = re.search(r"Secondary Insurance:\s*([^\n\r]+)", text, re.IGNORECASE)
+    primary_match = re.search(r"Primary Insurance:\s*([^\n\r]+)", text, re.IGNORECASE)
+    if not primary_match:
+        # Some layouts use a bare "Insurance:" label (not "Primary Insurance:").
+        # Negative lookbehind avoids matching "Secondary Insurance:".
+        primary_match = re.search(
+            r"(?<!Secondary )Insurance:\s*([^\n\r]+)",
+            text,
+            re.IGNORECASE,
+        )
+
+    primary_raw = primary_match.group(1) if primary_match else None
+    if primary_match and primary_raw is not None:
+        # pdfplumber can wrap payer names across lines, e.g.
+        # "Insurance: Anthem Date: ... Service Type:\nBlue Cross PPO Policy #: ..."
+        remainder = text[primary_match.end() :]
+        next_line = re.match(r"\r?\n([^\n\r]+)", remainder)
+        if next_line and re.search(
+            r"\b(?:Date|Service Date|Service Type)\s*:",
+            primary_raw,
+            re.IGNORECASE,
+        ):
+            continuation = re.split(
+                r"\s+(?:Policy\s*#:|Policy\s*Number:|Status:|Itemized|Rev Code|"
+                r"Account Summary)",
+                next_line.group(1),
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )[0].strip()
+            head = re.split(
+                r"\s+(?:Date|Service Date|Service Type|Due Date|Statement Date)\s*:",
+                primary_raw,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )[0].strip()
+            if continuation:
+                primary_raw = f"{head} {continuation}".strip()
+
     return {
-        "primary": _clean_insurance_value(primary_match.group(1) if primary_match else None),
-        "secondary": _clean_insurance_value(secondary_match.group(1) if secondary_match else None),
+        "primary": _clean_insurance_value(primary_raw),
+        "secondary": _clean_insurance_value(
+            secondary_match.group(1) if secondary_match else None
+        ),
     }
 
 

@@ -190,6 +190,19 @@ Pay by Phone: 866-803-1777
         self.assertEqual(insurance["primary"], "Aetna – PPO")
         self.assertEqual(insurance["secondary"], "None on file")
 
+    def test_extracts_bare_insurance_label_with_wrapped_payer_name(self):
+        text = (
+            "Patient: Sarah Kim DOB: 1982-11-05 Address: 3390 Account #: CS-2026-776203\n"
+            "Roxbury Drive, Beverly Hills, CA 90210 Insurance: Anthem Date: 2026-06-18 "
+            "Service Date: 2026-04-28 Service Type:\n"
+            "Blue Cross PPO Policy #: XBP-44821-001 Status: Active Outpatient Surgery\n"
+        )
+
+        insurance = _extract_insurance_info(text)
+
+        self.assertEqual(insurance["primary"], "Anthem Blue Cross PPO")
+        self.assertIsNone(insurance["secondary"])
+
     def test_line_item_total(self):
         self.assertEqual(
             _line_item_total(
