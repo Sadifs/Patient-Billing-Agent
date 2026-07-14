@@ -184,6 +184,9 @@ Use this skill when the user asks about:
    - Email: patient.billing@cshs.org
    - Billing website: https://www.cedars-sinai.org/patients-visitors/billing.html
    Do not put the Monday–Friday hours next to the email address.
+   If parsed bill data contains a redacted email such as "a private email
+   address" or "[REDACTED:EMAIL]", do not use that as a Cedars-Sinai contact.
+   Use the public Patient Financial Services email above instead.
 
 10. **Financial assistance and FPL offer.**
    Any time the answer mentions financial assistance, Charity Care, payment
