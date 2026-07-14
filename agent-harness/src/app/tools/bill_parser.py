@@ -47,6 +47,10 @@ PATIENT_NAME_FALLBACK_PATTERN = re.compile(
     re.MULTILINE,
 )
 GUARANTOR_NAME_PATTERN = re.compile(r"Guarantor Name:\s*(.+)", re.IGNORECASE)
+GUARANTOR_NUMBER_PATTERN = re.compile(
+    r"Guarantor\s*(?:#|Number):\s*(\S+)",
+    re.IGNORECASE,
+)
 ACCOUNT_NUMBER_PATTERN = re.compile(r"Account\s*#:\s*(\S+)", re.IGNORECASE)
 SERVICE_DATE_PATTERN = re.compile(r"Service Date:\s*(\S+)", re.IGNORECASE)
 PAY_ONLINE_PATTERN = re.compile(r"Pay Online:\s*(\S+)", re.IGNORECASE)
@@ -229,8 +233,14 @@ def _clean_insurance_value(value: str | None) -> str | None:
     merge = PO_BOX_MERGE_PATTERN.search(cleaned)
     if merge:
         cleaned = cleaned[: merge.start()]
+    cleaned = re.sub(
+        r"sponso\s*Pre\.?O\.?d\.?",
+        "sponsored",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
     cleaned = _strip_corrupted_parenthetical(cleaned)
-    return cleaned.strip(" ,") or None
+    return cleaned.strip(" .,") or None
 
 
 def _extract_insurance_info(text: str) -> dict[str, str | None]:
@@ -630,6 +640,24 @@ def _extract_contact_info(text: str) -> dict[str, str | None]:
     return contact
 
 
+def _extract_guarantor_info(text: str) -> dict[str, str | None]:
+    """Extract guarantor details from bill header text."""
+    guarantor_name = None
+    match = GUARANTOR_NAME_PATTERN.search(text)
+    if match:
+        guarantor_name = match.group(1).strip()
+
+    guarantor_number = None
+    match = GUARANTOR_NUMBER_PATTERN.search(text)
+    if match:
+        guarantor_number = match.group(1).strip()
+
+    return {
+        "guarantor_name": guarantor_name,
+        "guarantor_account_number": guarantor_number,
+    }
+
+
 def _extract_bill_header_fields(text: str) -> dict[str, Any]:
     """Extract patient, insurance, and contact fields from bill header text."""
     service_date = None
@@ -648,6 +676,7 @@ def _extract_bill_header_fields(text: str) -> dict[str, Any]:
             "patient_account_number": account_number,
             "service_date": service_date,
         },
+        "guarantor": _extract_guarantor_info(text),
         "insurance": _extract_insurance_info(text),
         "contact_info": _extract_contact_info(text),
     }

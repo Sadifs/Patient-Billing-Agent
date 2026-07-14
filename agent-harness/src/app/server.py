@@ -35,6 +35,7 @@ from agent_harness import AgentHarness, Message, OpenAICompatibleClient
 from app.rag.indexer import KnowledgeBaseIndexer
 from app.rag.search import LocalSearchService
 from app.tools import TOOLS as REGISTERED_TOOLS
+from app.tools.bill_parser import parse_bill_pdf
 from app.tools.calculate_fpl import calculate_fpl
 from app.tools.search_bills import create_search_bills_tool
 from app.hooks import HOOKS as REGISTERED_HOOKS
@@ -305,6 +306,153 @@ def _direct_billing_website_answer(user_message: str) -> str | None:
         "- Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
         "- Email: patient.billing@cshs.org"
     )
+
+
+_UPLOADED_FILENAME_PATTERN = re.compile(
+    r'(?:uploaded|file(?:\s+called)?)\s+"([^"]+\.(?:pdf|json|png|jpg|jpeg|txt))"',
+    re.IGNORECASE,
+)
+
+
+def _latest_uploaded_filename(
+    user_message: str,
+    history: list[dict] | None = None,
+) -> str | None:
+    """Return the most recent uploaded filename mentioned in chat text."""
+    messages = [user_message]
+    if history:
+        messages.extend(
+            str(msg.get("content", ""))
+            for msg in reversed(history)
+        )
+
+    for text in messages:
+        match = _UPLOADED_FILENAME_PATTERN.search(text)
+        if match:
+            return Path(match.group(1)).name
+    return None
+
+
+def _bill_header_question_field(text: str) -> str | None:
+    """Identify direct questions about uploaded bill header fields."""
+    normalized = text.lower().strip()
+    has_lookup_intent = bool(
+        re.search(
+            r"\b(what|who|whose|which|when|where|tell me|show|listed|shown|"
+            r"on (?:my|the|this) bill|is|are|does|confirm|verify)\b",
+            normalized,
+        )
+    )
+    asks_explanation = bool(
+        re.search(r"\b(why|how come|did(?:n't| not)|does(?:n't| not)|cover|covered|pay|paid)\b", normalized)
+    )
+
+    if (
+        has_lookup_intent
+        and not asks_explanation
+        and re.search(r"\b(other|secondary|additional|another)\s+insurance\b", normalized)
+    ):
+        return "secondary_insurance"
+    if (
+        has_lookup_intent
+        and not asks_explanation
+        and (
+            re.search(r"\b(primary\s+)?insurance\b", normalized)
+            or re.search(r"\b(?:payer|provider)\b", normalized)
+        )
+    ):
+        return "primary_insurance"
+    if (
+        has_lookup_intent
+        and (
+            re.search(r"\b(?:date\s+of\s+service|service\s+date|service\s+day)\b", normalized)
+            or re.search(r"\bwhen\b.*\bservice\b", normalized)
+            or re.search(r"\bwhen\b.*\b(?:happen|occur|take place)\b", normalized)
+            or re.search(r"\bwhat\s+(?:day|date)\b", normalized)
+        )
+    ):
+        return "service_date"
+    if (
+        has_lookup_intent
+        and (
+            re.search(r"\b(?:my|patient(?:'s)?|person(?:'s)?)\s+name\b", normalized)
+            or re.search(r"\bname\b.*\b(?:correct|accurate|right)\b", normalized)
+            or re.search(r"\bwhose\s+name\b", normalized)
+            or re.search(r"\bwho(?:se)?\b.*\b(?:bill|belong)\b", normalized)
+            or re.search(r"\bbill\s+belong(?:s)?\s+to\b", normalized)
+            or re.search(
+                r"\bname\s+(?:on|shown\s+on|listed\s+on)\s+(?:my\s+|the\s+|this\s+)?bill\b",
+                normalized,
+            )
+        )
+    ):
+        return "patient_name"
+    if has_lookup_intent and re.search(r"\baccount\s+(?:number|#)\b", normalized):
+        return "patient_account_number"
+    return None
+
+
+def _direct_bill_header_answer(
+    user_message: str,
+    history: list[dict] | None = None,
+    upload_dir: Path | None = None,
+) -> str | None:
+    """Answer simple uploaded-bill header questions from parsed bill data."""
+    field = _bill_header_question_field(user_message)
+    if not field:
+        return None
+
+    filename = _latest_uploaded_filename(user_message, history)
+    if not filename:
+        return (
+            "I do not see an uploaded bill connected to this question. Please "
+            "upload the bill first, then I can read that field from the bill."
+        )
+
+    base_dir = upload_dir or UPLOAD_DIR
+    try:
+        parsed = parse_bill_pdf(str(base_dir / filename))
+    except Exception:
+        return (
+            "I could not read that field from the uploaded bill. Please check "
+            "the bill directly or contact Cedars-Sinai Patient Financial "
+            "Services at [866-803-1777](tel:8668031777), Monday–Friday, "
+            "8:00 AM–4:30 PM PT."
+        )
+
+    patient = parsed.get("patient") or {}
+    insurance = parsed.get("insurance") or {}
+
+    if field == "patient_account_number":
+        return (
+            "I can’t display full account numbers here. Please check the "
+            "patient account number field on the uploaded bill, or verify it "
+            "directly with Cedars-Sinai Patient Financial Services."
+        )
+
+    values = {
+        "patient_name": patient.get("patient_name"),
+        "service_date": patient.get("service_date"),
+        "primary_insurance": insurance.get("primary"),
+        "secondary_insurance": insurance.get("secondary"),
+    }
+    labels = {
+        "patient_name": "The patient name shown on the uploaded bill",
+        "service_date": "The service date shown on the uploaded bill",
+        "primary_insurance": "The primary insurance shown on the uploaded bill",
+        "secondary_insurance": "The secondary insurance shown on the uploaded bill",
+    }
+    value = values.get(field)
+
+    if not value:
+        return "I do not see that information on the uploaded bill."
+    if re.search(r"\b(correct|accurate|right)\b", user_message, re.IGNORECASE):
+        return (
+            f"{labels[field]} is {value}. I can tell you what the bill shows, "
+            "but Cedars-Sinai would need to confirm whether it is correct for "
+            "your account."
+        )
+    return f"{labels[field]} is {value}."
 
 
 def _is_payment_plan_question(text: str) -> bool:
@@ -805,6 +953,19 @@ async def chat(request: Request):
 
         return response.ResponseStream(
             stream_direct_fpl,
+            content_type="text/event-stream",
+        )
+
+    direct_bill_header = _direct_bill_header_answer(user_message, history)
+    if direct_bill_header:
+        async def stream_direct_bill_header(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_bill_header})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_bill_header,
             content_type="text/event-stream",
         )
 

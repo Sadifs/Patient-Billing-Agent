@@ -36,6 +36,7 @@ class BillParserHelperTest(unittest.TestCase):
         self.assertEqual(fields["patient"]["patient_name"], "Maria Gutierrez")
         self.assertEqual(fields["patient"]["patient_account_number"], "CS-2026-00441")
         self.assertEqual(fields["patient"]["service_date"], "03/15/2026")
+        self.assertEqual(fields["guarantor"]["guarantor_name"], "Maria Gutierrez")
         self.assertEqual(fields["insurance"]["primary"], "None on file")
         self.assertEqual(fields["insurance"]["secondary"], "None on file")
         self.assertEqual(fields["contact_info"]["phone"], "866-803-1777")
@@ -70,6 +71,27 @@ Pay by Phone: 866-803-1777
         self.assertEqual(result["patient"]["service_date"], "03/15/2026")
         self.assertEqual(result["insurance"]["primary"], "None on file")
         self.assertEqual(result["contact_info"]["phone"], "866-803-1777")
+
+    def test_parse_bill_pdf_cleans_merged_insurance_address_noise(self):
+        result = parse_bill_pdf(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_pediatric_er_appendectomy_29.pdf"
+        )
+
+        self.assertEqual(result["patient"]["patient_name"], "Emily Chen (minor)")
+        self.assertEqual(
+            result["guarantor"]["guarantor_name"],
+            "David Chen (parent/guardian)",
+        )
+        self.assertEqual(
+            result["guarantor"]["guarantor_account_number"],
+            "GU-2026-09540",
+        )
+        self.assertEqual(
+            result["insurance"]["primary"],
+            "Anthem Blue Cross – PPO (parent employer-sponsored)",
+        )
+        self.assertNotIn("Pre.Od", result["insurance"]["primary"])
+        self.assertNotIn("Box 48750", result["insurance"]["primary"])
 
     def test_flags_self_pay_collections_bill(self):
         line_items = [
