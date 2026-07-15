@@ -133,13 +133,14 @@ def draw_page1(c, bill):
     c.drawString(bx + 20, by - 62, "P.O. Box 48750, Los Angeles, CA 90048")
 
     # ══════════════════════════════════════════════════════════════════
-    # INSURANCE INFO  (left column)
+    # INSURANCE INFO  (left column, section C)
     # ══════════════════════════════════════════════════════════════════
     y_ins = y_pat - 44
+    circle_label(c, L + 8, y_ins + 10, 8, "C")
     c.setFillColor(DARK_GRAY)
     c.setFont("Helvetica", 9)
-    c.drawString(L, y_ins,      f"Primary Insurance:    {insurance['primary']}")
-    c.drawString(L, y_ins - 13, f"Secondary Insurance:  {insurance['secondary']}")
+    c.drawString(L + 20, y_ins,      f"Primary Insurance:    {insurance['primary']}")
+    c.drawString(L + 20, y_ins - 13, f"Secondary Insurance:  {insurance['secondary']}")
 
     # ══════════════════════════════════════════════════════════════════
     # GUARANTOR ACCOUNT INFORMATION BOX  (right column, section B)
@@ -247,47 +248,22 @@ def draw_page1(c, bill):
     c.drawString(L + 248, due_y, money(bill["total_amount_due"]))
 
     # ══════════════════════════════════════════════════════════════════
-    # INFO BOXES — G (thank you) and F (patient services)
+    # INFO BOXES — F (patient services) then G (thank you); A→B→C→D→E→F→G
     # ══════════════════════════════════════════════════════════════════
     info_top = due_y - 22
     box_h    = 115
     lw = MID - L - 4
     rw = R - MID - 4
 
-    # Left box — G
-    c.setFillColor(LIGHT_GRAY)
+    # Left box — F (Patient Services)
+    c.setFillColor(LIGHT_PURPLE)
     c.roundRect(L, info_top - box_h, lw, box_h, 4, fill=1, stroke=0)
 
-    circle_label(c, L + 10, info_top - 10, 8, "G")
-
-    c.setFillColor(BLACK)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(L + 24, info_top - 14,
-                 "Thank you for choosing us for your healthcare needs.")
-    c.setFont("Helvetica-Bold", 8.5)
-    c.drawString(L + 10, info_top - 27,
-                 "This statement explains the current status of your accounts.")
-    c.setFillColor(DARK_GRAY)
-    c.setFont("Helvetica", 8.5)
-    for i, ln in enumerate([
-        "•  If you have insurance not reflected here, contact us.",
-        "•  Contractual discounts and payments are reflected in",
-        "    this statement.",
-        "•  The balance remaining is your responsibility and is",
-        "    due in full on the date indicated.",
-        "•  We offer financial assistance for eligible patients.",
-    ]):
-        c.drawString(L + 10, info_top - 40 - i * 11, ln)
-
-    # Right box — F
-    c.setFillColor(LIGHT_PURPLE)
-    c.roundRect(MID + 4, info_top - box_h, rw, box_h, 4, fill=1, stroke=0)
-
-    circle_label(c, MID + 14, info_top - 10, 8, "F")
+    circle_label(c, L + 10, info_top - 10, 8, "F")
 
     c.setFillColor(PURPLE)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(MID + 26, info_top - 14, "Patient Services")
+    c.drawString(L + 24, info_top - 14, "Patient Services")
 
     c.setFillColor(DARK_GRAY)
     c.setFont("Helvetica", 8.5)
@@ -300,9 +276,34 @@ def draw_page1(c, bill):
         "Please note: there may be additional billing",
         "charges not yet posted.",
         "",
-        "Your Account Detail is on the following page.",
+        "Your account detail is on the following page.",
     ]):
-        c.drawString(MID + 10, info_top - 28 - i * 10, ln)
+        c.drawString(L + 10, info_top - 28 - i * 10, ln)
+
+    # Right box — G (thank you / general information)
+    c.setFillColor(LIGHT_GRAY)
+    c.roundRect(MID + 4, info_top - box_h, rw, box_h, 4, fill=1, stroke=0)
+
+    circle_label(c, MID + 14, info_top - 10, 8, "G")
+
+    c.setFillColor(BLACK)
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(MID + 26, info_top - 14,
+                 "Thank you for choosing us for your healthcare needs.")
+    c.setFont("Helvetica-Bold", 8.5)
+    c.drawString(MID + 10, info_top - 27,
+                 "This statement explains the current status of your accounts.")
+    c.setFillColor(DARK_GRAY)
+    c.setFont("Helvetica", 8.5)
+    for i, ln in enumerate([
+        "•  If you have insurance not reflected here, contact us.",
+        "•  Contractual discounts and payments are reflected in",
+        "    this statement.",
+        "•  The balance remaining is your responsibility and is",
+        "    due in full on the date indicated.",
+        "•  We offer financial assistance for eligible patients.",
+    ]):
+        c.drawString(MID + 10, info_top - 40 - i * 11, ln)
 
     info_bottom = info_top - box_h
 
@@ -419,7 +420,7 @@ def draw_page2(c, bill):
     # Section title
     c.setFillColor(PURPLE)
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(L, PAGE_H - 104, "Account Detail")
+    c.drawString(L, PAGE_H - 104, "account detail")
     c.setStrokeColor(PURPLE)
     c.setLineWidth(1.2)
     c.line(L, PAGE_H - 108, R, PAGE_H - 108)
