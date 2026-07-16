@@ -3,209 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Healthcare Bill Assistant</title>
+    <title>Healthcare Bill Assistant | Cedars-Sinai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script>
+        // Tailwind theme extensions align with Cedars-Sinai branding.
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Cedars-Sinai Brand Colors
+                        'cs-red': '#DC1E34',        // Alizarin Crimson - Primary
+                        'cs-teal': '#007A8A',       // Blue Lagoon - Dark teal
+                        'cs-teal-light': '#2EA1AD', // Boston Blue - Light teal
+                        // UI Colors
+                        'app-bg': '#fcfcfd',
+                        'chat-bg': '#fdfefe',
+                    },
+                    boxShadow: {
+                        'subtle': '0 2px 8px rgba(0,0,0,0.06)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+        /* Custom scrollbar */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
         }
-        header {
-            background: #1a237e;
-            color: white;
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
         }
-        header h1 { font-size: 1.2rem; font-weight: 600; }
-        header .subtitle { font-size: 0.85rem; opacity: 0.8; }
-        #chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
         }
-        .message {
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            line-height: 1.5;
-            font-size: 0.95rem;
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
         }
-        .message.user {
-            white-space: pre-wrap;
-            align-self: flex-end;
-            background: #1a237e;
-            color: white;
-            border-bottom-right-radius: 4px;
+        /* Typing animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
         }
-        .message.assistant {
-            align-self: flex-start;
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-bottom-left-radius: 4px;
-            white-space: normal;
+        .typing-dot {
+            animation: pulse 1.4s infinite;
         }
-        .message.assistant p { margin: 0.4em 0; }
-        .message.assistant p:first-child { margin-top: 0; }
-        .message.assistant p:last-child { margin-bottom: 0; }
-        .message.assistant h1,
-        .message.assistant h2,
-        .message.assistant h3 {
-            margin: 0.6em 0 0.3em;
-            font-size: 1em;
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        /* Auto-resize textarea */
+        textarea {
+            field-sizing: content;
+            min-height: 36px;
+            max-height: 128px;
+        }
+        /* Logo color */
+        .cs-logo path, .cs-logo rect {
+            fill: #DC1E34;
+        }
+        /* Markdown prose styling */
+        .prose {
+            line-height: 1.625;
+        }
+        .prose p {
+            margin-top: 0.75em;
+            margin-bottom: 0.75em;
+        }
+        .prose p:first-child {
+            margin-top: 0;
+        }
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            font-weight: 600;
+            margin-top: 1.25em;
+            margin-bottom: 0.5em;
+            line-height: 1.25;
+        }
+        .prose h1 { font-size: 1.5em; }
+        .prose h2 { font-size: 1.25em; }
+        .prose h3 { font-size: 1.125em; }
+        .prose h4, .prose h5, .prose h6 { font-size: 1em; }
+        .prose strong {
             font-weight: 600;
         }
-        .message.assistant ul,
-        .message.assistant ol {
-            margin: 0.4em 0;
-            padding-left: 1.4em;
+        .prose ul, .prose ol {
+            margin-top: 0.75em;
+            margin-bottom: 0.75em;
+            padding-left: 1.5em;
         }
-        .message.assistant li { margin: 0.2em 0; }
-        .message.assistant strong { font-weight: 600; }
-        .message.system {
-            white-space: pre-wrap;
-            align-self: center;
-            background: #fff3e0;
-            border: 1px solid #ffcc80;
-            font-size: 0.85rem;
-            max-width: 90%;
+        .prose ul {
+            list-style-type: disc;
         }
-        #input-area {
-            padding: 16px 24px;
-            background: white;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 12px;
+        .prose ol {
+            list-style-type: decimal;
         }
-        #message-input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            outline: none;
-            resize: none;
-            min-height: 44px;
-            max-height: 120px;
+        .prose li {
+            margin-top: 0.25em;
+            margin-bottom: 0.25em;
         }
-        #message-input:focus { border-color: #1a237e; }
-        #send-btn, #upload-btn {
-            padding: 12px 20px;
+        .prose li > ul, .prose li > ol {
+            margin-top: 0.25em;
+            margin-bottom: 0.25em;
+        }
+        .prose pre {
+            background-color: #f3f4f6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            margin-top: 0.75em;
+            margin-bottom: 0.75em;
+        }
+        .prose code {
+            background-color: #f3f4f6;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+        }
+        .prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .prose blockquote {
+            border-left: 3px solid #e5e7eb;
+            padding-left: 1em;
+            margin-left: 0;
+            margin-top: 0.75em;
+            margin-bottom: 0.75em;
+            color: #6b7280;
+            font-style: italic;
+        }
+        .prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.75em;
+            margin-bottom: 0.75em;
+        }
+        .prose th, .prose td {
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        .prose th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        .prose hr {
             border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            cursor: pointer;
-            font-weight: 500;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 1.5em;
+            margin-bottom: 1.5em;
         }
-        #send-btn {
-            background: #1a237e;
-            color: white;
+        /* Prevent strikethrough in prose */
+        .prose del, .prose s, .prose strike {
+            text-decoration: none;
         }
-        #send-btn:hover { background: #283593; }
-        #send-btn:disabled { background: #9e9e9e; cursor: not-allowed; }
-        #upload-btn {
-            background: #e8eaf6;
-            color: #1a237e;
+        /* Suggestion cards */
+        .suggestion-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 2rem;
         }
-        #upload-btn:hover { background: #c5cae9; }
-        #file-input { display: none; }
-        .typing-indicator {
-            align-self: flex-start;
-            padding: 12px 16px;
+        @media (max-width: 640px) {
+            .suggestion-cards { grid-template-columns: 1fr; }
+        }
+        .suggestion-card {
+            padding: 1.125rem 1.125rem 1.375rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
             background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            color: #757575;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            text-align: left;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .suggestion-card:hover {
+            border-color: #007A8A;
+            box-shadow: 0 4px 12px rgba(0,122,138,0.12);
+        }
+        /* Drag overlay */
+        #drag-overlay {
+            pointer-events: none;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
 </head>
-<body>
-    <header>
-        <div>
-            <h1>Healthcare Bill Assistant</h1>
-            <div class="subtitle">Upload your bill or ask a question about your charges</div>
+<body class="bg-app-bg h-screen flex flex-col">
+    <!-- Header (always visible) -->
+    <header id="header" class="bg-white px-4 py-3 flex items-center shrink-0 border-b border-gray-100">
+        <div class="flex items-center gap-3">
+            <img src="/static/cedars-sinai-logo.svg" alt="Cedars-Sinai" class="h-8" />
+            <div class="h-6 w-px bg-gray-200"></div>
+            <span class="text-md font-medium text-gray-900">Healthcare Bill Assistant</span>
         </div>
     </header>
 
-    <div id="chat-container">
-        <div class="message system">
-            Welcome! I can help you understand your healthcare bill. You can:
-            - Ask me to explain any charge on your bill
-            - Upload a bill image or PDF for analysis
-            - Ask about financial assistance programs
-            - Get help understanding your payment options
-
-            Privacy note: Please do not enter Social Security numbers, MRNs,
-            full dates of birth, full account numbers, bank details, credit
-            card numbers, or other sensitive personal information.
+    <!-- Main Chat Area -->
+    <main id="main-area" class="flex-1 flex flex-col min-h-0 overflow-hidden bg-chat-bg relative">
+        <!-- Drag overlay (shown when files are dragged over) -->
+        <div id="drag-overlay" class="hidden absolute inset-0 z-40 bg-teal-50/60 border-2 border-dashed border-cs-teal rounded-xl flex items-center justify-center">
+            <p class="text-sm font-medium text-cs-teal">Drop your bill here</p>
         </div>
-    </div>
 
-    <div id="input-area">
-        <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.txt">
-        <button id="upload-btn" onclick="document.getElementById('file-input').click()">Upload Bill</button>
-        <textarea id="message-input" placeholder="Ask about your bill..." rows="1"></textarea>
-        <button id="send-btn" onclick="sendMessage()">Send</button>
-    </div>
+        <!-- Hidden file input for OS file picker -->
+        <input type="file" id="file-input" multiple class="hidden" accept=".pdf,.jpg,.jpeg,.png,.txt">
+
+        <!-- Initial Centered State (shown when no messages) -->
+        <div id="initial-state" class="flex h-full items-center justify-center px-4 -mt-8 md:-mt-12">
+            <div class="w-full max-w-3xl">
+                <h2 class="text-2xl font-normal text-gray-600 mb-2 text-center">
+                    What can I help you with?
+                </h2>
+                <p class="text-sm text-gray-400 mb-5 text-center max-w-xl mx-auto leading-relaxed">
+                    Ask about a charge, upload a bill, or explore financial assistance. Please don't enter
+                    SSNs, MRNs, full dates of birth, full account numbers, or card details.
+                </p>
+
+                <!-- Uploaded Files Display (centered state) -->
+                <div id="uploaded-files-centered" class="flex flex-wrap gap-2 mb-3 justify-center"></div>
+
+                <!-- Centered Chat Input -->
+                <div class="flex items-center w-full rounded-full border border-gray-200 bg-white px-3 py-2 shadow-subtle">
+                    <button id="attach-btn-centered" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center" title="Attach a bill (PDF, image, or text)">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                        </svg>
+                    </button>
+                    <textarea
+                        id="message-input-centered"
+                        placeholder="Ask about your bill..."
+                        class="w-full resize-none bg-transparent px-2 py-1 text-gray-900 placeholder-gray-500 focus:outline-none"
+                        rows="1"
+                    ></textarea>
+                    <button id="send-btn-centered" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-cs-red hover:text-white transition-colors flex items-center justify-center ml-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-100" disabled>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Suggestion Cards -->
+                <div id="suggestion-cards" class="suggestion-cards">
+                    <button class="suggestion-card" onclick="sendSuggestion('Can you explain a charge on my bill?')">
+                        <svg class="w-5 h-5 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div class="text-sm text-gray-500 leading-relaxed">Can you explain a charge on my bill?</div>
+                    </button>
+                    <button class="suggestion-card" onclick="document.getElementById('file-input').click()">
+                        <svg class="w-5 h-5 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <div class="text-sm text-gray-500 leading-relaxed">Upload a bill (PDF or photo) for analysis</div>
+                    </button>
+                    <button class="suggestion-card" onclick="sendSuggestion('What financial assistance or charity care might I qualify for?')">
+                        <svg class="w-5 h-5 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                        <div class="text-sm text-gray-500 leading-relaxed">What financial assistance or charity care might I qualify for?</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat State (shown when messages exist) -->
+        <div id="chat-state" class="hidden flex-1 flex flex-col min-h-0">
+            <!-- Messages -->
+            <div id="messages" class="messages-container flex-1 min-h-0 overflow-y-auto px-4 py-6">
+                <div id="messages-inner" class="max-w-3xl mx-auto space-y-6">
+                    <!-- Messages will be appended here -->
+                </div>
+            </div>
+
+            <!-- Bottom Input Area -->
+            <div class="shrink-0 px-4 pb-6 pt-2">
+                <div class="max-w-3xl mx-auto">
+                    <!-- Uploaded Files Display -->
+                    <div id="uploaded-files" class="flex flex-wrap gap-2 mb-3"></div>
+
+                    <!-- Message Input -->
+                    <div class="flex items-center w-full rounded-full border border-gray-200 bg-white px-3 py-2 shadow-subtle">
+                        <button id="attach-btn" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center" title="Attach a bill (PDF, image, or text)">
+                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                        </button>
+                        <textarea
+                            id="message-input"
+                            placeholder="Ask about your bill..."
+                            class="w-full resize-none bg-transparent px-2 py-1 text-gray-900 placeholder-gray-500 focus:outline-none"
+                            rows="1"
+                        ></textarea>
+                        <button id="send-btn" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-cs-red hover:text-white transition-colors flex items-center justify-center ml-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-100" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        const chatContainer = document.getElementById('chat-container');
-        const messageInput = document.getElementById('message-input');
-        const sendBtn = document.getElementById('send-btn');
+        // ── State ────────────────────────────────────────────────────────
+        const initialState = document.getElementById('initial-state');
+        const chatState = document.getElementById('chat-state');
+        const messagesInner = document.getElementById('messages-inner');
+        const messagesContainer = document.getElementById('messages');
         const fileInput = document.getElementById('file-input');
+        const uploadedFilesEl = document.getElementById('uploaded-files');
+        const uploadedFilesCentered = document.getElementById('uploaded-files-centered');
+
+        const inputCentered = document.getElementById('message-input-centered');
+        const inputChat = document.getElementById('message-input');
+        const sendBtnCentered = document.getElementById('send-btn-centered');
+        const sendBtnChat = document.getElementById('send-btn');
+        const attachBtnCentered = document.getElementById('attach-btn-centered');
+        const attachBtnChat = document.getElementById('attach-btn');
+
         let history = [];
-        let uploadedFilename = null;
+        let uploadedFiles = [];   // { id, name } — id is filename for this backend
+        let isStreaming = false;
+        let hasStarted = false;
 
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        messageInput.addEventListener('input', () => {
-            messageInput.style.height = 'auto';
-            messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
-        });
-
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            addMessage('system', `Uploading: ${file.name}...`);
-
-            try {
-                const resp = await fetch('/upload', { method: 'POST', body: formData });
-                const data = await resp.json();
-                if (data.status === 'indexed') {
-                    uploadedFilename = data.filename || file.name;
-                    addMessage('system', `${file.name} uploaded and indexed successfully.`);
-                    messageInput.value = `I uploaded "${uploadedFilename}". `;
-                    messageInput.focus();
-                    messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
-                    messageInput.style.height = 'auto';
-                    messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
-                } else {
-                    addMessage('system', `Upload failed: ${data.error || 'Unknown error'}`);
-                }
-            } catch (err) {
-                addMessage('system', `Upload error: ${err.message}`);
-            }
-
-            fileInput.value = '';
-        });
+        // ── Helpers ──────────────────────────────────────────────────────
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
 
         function renderAssistantMarkdown(content) {
             return marked.parse(content, { breaks: true });
@@ -218,42 +339,116 @@
             });
         }
 
-        function setMessageContent(div, role, content) {
-            if (role === 'assistant') {
-                div.innerHTML = renderAssistantMarkdown(content);
-                makeLinksOpenInNewTab(div);
-            } else {
-                div.textContent = content;
-            }
+        function activeInput() {
+            return hasStarted ? inputChat : inputCentered;
         }
 
-        function addMessage(role, content) {
-            const div = document.createElement('div');
-            div.className = `message ${role}`;
-            setMessageContent(div, role, content);
-            chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            return div;
+        function switchToChatState() {
+            if (hasStarted) return;
+            hasStarted = true;
+            initialState.classList.add('hidden');
+            chatState.classList.remove('hidden');
+            chatState.classList.add('flex');
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function updateSendButtons() {
+            const text = activeInput().value.trim();
+            const disabled = isStreaming || text.length === 0;
+            sendBtnCentered.disabled = disabled;
+            sendBtnChat.disabled = disabled;
+        }
+
+        // ── Message rendering ────────────────────────────────────────────
+        function addUserMessage(content) {
+            switchToChatState();
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex justify-end';
+            const bubble = document.createElement('div');
+            bubble.className = 'max-w-[80%] bg-cs-teal text-white rounded-2xl rounded-br-sm px-4 py-2.5 whitespace-pre-wrap';
+            bubble.textContent = content;
+            wrapper.appendChild(bubble);
+            messagesInner.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function addAssistantMessage() {
+            switchToChatState();
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex justify-start';
+            const bubble = document.createElement('div');
+            bubble.className = 'prose max-w-[80%] text-gray-800';
+            wrapper.appendChild(bubble);
+            messagesInner.appendChild(wrapper);
+            scrollToBottom();
+            return bubble;
+        }
+
+        function setAssistantContent(bubble, content) {
+            bubble.innerHTML = renderAssistantMarkdown(content);
+            makeLinksOpenInNewTab(bubble);
+        }
+
+        function addSystemMessage(text, type = 'info') {
+            switchToChatState();
+            const colors = { info: 'text-cs-teal', error: 'text-cs-red', success: 'text-green-700' };
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex justify-center';
+            const el = document.createElement('div');
+            el.className = `text-xs ${colors[type] || colors.info} bg-white border border-gray-100 rounded-full px-3 py-1 shadow-subtle`;
+            el.textContent = text;
+            wrapper.appendChild(el);
+            messagesInner.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function addTypingIndicator() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex justify-start';
+            wrapper.innerHTML = `
+                <div class="flex items-center gap-1.5 px-2 py-2">
+                    <span class="typing-dot w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span class="typing-dot w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span class="typing-dot w-2 h-2 rounded-full bg-gray-400"></span>
+                </div>`;
+            messagesInner.appendChild(wrapper);
+            scrollToBottom();
+            return wrapper;
+        }
+
+        // ── Sending ──────────────────────────────────────────────────────
+        function sendSuggestion(text) {
+            const input = activeInput();
+            input.value = text;
+            updateSendButtons();
+            sendMessage();
         }
 
         async function sendMessage() {
-            const text = messageInput.value.trim();
+            if (isStreaming) return;
+            const input = activeInput();
+            let text = input.value.trim();
             if (!text) return;
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
-            sendUserMessage(text);
-        }
 
-        async function sendUserMessage(text) {
-            addMessage('user', text);
+            // Prepend a note about uploaded files so the backend RAG context references them.
+            if (uploadedFiles.length > 0) {
+                const names = uploadedFiles.map(f => `"${f.name}"`).join(', ');
+                text = `(Regarding my uploaded bill${uploadedFiles.length > 1 ? 's' : ''}: ${names}) ${text}`;
+            }
+
+            input.value = '';
+            input.style.height = 'auto';
+            updateSendButtons();
+
+            addUserMessage(text);
             history.push({ role: 'user', content: text });
 
-            sendBtn.disabled = true;
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'typing-indicator';
-            typingDiv.textContent = 'Thinking...';
-            chatContainer.appendChild(typingDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            isStreaming = true;
+            updateSendButtons();
+            const typing = addTypingIndicator();
 
             try {
                 const resp = await fetch('/chat', {
@@ -262,20 +457,18 @@
                     body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
                 });
 
-                typingDiv.remove();
+                typing.remove();
 
                 const reader = resp.body.getReader();
                 const decoder = new TextDecoder();
                 let assistantMsg = '';
-                const msgDiv = addMessage('assistant', '');
+                const bubble = addAssistantMessage();
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-
                     const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
-
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             const data = line.slice(6);
@@ -284,8 +477,8 @@
                                 const parsed = JSON.parse(data);
                                 if (parsed.text) {
                                     assistantMsg += parsed.text;
-                                    setMessageContent(msgDiv, 'assistant', assistantMsg);
-                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                    setAssistantContent(bubble, assistantMsg);
+                                    scrollToBottom();
                                 }
                             } catch (e) {}
                         }
@@ -294,13 +487,148 @@
 
                 history.push({ role: 'assistant', content: assistantMsg });
             } catch (err) {
-                typingDiv.remove();
-                addMessage('system', `Error: ${err.message}. Make sure the server is running.`);
+                typing.remove();
+                addSystemMessage(`Error: ${err.message}. Make sure the server is running.`, 'error');
             }
 
-            sendBtn.disabled = false;
-            messageInput.focus();
+            isStreaming = false;
+            updateSendButtons();
+            activeInput().focus();
         }
+
+        // ── Upload ───────────────────────────────────────────────────────
+        const MAX_VISIBLE_FILES = 3;
+
+        function updateFileChipsDisplay() {
+            [uploadedFilesEl, uploadedFilesCentered].forEach((container) => {
+                container.innerHTML = '';
+                const visible = uploadedFiles.slice(0, MAX_VISIBLE_FILES);
+                const hidden = uploadedFiles.length - MAX_VISIBLE_FILES;
+                visible.forEach((file) => {
+                    const chip = document.createElement('div');
+                    chip.className = 'inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-cs-teal rounded-full text-sm hover:bg-teal-100 transition-colors';
+                    chip.innerHTML = `
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span class="max-w-32 truncate">${escapeHtml(file.name)}</span>
+                        <button class="hover:text-cs-red" data-remove="${escapeHtml(file.id)}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>`;
+                    chip.querySelector('[data-remove]').addEventListener('click', () => removeFile(file.id));
+                    container.appendChild(chip);
+                });
+                if (hidden > 0) {
+                    const more = document.createElement('div');
+                    more.className = 'inline-flex items-center justify-center px-3 py-1.5 bg-teal-50 text-cs-teal rounded-full text-sm font-medium';
+                    more.title = `${hidden} more file${hidden > 1 ? 's' : ''}`;
+                    more.textContent = `+${hidden}`;
+                    container.appendChild(more);
+                }
+            });
+        }
+
+        function removeFile(fileId) {
+            uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
+            updateFileChipsDisplay();
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const targetContainer = hasStarted ? uploadedFilesEl : uploadedFilesCentered;
+            const uploadingEl = document.createElement('div');
+            uploadingEl.className = 'inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-sm text-gray-600';
+            uploadingEl.innerHTML = `
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Uploading ${escapeHtml(file.name)}...</span>`;
+            targetContainer.appendChild(uploadingEl);
+
+            try {
+                const resp = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+                uploadingEl.remove();
+                if (data.status === 'indexed') {
+                    const name = data.filename || file.name;
+                    if (!uploadedFiles.some(f => f.id === name)) {
+                        uploadedFiles.push({ id: name, name });
+                    }
+                    updateFileChipsDisplay();
+                } else {
+                    addSystemMessage(`Failed to upload ${file.name}: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                uploadingEl.remove();
+                addSystemMessage(`Error uploading ${file.name}: ${err.message}`, 'error');
+            }
+        }
+
+        async function handleFiles(fileList) {
+            for (const file of fileList) {
+                await uploadFile(file);
+            }
+        }
+
+        // ── Wiring ───────────────────────────────────────────────────────
+        [inputCentered, inputChat].forEach((input) => {
+            input.addEventListener('input', () => {
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 128) + 'px';
+                updateSendButtons();
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+
+        sendBtnCentered.addEventListener('click', sendMessage);
+        sendBtnChat.addEventListener('click', sendMessage);
+        attachBtnCentered.addEventListener('click', () => fileInput.click());
+        attachBtnChat.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files || []);
+            fileInput.value = '';
+            if (files.length) await handleFiles(files);
+        });
+
+        // Drag-and-drop over the main area
+        const mainArea = document.getElementById('main-area');
+        const dragOverlay = document.getElementById('drag-overlay');
+        let dragCounter = 0;
+        mainArea.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragCounter++;
+            dragOverlay.classList.remove('hidden');
+        });
+        mainArea.addEventListener('dragover', (e) => e.preventDefault());
+        mainArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                dragOverlay.classList.add('hidden');
+            }
+        });
+        mainArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dragOverlay.classList.add('hidden');
+            const files = Array.from(e.dataTransfer.files || []);
+            if (files.length) await handleFiles(files);
+        });
+
+        updateSendButtons();
+        inputCentered.focus();
     </script>
 </body>
 </html>
