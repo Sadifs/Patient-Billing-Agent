@@ -3,8 +3,8 @@
 import csv
 import os
 
-SRC = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(SRC, "synthetic_validation_dataset_v1_new24.csv")
+SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(SRC, "build-artifacts", "synthetic_validation_dataset_v1_new24.csv")
 
 FA = (
     "full-fap-english.pdf | plain-language-summary-english.pdf | fpl-percentage.pdf | "

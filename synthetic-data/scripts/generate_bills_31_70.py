@@ -7,10 +7,10 @@ import csv
 import json
 import os
 
-SRC = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_EVAL = os.path.join(SRC, "synthetic_bills_v2")
 OUT_AGENT = os.path.join(SRC, "synthetic_bills_v2_agent")
-CSV_APPEND = os.path.join(SRC, "synthetic_validation_dataset_v2_31_70.csv")
+CSV_APPEND = os.path.join(SRC, "build-artifacts", "synthetic_validation_dataset_v2_31_70.csv")
 
 FACILITY = {
     "name": "Cedars-Sinai Medical Center",

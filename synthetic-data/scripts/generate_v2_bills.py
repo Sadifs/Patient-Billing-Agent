@@ -50,7 +50,7 @@ import os
 from decimal import Decimal, ROUND_HALF_UP
 
 # ── OUTPUT PATHS ──────────────────────────────────────────────────────────────
-SRC = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BILLS_OUT = os.path.join(SRC, "synthetic_bills_v2")  # evaluator copies (full metadata)
 BILLS_AGENT_OUT = os.path.join(SRC, "synthetic_bills_v2_agent")  # LLM/agent input (stripped)
 os.makedirs(BILLS_OUT, exist_ok=True)

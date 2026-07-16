@@ -3,10 +3,10 @@
 import csv
 import os
 
-SRC = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MASTER = os.path.join(SRC, "synthetic_validation_dataset.csv")
-V1_NEW = os.path.join(SRC, "synthetic_validation_dataset_v1_new24.csv")
-V2_NEW = os.path.join(SRC, "synthetic_validation_dataset_v2_31_70.csv")
+V1_NEW = os.path.join(SRC, "build-artifacts", "synthetic_validation_dataset_v1_new24.csv")
+V2_NEW = os.path.join(SRC, "build-artifacts", "synthetic_validation_dataset_v2_31_70.csv")
 
 # Remove 12 v1 cases superseded by v2 coverage to reach 100 total (72 - 12 + 24 + 40 = 124)
 # Target 100: remove 24 more — instead remove 36 total to hit 100 with 30 v1 + 70 v2

@@ -18,7 +18,7 @@ from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
 
-SRC       = os.path.dirname(os.path.abspath(__file__))
+SRC       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BILLS_DIR = os.path.join(SRC, "synthetic_bills_v2")
 
 # Colors matching Cedars-Sinai sample bill

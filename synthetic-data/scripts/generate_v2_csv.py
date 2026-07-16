@@ -22,7 +22,7 @@ import json
 import os
 from collections import Counter
 
-SRC = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BILLS_DIR = os.path.join(SRC, "synthetic_bills_v2")
 CSV_OUT = os.path.join(SRC, "synthetic_validation_dataset_v2.csv")
 
