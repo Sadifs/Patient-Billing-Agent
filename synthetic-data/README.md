@@ -5,19 +5,33 @@
 
 ---
 
+## Start Here for Review
+
+If you're reviewing this dataset (Cedars team, faculty, or a new contributor), you only need two things:
+
+- **`synthetic_validation_dataset.csv`** — the master answer key, 100 labeled test cases
+- **`synthetic_bills_v2/`** — the 70 full synthetic bills (JSON + PDF) those cases reference, including the expected-answer metadata
+
+Everything else in this folder (`scripts/`, `build-artifacts/`, `edge-cases/`, `synthetic_bills_v2_agent/`) is either build tooling that produced the two items above, or a metadata-stripped copy used internally to feed the agent without exposing its own answer key. See **Contents** below for what each one is.
+
+---
+
 ## What This Dataset Is
 
 The synthetic validation dataset is the ground truth used to evaluate the AI
-billing agent. It contains **100 labeled test cases** across two dataset versions:
+billing agent. It contains **100 labeled test cases** spanning two case
+**types** (not to be confused with the dataset's chronological v1/v2/v3
+growth — see **Version History** below):
 
-| Version | Cases | Focus |
+| Case type | Cases | Focus |
 |---------|-------|-------|
-| **V1** | 30 | Text-input scenarios, billing literacy, FAP routing, safety |
-| **V2** | 70 | Document-linked bills with diversified patient financial profiles |
+| **Text-only** (`FA-`, `BILL-`, `SAF-`, `ACT-`, `DOC-` prefixes) | 30 | Text-input scenarios, billing literacy, FAP routing, safety |
+| **Document-linked** (`DV2-` prefix) | 70 | Bills (JSON + PDF) with diversified patient financial profiles |
 
-Ten v1 document cases (DV-001 – DV-010) were superseded by v2 bills.
-Older v1 text cases that duplicated v2 coverage were consolidated when expanding
-to **100 patients** and **70 bills** (July 2026).
+Ten early text-only cases (DV-001 – DV-010) were retired once document-linked
+bills covered the same ground. Other text-only cases that duplicated
+document-linked coverage were consolidated during the dataset's expansion to
+its current size (**100 cases**, **70 bills** — see below).
 
 When the agent responds to a case, its output is compared against the labeled
 expected response to measure accuracy.
@@ -26,36 +40,70 @@ All cases use fictional patient profiles — no real PHI.
 
 ---
 
+## Version History
+
+The filenames and folder names in this dataset still say "v2" throughout
+(`synthetic_bills_v2/`, `bill_v2_*.json`, etc.), which is a **different use of
+"v1/v2" than the case-type table above** — this section is about the
+dataset's chronological growth, confirmed against actual commit history:
+
+| Date | Milestone | Cases | Bills | What happened |
+|---|---|---|---|---|
+| 2026-06-08 | v1 | 52 | 0 | Original text-only dataset (Sprint 1 foundation) |
+| 2026-06-24 | v2 (built separately) | — | 15 | A separate `synthetic-data-v2/` folder was built in parallel with its own bills |
+| 2026-06-30 | v1 + v2 **merged** | 60 | 15 | The two folders were combined into one `synthetic-data/`; 7 v1 cases retired as superseded by the new bills |
+| 2026-07-01 | **expanded** | 72 | 30 | 15 more document-linked bills added to the merged dataset |
+| 2026-07-07 | v3 (current) — **expanded** | **100** | **70** | 40 more bills + 24 more text-only cases added (commit literally titled "Expand ... to v3") |
+
+So: there was exactly **one real merge** (06-30, two folders becoming one),
+followed by **two rounds of pure expansion** (07-01, 07-07) of that single
+unified dataset — nothing has been "combined" since 06-30. `synthetic_bills_v2/`
+and `synthetic_validation_dataset.csv` are both live today; there is no
+separate "v1 folder" or "v2 folder" left to browse.
+
+The "v2" naming in files/folders stuck from the 06-24/06-30 milestone above and
+was never updated through the later expansions. If this dataset expands again,
+consider dropping the version number entirely (there's nothing left to
+disambiguate it from) rather than bumping to "v4."
+
+---
+
 ## Contents
 
 | File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | **Master — 100 labeled test cases (v1 + v2 combined). Use this.** |
-| `synthetic_validation_dataset_v1_new24.csv` | Build artifact — 24 V1 text cases, already merged into master. Do not use directly. |
-| `synthetic_validation_dataset_v2_31_70.csv` | Build artifact — V2 cases DV2-031–070, already merged into master. Do not use directly. |
-| `generate_v2_bills.py` | Regenerates v2 bill JSON for bills 01–15 (evaluator + agent copies) |
-| `generate_v2_csv.py` | Regenerates v2 validation CSV for bills 01–15 |
-| `generate_new_bills.py` | Generates v2 bills 16–25 (reproducible) |
-| `generate_bills_31_70.py` | Generates v2 bills 31–70 (evaluator + agent copies) |
-| `generate_v1_text_24.py` | Generates 24 new v1 text-only validation cases |
-| `merge_expand_dataset.py` | Rebuilds master CSV after expansion |
-| `generate_v2_pdfs.py` | Generates PDFs for all v2 bills from JSON |
-| `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios (reference) |
-| `synthetic_bills_v2/` | V2 — 70 evaluator bills (JSON + PDF, full metadata) |
-| `synthetic_bills_v2_agent/` | V2 — 70 LLM-safe bills (JSON, metadata stripped) |
+| `synthetic_validation_dataset.csv` | **Master — 100 labeled test cases (current, fully expanded). Use this.** |
+| `synthetic_bills_v2/` | 70 evaluator bills (JSON + PDF, full metadata) — the actual bill files the master CSV references |
+| `synthetic_bills_v2_agent/` | 70 LLM-safe bills (JSON, metadata stripped) — same bills, answer-key fields removed, safe to feed the agent |
+| `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios (reference, not used in evaluation) |
+| `build-artifacts/synthetic_validation_dataset_v1_new24.csv` | Build artifact — 24 V1 text cases, already merged into master. Do not use directly. |
+| `build-artifacts/synthetic_validation_dataset_v2_31_70.csv` | Build artifact — V2 cases DV2-031–070, already merged into master. Do not use directly. |
+| `scripts/generate_v2_bills.py` | Regenerates v2 bill JSON for bills 01–15 (evaluator + agent copies) |
+| `scripts/generate_v2_csv.py` | Regenerates v2 validation CSV for bills 01–15 |
+| `scripts/generate_new_bills.py` | Generates v2 bills 16–25 (reproducible) |
+| `scripts/generate_bills_31_70.py` | Generates v2 bills 31–70 (evaluator + agent copies) |
+| `scripts/generate_v1_text_24.py` | Generates 24 new v1 text-only validation cases |
+| `scripts/merge_expand_dataset.py` | Rebuilds master CSV after expansion |
+| `scripts/generate_v2_pdfs.py` | Generates PDFs for all v2 bills from JSON |
+
+All scripts in `scripts/` are meant to be run from the `synthetic-data/` directory (see **Reproduction** below), not from inside `scripts/` itself.
 
 ---
 
-## V1 vs V2
+## Case Types: Text-Only vs Document-Linked
 
-### V1 (30-case CSV, text-input only)
+This section describes the two case **types** that make up today's single
+100-case dataset — not the chronological v1/v2/v3 growth covered in
+**Version History** above.
+
+### Text-only cases (30 cases, no bill files)
 
 - Text-input and document-parsing scenarios
 - No bill files — all cases are text-based patient questions
 - Covers billing understanding, FAP routing, safety, action planning
 - Includes 24 new cases (FA-013 – SAF-011) added July 2026
 
-### V2 (`synthetic_bills_v2/` + 70-case CSV)
+### Document-linked cases (70 cases, `synthetic_bills_v2/`)
 
 - Cedars-style patient statement schema v2.0 (guarantor, summary of services, patient services contact)
 - **70 bills** with expanded insurance taxonomy (HDHP, dual eligible, TRICARE, Workers Comp, COB, collections, FAP-approved, surprise billing, payment plans, Medi-Cal share of cost, POS, PFFS-MA, D-SNP, CHAMPVA, IRMAA, oncology, NICU, air ambulance, etc.)
@@ -146,7 +194,7 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 
 ## Dataset Summary
 
-| Field | V1 | V2 | Combined |
+| Field | Text-only | Document-linked | Total |
 |---|---|---|---|
 | Total cases | 30 | 70 | **100** |
 | Fields per case | 23 | 23 | 23 |
@@ -155,9 +203,9 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 
 ---
 
-## Category Breakdown (Combined)
+## Category Breakdown
 
-| Category | V1 | V2 | Total |
+| Category | Text-only | Document-linked | Total |
 |---|---|---|---|
 | Billing Understanding | 6 | 29 | 35 |
 | Financial Assistance | 14 | 23 | 37 |
@@ -181,28 +229,30 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 
 ## Reproduction
 
+All commands below assume you're in `synthetic-data/` (not inside `scripts/`).
+
 Regenerate PDFs for all v2 bills:
 
 ```bash
 cd synthetic-data/
-python3 generate_v2_pdfs.py
+python3 scripts/generate_v2_pdfs.py
 ```
 
 Regenerate bills 16–25 JSON (evaluator + agent):
 
 ```bash
-python3 generate_new_bills.py
+python3 scripts/generate_new_bills.py
 ```
 
 Regenerate bills 31–70 and merge master CSV:
 
 ```bash
-python3 generate_bills_31_70.py
-python3 generate_v1_text_24.py
-python3 merge_expand_dataset.py
+python3 scripts/generate_bills_31_70.py
+python3 scripts/generate_v1_text_24.py
+python3 scripts/merge_expand_dataset.py
 ```
 
-> **Note:** Bills 26–30 (`commercial_outpatient_contractual_26` through `prior_auth_denial_30`) were authored manually and have no generator script. Edit their JSON files directly if changes are needed, then run `python3 generate_v2_pdfs.py` to regenerate their PDFs.
+> **Note:** Bills 26–30 (`commercial_outpatient_contractual_26` through `prior_auth_denial_30`) were authored manually and have no generator script. Edit their JSON files directly if changes are needed, then run `python3 scripts/generate_v2_pdfs.py` to regenerate their PDFs.
 
 Requires: `csv`, `json`, `os`, `reportlab` (PDFs only).
 
