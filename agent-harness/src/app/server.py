@@ -386,7 +386,30 @@ def _bill_header_question_field(text: str) -> str | None:
             re.search(r"\b(?:my|patient(?:'s)?|person(?:'s)?)\s+name\b", normalized)
             or re.search(r"\bname\b.*\b(?:correct|accurate|right)\b", normalized)
             or re.search(r"\bwhose\s+name\b", normalized)
-            or re.search(r"\bwho(?:se)?\b.*\b(?:bill|belong)\b", normalized)
+            # Ownership only (e.g. "whose bill is this?", "who does this bill
+            # belong to?"). Exclude contact/call/email/reach so questions like
+            # "who do I contact about this bill?" do not route to patient_name.
+            or (
+                (
+                    re.search(r"\bwhose\s+bill\b", normalized)
+                    or re.search(
+                        r"\bwho\b.*\bbill\b.*\bbelong",
+                        normalized,
+                    )
+                    or re.search(
+                        r"\bwho\s+is\s+(?:this|the|my)\s+bill\s+for\b",
+                        normalized,
+                    )
+                    or re.search(
+                        r"\bwho(?:se)?\b.*\b(?:bill|belong)\b",
+                        normalized,
+                    )
+                )
+                and not re.search(
+                    r"\b(?:contact|call|email|reach)\b",
+                    normalized,
+                )
+            )
             or re.search(r"\bbill\s+belong(?:s)?\s+to\b", normalized)
             or re.search(
                 r"\bname\s+(?:on|shown\s+on|listed\s+on)\s+(?:my\s+|the\s+|this\s+)?bill\b",
