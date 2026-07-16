@@ -31,9 +31,9 @@
         "quantity": 7,
         "unit": "day",
         "billed_amount": 35000.0,
-        "insurance_payments": 28000.0,
+        "insurance_payments": 31348.79,
         "adjustments": 3500.0,
-        "patient_balance": 3500.0
+        "patient_balance": 151.21
       },
       {
         "service_name": "Intensive Care Unit \u2013 Level 1",
@@ -42,9 +42,9 @@
         "quantity": 2,
         "unit": "day",
         "billed_amount": 14000.0,
-        "insurance_payments": 11200.0,
+        "insurance_payments": 12539.51,
         "adjustments": 1400.0,
-        "patient_balance": 1400.0
+        "patient_balance": 60.49
       },
       {
         "service_name": "OR Facility Fee \u2013 General",
@@ -53,9 +53,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 12000.0,
-        "insurance_payments": 9600.0,
+        "insurance_payments": 10748.16,
         "adjustments": 1200.0,
-        "patient_balance": 1200.0
+        "patient_balance": 51.84
       },
       {
         "service_name": "Laparoscopic Colon Resection",
@@ -64,9 +64,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 18000.0,
-        "insurance_payments": 14400.0,
+        "insurance_payments": 16122.23,
         "adjustments": 1800.0,
-        "patient_balance": 1800.0
+        "patient_balance": 77.77
       },
       {
         "service_name": "Pathology \u2013 Surgical Specimen",
@@ -75,9 +75,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 1200.0,
-        "insurance_payments": 960.0,
+        "insurance_payments": 1074.82,
         "adjustments": 120.0,
-        "patient_balance": 120.0
+        "patient_balance": 5.18
       },
       {
         "service_name": "CT Scan \u2013 Abdomen/Pelvis with contrast",
@@ -86,9 +86,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 5800.0,
-        "insurance_payments": 4640.0,
+        "insurance_payments": 5194.94,
         "adjustments": 580.0,
-        "patient_balance": 580.0
+        "patient_balance": 25.06
       },
       {
         "service_name": "MRI \u2013 Abdomen without/with contrast",
@@ -97,9 +97,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 7200.0,
-        "insurance_payments": 5760.0,
+        "insurance_payments": 6448.89,
         "adjustments": 720.0,
-        "patient_balance": 720.0
+        "patient_balance": 31.11
       },
       {
         "service_name": "Anesthesia \u2013 General",
@@ -108,9 +108,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 6500.0,
-        "insurance_payments": 5200.0,
+        "insurance_payments": 5821.92,
         "adjustments": 650.0,
-        "patient_balance": 650.0
+        "patient_balance": 28.08
       },
       {
         "service_name": "CBC (\u00d75)",
@@ -119,9 +119,9 @@
         "quantity": 5,
         "unit": "each",
         "billed_amount": 750.0,
-        "insurance_payments": 600.0,
+        "insurance_payments": 671.76,
         "adjustments": 75.0,
-        "patient_balance": 75.0
+        "patient_balance": 3.24
       },
       {
         "service_name": "Comprehensive Metabolic Panel (\u00d74)",
@@ -130,9 +130,9 @@
         "quantity": 4,
         "unit": "each",
         "billed_amount": 960.0,
-        "insurance_payments": 768.0,
+        "insurance_payments": 859.85,
         "adjustments": 96.0,
-        "patient_balance": 96.0
+        "patient_balance": 4.15
       },
       {
         "service_name": "Blood Culture (\u00d72)",
@@ -141,9 +141,9 @@
         "quantity": 2,
         "unit": "each",
         "billed_amount": 480.0,
-        "insurance_payments": 384.0,
+        "insurance_payments": 429.93,
         "adjustments": 48.0,
-        "patient_balance": 48.0
+        "patient_balance": 2.07
       },
       {
         "service_name": "IV Administration (\u00d77 days)",
@@ -152,9 +152,9 @@
         "quantity": 7,
         "unit": "each",
         "billed_amount": 3360.0,
-        "insurance_payments": 2688.0,
+        "insurance_payments": 3009.48,
         "adjustments": 336.0,
-        "patient_balance": 336.0
+        "patient_balance": 14.52
       },
       {
         "service_name": "Pharmacy \u2013 IV Antibiotics (post-op)",
@@ -163,9 +163,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 2400.0,
-        "insurance_payments": 1920.0,
+        "insurance_payments": 2149.63,
         "adjustments": 240.0,
-        "patient_balance": 240.0
+        "patient_balance": 10.37
       },
       {
         "service_name": "Pharmacy \u2013 Pain Management",
@@ -174,9 +174,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 1200.0,
-        "insurance_payments": 960.0,
+        "insurance_payments": 1074.82,
         "adjustments": 120.0,
-        "patient_balance": 120.0
+        "patient_balance": 5.18
       },
       {
         "service_name": "Pharmacy \u2013 Anticoagulation",
@@ -185,9 +185,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 840.0,
-        "insurance_payments": 672.0,
+        "insurance_payments": 752.37,
         "adjustments": 84.0,
-        "patient_balance": 84.0
+        "patient_balance": 3.63
       },
       {
         "service_name": "Physical Therapy (\u00d73 sessions)",
@@ -196,9 +196,9 @@
         "quantity": 3,
         "unit": "each",
         "billed_amount": 900.0,
-        "insurance_payments": 720.0,
+        "insurance_payments": 806.11,
         "adjustments": 90.0,
-        "patient_balance": 90.0
+        "patient_balance": 3.89
       },
       {
         "service_name": "Medical/Surgical Supplies",
@@ -207,9 +207,9 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 3200.0,
-        "insurance_payments": 2560.0,
+        "insurance_payments": 2866.17,
         "adjustments": 320.0,
-        "patient_balance": 320.0
+        "patient_balance": 13.83
       },
       {
         "service_name": "Chest X-Ray (\u00d73)",
@@ -218,9 +218,9 @@
         "quantity": 3,
         "unit": "each",
         "billed_amount": 720.0,
-        "insurance_payments": 576.0,
+        "insurance_payments": 644.89,
         "adjustments": 72.0,
-        "patient_balance": 72.0
+        "patient_balance": 3.11
       },
       {
         "service_name": "Wound Care Management (\u00d73)",
@@ -229,9 +229,9 @@
         "quantity": 3,
         "unit": "each",
         "billed_amount": 900.0,
-        "insurance_payments": 720.0,
+        "insurance_payments": 806.11,
         "adjustments": 90.0,
-        "patient_balance": 90.0
+        "patient_balance": 3.89
       },
       {
         "service_name": "Nutrition Support Consultation",
@@ -240,17 +240,17 @@
         "quantity": 1,
         "unit": "each",
         "billed_amount": 320.0,
-        "insurance_payments": 256.0,
+        "insurance_payments": 286.62,
         "adjustments": 32.0,
-        "patient_balance": 32.0
+        "patient_balance": 1.38
       }
     ],
     "totals": {
       "total_billed": 115730.0,
-      "total_insurance_payments": 92584.0,
+      "total_insurance_payments": 103657.0,
       "total_adjustments": 11573.0,
-      "outstanding_balance": 11573.0,
-      "patient_balance": 11573.0
+      "outstanding_balance": 500.0,
+      "patient_balance": 500.0
     }
   },
   "payment_detail": {
@@ -275,7 +275,7 @@
       }
     ]
   },
-  "total_amount_due": 11573.0,
+  "total_amount_due": 500.0,
   "patient_services": {
     "department": "Patient Financial Services",
     "phone": "866-803-1777",
