@@ -430,21 +430,22 @@
         async function sendMessage() {
             if (isStreaming) return;
             const input = activeInput();
-            let text = input.value.trim();
-            if (!text) return;
+            const userText = input.value.trim();
+            if (!userText) return;
 
             // Prepend a note about uploaded files so the backend RAG context references them.
+            let backendText = userText;
             if (uploadedFiles.length > 0) {
                 const names = uploadedFiles.map(f => `"${f.name}"`).join(', ');
-                text = `(Regarding my uploaded bill${uploadedFiles.length > 1 ? 's' : ''}: ${names}) ${text}`;
+                backendText = `(Regarding my uploaded bill${uploadedFiles.length > 1 ? 's' : ''}: ${names}) ${userText}`;
             }
 
             input.value = '';
             input.style.height = 'auto';
             updateSendButtons();
 
-            addUserMessage(text);
-            history.push({ role: 'user', content: text });
+            addUserMessage(userText);
+            history.push({ role: 'user', content: backendText });
 
             isStreaming = true;
             updateSendButtons();
@@ -454,7 +455,7 @@
                 const resp = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+                    body: JSON.stringify({ message: backendText, history: history.slice(0, -1) }),
                 });
 
                 typing.remove();

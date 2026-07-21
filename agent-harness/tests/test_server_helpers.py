@@ -6,6 +6,7 @@ from app.server import (
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
     _direct_bill_header_answer,
+    _direct_billing_responsibility_boundary_answer,
     _direct_billing_website_answer,
     _direct_call_prep_answer,
     _direct_charity_care_coverage_answer,
@@ -382,6 +383,16 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("Anthem Blue Cross", answer)
         self.assertIn("None on file", secondary)
 
+    def test_direct_bill_header_answer_handles_ui_uploaded_bill_context_prefix(self):
+        answer = _direct_bill_header_answer(
+            '(Regarding my uploaded bill: "bill_v2_limited_benefit_plan_52.pdf") '
+            "What insurance is listed on this bill?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("Fixed Indemnity Plan", answer)
+
     def test_direct_bill_header_answer_does_not_expose_account_number(self):
         history = [
             {
@@ -467,6 +478,23 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("Explanation of Benefits", answer)
         self.assertIn("qualified legal professional", answer)
         self.assertIn("866-803-1777", answer)
+
+    def test_direct_legal_boundary_answer_handles_suing_statement(self):
+        answer = _direct_legal_boundary_answer("This is absurd, I am suing!")
+
+        self.assertIn("I can’t give legal advice", answer)
+        self.assertNotIn("suing might be an option", answer.lower())
+        self.assertIn("try to resolve it with Cedars-Sinai", answer)
+
+    def test_direct_billing_responsibility_boundary_avoids_final_determination(self):
+        answer = _direct_billing_responsibility_boundary_answer(
+            "They can't charge me if they spelled my name wrong, right?"
+        )
+
+        self.assertIn("I can’t determine", answer)
+        self.assertIn("Cedars-Sinai can verify", answer)
+        self.assertIn("before I make a payment", answer)
+        self.assertNotIn("does not invalidate", answer.lower())
 
     def test_removes_internal_tool_syntax_from_response_text(self):
         model_text = (

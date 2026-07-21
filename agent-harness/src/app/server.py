@@ -309,7 +309,7 @@ def _direct_billing_website_answer(user_message: str) -> str | None:
 
 
 _UPLOADED_FILENAME_PATTERN = re.compile(
-    r'(?:uploaded|file(?:\s+called)?)\s+"([^"]+\.(?:pdf|json|png|jpg|jpeg|txt))"',
+    r'(?:uploaded(?:\s+bill)?|file(?:\s+called)?|regarding\s+my\s+uploaded\s+bills?:)\s+"([^"]+\.(?:pdf|json|png|jpg|jpeg|txt))"',
     re.IGNORECASE,
 )
 
@@ -623,9 +623,10 @@ def _direct_call_prep_answer(user_message: str) -> str | None:
 def _is_legal_action_question(text: str) -> bool:
     """Return whether the user is asking for legal action advice."""
     normalized = text.lower().strip()
+    legal_action_terms = r"sue|suing|sued|lawsuit|legal action|lawyer|attorney"
     return bool(
-        re.search(r"\b(can i|should i|could i|do i)\b.*\b(sue|lawsuit|legal action|lawyer|attorney)\b", normalized)
-        or re.search(r"\b(sue|lawsuit|legal action|lawyer|attorney)\b", normalized)
+        re.search(rf"\b(can i|should i|could i|do i)\b.*\b({legal_action_terms})\b", normalized)
+        or re.search(rf"\b({legal_action_terms})\b", normalized)
     )
 
 
@@ -658,6 +659,50 @@ def _direct_legal_boundary_answer(user_message: str) -> str | None:
         "- If the issue is not resolved or you believe you were harmed, consider "
         "speaking with a qualified legal professional for advice specific to "
         "your situation."
+    )
+
+
+def _is_billing_responsibility_question(text: str) -> bool:
+    """Return whether the user asks for a final billing responsibility decision."""
+    normalized = text.lower().strip()
+    return bool(
+        re.search(r"\b(?:can(?:not|'t)?|cannot)\s+(?:they|cedars|cedars-sinai|hospital|billing)\s+charge\s+me\b", normalized)
+        or re.search(r"\b(?:they|cedars|cedars-sinai|hospital|billing)\s+(?:can(?:not|'t)?|cannot)\s+charge\s+me\b", normalized)
+        or re.search(r"\b(?:do|don't|does|doesn't|should|shouldn't)\s+i\s+(?:have\s+to\s+)?(?:pay|owe)\b", normalized)
+        or re.search(r"\b(?:am|i'm|i am)\s+(?:not\s+)?(?:responsible|liable)\b", normalized)
+        or re.search(r"\b(?:name|spelled|misspelled|spelling)\b.*\b(?:charge\s+me|pay|owe|responsible|liable)\b", normalized)
+    )
+
+
+def _direct_billing_responsibility_boundary_answer(user_message: str) -> str | None:
+    """Return scoped guidance for final bill-liability questions."""
+    if not _is_billing_responsibility_question(user_message):
+        return None
+
+    return (
+        "**What I Can Say**\n"
+        "I can’t determine whether Cedars-Sinai can legally bill you or whether "
+        "you are financially responsible for the balance. I can help you frame "
+        "the issue so Cedars-Sinai can verify the bill, correct any name issue, "
+        "and review any services you say were cancelled or not received.\n\n"
+        "**What Cedars-Sinai Must Confirm**\n"
+        "- Whether the patient information on the bill matches your account.\n"
+        "- Whether any spelling or demographic error needs to be corrected.\n"
+        "- Whether the listed services were actually provided or should be "
+        "removed/reviewed.\n"
+        "- Whether insurance was billed correctly and whether any balance remains.\n\n"
+        "**What To Ask**\n"
+        "\"Can you verify whether this bill belongs to my account, correct the "
+        "name spelling if needed, and review any services I believe were "
+        "cancelled or not received before I make a payment?\"\n\n"
+        "**What You May Need**\n"
+        "Have the bill, service date, patient name as shown, correct name, "
+        "insurance card, and any appointment cancellation or EOB documentation "
+        "ready. You do not need to paste full sensitive identifiers here.\n\n"
+        "**Next Steps**\n"
+        "- Phone: [866-803-1777](tel:8668031777), Monday–Friday, 8:00 AM–4:30 PM PT\n"
+        "- Email: patient.billing@cshs.org\n"
+        "- Billing website: [Cedars-Sinai Billing](https://www.cedars-sinai.org/patients-visitors/billing.html)"
     )
 
 
@@ -925,6 +970,32 @@ async def chat(request: Request):
     if not user_message:
         return response.json({"error": "message is required"}, status=400)
 
+    direct_legal_boundary = _direct_legal_boundary_answer(user_message)
+    if direct_legal_boundary:
+        async def stream_direct_legal_boundary(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_legal_boundary})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_legal_boundary,
+            content_type="text/event-stream",
+        )
+
+    direct_billing_responsibility = _direct_billing_responsibility_boundary_answer(user_message)
+    if direct_billing_responsibility:
+        async def stream_direct_billing_responsibility(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_billing_responsibility})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_billing_responsibility,
+            content_type="text/event-stream",
+        )
+
     direct_fpl_definition = _direct_fpl_definition_answer(user_message)
     if direct_fpl_definition:
         async def stream_direct_fpl_definition(resp):
@@ -1000,19 +1071,6 @@ async def chat(request: Request):
 
         return response.ResponseStream(
             stream_direct_call_prep,
-            content_type="text/event-stream",
-        )
-
-    direct_legal_boundary = _direct_legal_boundary_answer(user_message)
-    if direct_legal_boundary:
-        async def stream_direct_legal_boundary(resp):
-            await resp.write(
-                f"data: {json.dumps({'text': direct_legal_boundary})}\n\n".encode()
-            )
-            await resp.write(b"data: [DONE]\n\n")
-
-        return response.ResponseStream(
-            stream_direct_legal_boundary,
             content_type="text/event-stream",
         )
 
