@@ -668,7 +668,6 @@ def _is_billing_responsibility_question(text: str) -> bool:
     return bool(
         re.search(r"\b(?:can(?:not|'t)?|cannot)\s+(?:they|cedars|cedars-sinai|hospital|billing)\s+charge\s+me\b", normalized)
         or re.search(r"\b(?:they|cedars|cedars-sinai|hospital|billing)\s+(?:can(?:not|'t)?|cannot)\s+charge\s+me\b", normalized)
-        or re.search(r"\b(?:do|don't|does|doesn't|should|shouldn't)\s+i\s+(?:have\s+to\s+)?(?:pay|owe)\b", normalized)
         or re.search(r"\b(?:am|i'm|i am)\s+(?:not\s+)?(?:responsible|liable)\b", normalized)
         or re.search(r"\b(?:name|spelled|misspelled|spelling)\b.*\b(?:charge\s+me|pay|owe|responsible|liable)\b", normalized)
     )
