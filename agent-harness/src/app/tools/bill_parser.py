@@ -124,11 +124,16 @@ SERVICE_DATE_PATTERN = re.compile(
     # span a newline — \s* previously let this match all the way from an
     # unrelated "Services" earlier in the text to a "Date:" line further
     # down, e.g. "...Physician Services\nDate: 2026-04-01" (the statement
-    # date, not the service date). Capturing to end-of-line (not just
-    # \S+) covers spelled-out dates like "November 25, 2013" that have
-    # spaces, not just MM/DD/YYYY.
-    r"Serv\w*[ \t]*Date\s*[:;]\s*([^\n]+)",
-    re.IGNORECASE,
+    # date, not the service date). Capturing a non-greedy value covers
+    # spelled-out dates like "November 25, 2013" that have spaces, not
+    # just MM/DD/YYYY. Stop before a trailing same-line label like
+    # "Service Type:" (commercial outpatient bills put both on one line)
+    # — same idea as PATIENT_NAME_PATTERN stopping at DOB/Address — or
+    # at end-of-line via MULTILINE $.
+    r"Serv\w*[ \t]*Date\s*[:;]\s*(.+?)"
+    r"(?=\s+(?:Serv\w*[ \t]*Type|Account\s*#?|Status|Policy|"
+    r"(?:Primary|Secondary)\s*\w*surance)\b|\s*$)",
+    re.IGNORECASE | re.MULTILINE,
 )
 PAY_ONLINE_PATTERN = re.compile(r"Pay\w*[ \t]+On\w*\s*[:;]\s*(\S+)", re.IGNORECASE)
 PAY_BY_PHONE_PATTERN = re.compile(

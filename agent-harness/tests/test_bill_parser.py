@@ -341,6 +341,21 @@ class OCRLabelToleranceTest(unittest.TestCase):
         match = SERVICE_DATE_PATTERN.search("Serve Date: November 25, 2013\nNext line")
         self.assertEqual(match.group(1).strip(), "November 25, 2013")
 
+    def test_service_date_stops_before_same_line_service_type_label(self):
+        """Regression: commercial outpatient bills put Service Date and
+        Service Type on one line. Capturing to EOL previously returned
+        '04/28 Service Type:/2026' after normalize_date scrambled the
+        polluted capture."""
+        match = SERVICE_DATE_PATTERN.search(
+            "Service Date: 2026-04-28 Service Type:\nBlue Cross PPO"
+        )
+        self.assertEqual(match.group(1).strip(), "2026-04-28")
+
+        match = SERVICE_DATE_PATTERN.search(
+            "Service Date: 04/28/2026 Service Type: Outpatient Surgery"
+        )
+        self.assertEqual(match.group(1).strip(), "04/28/2026")
+
     def test_service_date_does_not_span_into_unrelated_earlier_services_word(self):
         """Regression test: \\s* between the label and "Date" previously
         matched all the way from an unrelated "...Services" earlier in
