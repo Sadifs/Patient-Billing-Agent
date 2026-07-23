@@ -1,20 +1,77 @@
-"""Parse uploaded patient bill PDFs into structured JSON.
+"""Parse uploaded patient bill PDFs and photos into structured JSON.
 
 Extracts line items, billing codes (CPT, HCPCS, ICD-10), service dates,
-and dollar amounts using pdfplumber for text and table extraction.
+and dollar amounts. PDFs use pdfplumber for text and table extraction;
+photos (.jpg/.jpeg/.png/.heic/.heif) go through OCR (Tesseract) and feed
+into the same downstream text-parsing pipeline.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from pathlib import Path
 from typing import Any
 
+import cv2
+import numpy as np
 import pdfplumber
+import pytesseract
+from PIL import Image, UnidentifiedImageError
 
 from agent_harness import tool
+
+logger = logging.getLogger(__name__)
+
+# ── OCR / image-parsing config ─────────────────────────────────────────
+# Provisional defaults, picked by judgment rather than statistical
+# calibration against a large photo corpus. Adjust here as real-world
+# usage surfaces whether they're too strict or too loose — this is the
+# one place both values live, so tightening later is a one-line change.
+
+# Tesseract page segmentation mode. 6 = "assume a single uniform block of
+# text", which fits a bill's dense paragraph-and-table layout better than
+# the default (3, general-purpose page layout analysis).
+OCR_PSM_MODE = 6
+
+# Mean word-confidence (0-100, from pytesseract.image_to_data) below which
+# we treat the photo as unreadable rather than risk parsing garbage.
+OCR_MIN_CONFIDENCE = 45
+
+# Minimum recognized word count. Confidence alone isn't enough — a heavily
+# degraded image can yield a handful of garbage single-character "words"
+# that Tesseract is individually confident about, pulling the mean
+# confidence above threshold despite there being almost no real content.
+# A real bill page reliably produces well over 100 words; this catches
+# "barely anything was found" separately from "what was found looks iffy."
+OCR_MIN_WORD_COUNT = 30
+
+# Target size (pixels, smaller dimension) for the upscale-if-small step.
+# Tesseract accuracy degrades sharply on low-resolution input — measured a
+# jump from 61 to 82 mean confidence (and several digit misreads corrected
+# outright, e.g. a line item read as $872,624 instead of the real $72,624)
+# upscaling a 450x600 test photo before OCR. Images already at or above
+# this size are left untouched, both to avoid wasted work and because
+# upscaling an already-detailed image doesn't add real information.
+OCR_UPSCALE_TARGET_MIN_DIMENSION = 1500
+OCR_UPSCALE_MAX_FACTOR = 4
+
+# How far the summed line-item total is allowed to drift from the bill's
+# stated total before we flag the read as inconsistent, as a fraction of
+# the stated total (e.g. 0.02 = 2%). Real bills have legitimate rounding;
+# this is not meant to catch cent-level drift, only "this reading is
+# probably wrong."
+MATH_CONSISTENCY_TOLERANCE = 0.02
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+HEIC_EXTENSIONS = {".heic", ".heif"}
+
+
+class LowConfidenceOCRError(Exception):
+    """Raised when OCR confidence on a photo is too low to trust."""
+
 
 # ── Patterns ────────────────────────────────────────────────────────────
 
@@ -39,22 +96,44 @@ LINE_ITEM_KEYWORDS = re.compile(
 )
 
 PATIENT_NAME_PATTERN = re.compile(
-    r"Patient:\s*(.+?)\s+(?:DOB|Address|Account\s*#?):",
+    # "Pat\w*nt" tolerates common OCR misreads of "Patient" (e.g.
+    # "Pationt"), "[:;]" tolerates colon/semicolon confusion, and the
+    # optional "Name" plus broader lookahead set covers bill templates
+    # that label this field "Patient Name:" rather than just "Patient:".
+    r"Pat\w*nt(?:\s+Name)?\s*[:;]\s*(.+?)\s+"
+    r"(?:DOB|Address|Account\s*#?|Service\s*Date|(?:Primary|Secondary)\s*\w*surance)[:;]?",
     re.IGNORECASE,
 )
 PATIENT_NAME_FALLBACK_PATTERN = re.compile(
     r"^(.+?)\s+A l Pay Online:",
     re.MULTILINE,
 )
-GUARANTOR_NAME_PATTERN = re.compile(r"Guarantor Name:\s*(.+)", re.IGNORECASE)
+GUARANTOR_NAME_PATTERN = re.compile(
+    r"Guar\w*[ \t]+Nam\w*\s*[:;]\s*([^\n]+)", re.IGNORECASE
+)
 GUARANTOR_NUMBER_PATTERN = re.compile(
-    r"Guarantor\s*(?:#|Number):\s*(\S+)",
+    r"Guar\w*[ \t]*(?:#|Numb\w*)\s*[:;]\s*(\S+)",
     re.IGNORECASE,
 )
-ACCOUNT_NUMBER_PATTERN = re.compile(r"Account\s*#:\s*(\S+)", re.IGNORECASE)
-SERVICE_DATE_PATTERN = re.compile(r"Service Date:\s*(\S+)", re.IGNORECASE)
-PAY_ONLINE_PATTERN = re.compile(r"Pay Online:\s*(\S+)", re.IGNORECASE)
-PAY_BY_PHONE_PATTERN = re.compile(r"Pay by Phone:\s*([\d-]+)", re.IGNORECASE)
+ACCOUNT_NUMBER_PATTERN = re.compile(
+    r"Acc\w*[ \t]*(?:#|Numb\w*)?\s*[:;]\s*(\S+)", re.IGNORECASE
+)
+SERVICE_DATE_PATTERN = re.compile(
+    # "Serv\w*" tolerates OCR misreads like "Serve Date" (dropped "ic").
+    # The gap before "Date" is deliberately [ \t]* (not \s*) so it can't
+    # span a newline — \s* previously let this match all the way from an
+    # unrelated "Services" earlier in the text to a "Date:" line further
+    # down, e.g. "...Physician Services\nDate: 2026-04-01" (the statement
+    # date, not the service date). Capturing to end-of-line (not just
+    # \S+) covers spelled-out dates like "November 25, 2013" that have
+    # spaces, not just MM/DD/YYYY.
+    r"Serv\w*[ \t]*Date\s*[:;]\s*([^\n]+)",
+    re.IGNORECASE,
+)
+PAY_ONLINE_PATTERN = re.compile(r"Pay\w*[ \t]+On\w*\s*[:;]\s*(\S+)", re.IGNORECASE)
+PAY_BY_PHONE_PATTERN = re.compile(
+    r"Pay\w*[ \t]+by[ \t]+Phon\w*\s*[:;]\s*([\d-]+)", re.IGNORECASE
+)
 CALL_PHONE_PATTERN = re.compile(
     r"\b(?:call|assistance, call)\s+([\d-]+)",
     re.IGNORECASE,
@@ -75,6 +154,15 @@ PO_BOX_MERGE_PATTERN = re.compile(
     r"(?:P[\.\)\s]*O[\.\)\s]*\.?\s*Box|Box\s+48750|Los Angeles, CA 90048|\)\s*48750)",
     re.IGNORECASE,
 )
+TOTAL_DUE_PATTERN = re.compile(
+    # This feeds the math-consistency safety net directly — if this label
+    # fails to match on a noisy OCR read, the check silently doesn't run
+    # at all rather than failing loudly, so it gets the same OCR-typo and
+    # colon/semicolon tolerance as the header-field patterns above.
+    r"\b(?:Tot\w*(?:[ \t]+Amo\w*)?[ \t]+Du\w*|Bal\w*[ \t]+Du\w*|Pat\w*[ \t]+(?:Bal\w*|Respon\w*))"
+    r"\s*[:;]?\s*\$?\s*([\d,]+\.\d{2})",
+    re.IGNORECASE,
+)
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
@@ -86,8 +174,8 @@ DEFAULT_KNOWLEDGE_DIRS = [
 ]
 
 
-def _resolve_pdf_path(file_path: str) -> Path:
-    """Resolve a PDF path from an absolute path, relative path, or filename."""
+def _resolve_bill_path(file_path: str) -> Path:
+    """Resolve a bill file path from an absolute path, relative path, or filename."""
     candidate = Path(file_path).expanduser()
     if candidate.is_file():
         return candidate
@@ -97,7 +185,7 @@ def _resolve_pdf_path(file_path: str) -> Path:
         if resolved.is_file():
             return resolved
 
-    raise FileNotFoundError(f"PDF not found: {file_path}")
+    raise FileNotFoundError(f"Bill file not found: {file_path}")
 
 
 def _normalize_date(raw: str) -> str:
@@ -222,7 +310,7 @@ def _clean_insurance_value(value: str | None) -> str | None:
     if not cleaned:
         return None
 
-    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:\t")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:\t|")
     cleaned = re.split(r"\s+Secondary Insurance:", cleaned, maxsplit=1)[0].strip()
     cleaned = re.split(
         r"\s+(?:Date|Service Date|Service Type|Due Date|Statement Date|"
@@ -547,6 +635,195 @@ def _extract_pdf_content(path: Path) -> tuple[str, list[list[list[Any]]], int]:
     return "\n\n".join(text_parts), tables, page_count
 
 
+def _load_image(path: Path) -> Image.Image:
+    """Load a photo into a PIL Image, converting HEIC/HEIF first if needed."""
+    if path.suffix.lower() in HEIC_EXTENSIONS:
+        import pillow_heif
+
+        heif_file = pillow_heif.open_heif(path, convert_hdr_to_8bit=True)
+        return Image.frombytes(
+            heif_file.mode, heif_file.size, heif_file.data, "raw"
+        )
+    return Image.open(path)
+
+
+def _deskew(gray: np.ndarray) -> np.ndarray:
+    """Rotate a grayscale image to correct for camera-angle skew.
+
+    Uses the minimum-area bounding rectangle of the non-background pixels,
+    which needs real gradient/edge information to work — this is why
+    deskew must run on the grayscale image, before thresholding collapses
+    it to pure black/white and destroys those edges.
+    """
+    inverted = cv2.bitwise_not(gray)
+    coords = np.column_stack(np.where(inverted > 0))
+    if coords.size == 0:
+        return gray
+
+    angle = cv2.minAreaRect(coords)[-1]
+    if angle < -45:
+        angle = -(90 + angle)
+    else:
+        angle = -angle
+
+    if abs(angle) < 0.5:
+        return gray
+
+    (h, w) = gray.shape[:2]
+    center = (w // 2, h // 2)
+    matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    return cv2.warpAffine(
+        gray, matrix, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+    )
+
+
+def _upscale_if_small(gray: np.ndarray) -> tuple[np.ndarray, float]:
+    """Upscale low-resolution photos before OCR gets a look at them.
+
+    A photo that's been downsized (screenshot crop, compressed export,
+    etc.) gives Tesseract too few pixels per character to read reliably.
+    Upscaling doesn't add real detail, but cubic interpolation smooths
+    character edges enough to measurably help — see the constant's
+    docstring for the concrete before/after numbers this was based on.
+
+    Returns the (possibly resized) image and the factor applied, so the
+    caller can scale other size-dependent parameters (e.g. the adaptive
+    threshold's block size) to match — using a fixed block size on an
+    upscaled image was tried first and made already-decent-resolution
+    photos measurably worse, since the same pixel window now covers a
+    much smaller fraction of each (now-larger) character.
+    """
+    h, w = gray.shape[:2]
+    smaller_dim = min(h, w)
+    if smaller_dim >= OCR_UPSCALE_TARGET_MIN_DIMENSION:
+        return gray, 1.0
+
+    factor = min(OCR_UPSCALE_TARGET_MIN_DIMENSION / smaller_dim, OCR_UPSCALE_MAX_FACTOR)
+    upscaled = cv2.resize(gray, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC)
+    return upscaled, factor
+
+
+def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
+    """Grayscale -> upscale (if small) -> deskew -> adaptive threshold.
+
+    Order matters: deskew needs the gradient information a grayscale image
+    still has; running threshold first would collapse the image to flat
+    black/white and remove the edges deskew detects rotation from.
+    Upscaling happens before deskew so the rotation-angle detection also
+    benefits from the extra resolution.
+    """
+    rgb = np.array(image.convert("RGB"))
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    gray, upscale_factor = _upscale_if_small(gray)
+    deskewed = _deskew(gray)
+
+    block_size = max(3, int(31 * upscale_factor))
+    if block_size % 2 == 0:
+        block_size += 1
+
+    thresholded = cv2.adaptiveThreshold(
+        deskewed,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        blockSize=block_size,
+        C=15,
+    )
+    return thresholded
+
+
+def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int]:
+    """OCR a bill photo into the same (text, tables, page_count) shape
+    _extract_pdf_content returns, so it feeds the same downstream pipeline.
+
+    Tables is always empty — Tesseract gives us text, not table structure —
+    which means callers fall back to the existing text-based line-item
+    parser, the same fallback PDFs already use when their table extraction
+    comes up empty.
+    """
+    image = _load_image(path)
+    processed = _preprocess_for_ocr(image)
+
+    data = pytesseract.image_to_data(
+        processed,
+        config=f"--psm {OCR_PSM_MODE}",
+        output_type=pytesseract.Output.DICT,
+    )
+    confidences = [float(c) for c in data["conf"] if c not in ("-1", -1)]
+    mean_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+    word_count = len([w for w in data["text"] if w.strip()])
+
+    if mean_confidence < OCR_MIN_CONFIDENCE or word_count < OCR_MIN_WORD_COUNT:
+        raise LowConfidenceOCRError(
+            f"OCR confidence too low to trust (confidence={mean_confidence:.0f}/100, "
+            f"words found={word_count}). The photo may be blurry, poorly lit, at a "
+            "steep angle, or not a bill at all."
+        )
+
+    # Reconstruct real line breaks from Tesseract's block/paragraph/line
+    # numbers rather than joining every word with a single space — many of
+    # the downstream regexes (patient name, guarantor, totals, etc.) rely
+    # on line-based structure the same way pdfplumber's extract_text()
+    # naturally preserves for PDFs. Flattening to one line loses that.
+    lines: dict[tuple[int, int, int], list[str]] = {}
+    for i, word in enumerate(data["text"]):
+        if not word.strip():
+            continue
+        key = (data["block_num"][i], data["par_num"][i], data["line_num"][i])
+        lines.setdefault(key, []).append(word)
+
+    text = "\n".join(" ".join(words) for words in lines.values())
+    return text, [], 1
+
+
+def _math_consistency_check(
+    text: str, line_items: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Compare summed line items against the bill's stated total.
+
+    Catches numbers that don't add up (a likely OCR misread). Does NOT
+    catch numbers that are consistently wrong in a way that still
+    reconciles internally — e.g. a systematic misread where every digit
+    is off but the arithmetic still holds. There's no cheap fix for that
+    without independent ground truth; this check only validates internal
+    consistency, not correctness.
+    """
+    stated_match = TOTAL_DUE_PATTERN.search(text)
+    stated_total = _parse_amount(stated_match.group(1)) if stated_match else None
+    summed_total = _line_item_total(line_items)
+
+    if stated_total is None or summed_total is None:
+        return {
+            "checked": False,
+            "consistent": None,
+            "stated_total": stated_total,
+            "summed_total": summed_total,
+            "reason": "Could not find both a stated total and summed line items to compare.",
+        }
+
+    tolerance = max(stated_total * MATH_CONSISTENCY_TOLERANCE, 0.01)
+    consistent = abs(stated_total - summed_total) <= tolerance
+
+    result = {
+        "checked": True,
+        "consistent": consistent,
+        "stated_total": stated_total,
+        "summed_total": summed_total,
+        "difference": round(abs(stated_total - summed_total), 2),
+    }
+    if not consistent:
+        result["recommended_guidance_if_false"] = (
+            "This bill was read from a photo and the extracted line items "
+            "do not add up to the stated total — the photo may have been "
+            "misread. State the bill's stated total (not the summed line "
+            "items) if asked what the patient owes, explicitly say this was "
+            "read from a photo and should be double-checked, and recommend "
+            "the patient verify the full breakdown with Cedars-Sinai Patient "
+            "Financial Services before paying."
+        )
+    return result
+
+
 def _bill_flags(text: str, line_items: list[dict[str, Any]]) -> dict[str, Any]:
     """Return high-level billing signals useful for patient guidance."""
     combined = " ".join(
@@ -685,6 +962,21 @@ def _extract_contact_info(text: str) -> dict[str, str | None]:
     return contact
 
 
+def _looks_like_id(value: str) -> bool:
+    """Return whether a captured value plausibly looks like an ID/account
+    number rather than a mismatched neighboring label.
+
+    OCR on multi-column bill layouts can jumble a label from one column
+    with a value from the next (e.g. reading "Account Number: Primary
+    Insurance" when the actual number sits in a different column than
+    Tesseract expects). Real account/guarantor numbers observed on both
+    synthetic and real bills always contain at least one digit
+    ("CS-2026-00441", "22237958", "272"); a pure-alphabetic word like
+    "Primary" is a sign the match grabbed the wrong neighboring text.
+    """
+    return any(char.isdigit() for char in value)
+
+
 def _extract_guarantor_info(text: str) -> dict[str, str | None]:
     """Extract guarantor details from bill header text."""
     guarantor_name = None
@@ -695,7 +987,9 @@ def _extract_guarantor_info(text: str) -> dict[str, str | None]:
     guarantor_number = None
     match = GUARANTOR_NUMBER_PATTERN.search(text)
     if match:
-        guarantor_number = match.group(1).strip()
+        candidate = match.group(1).strip()
+        if _looks_like_id(candidate):
+            guarantor_number = candidate
 
     return {
         "guarantor_name": guarantor_name,
@@ -713,7 +1007,9 @@ def _extract_bill_header_fields(text: str) -> dict[str, Any]:
     account_number = None
     match = ACCOUNT_NUMBER_PATTERN.search(text)
     if match:
-        account_number = match.group(1).strip()
+        candidate = match.group(1).strip()
+        if _looks_like_id(candidate):
+            account_number = candidate
 
     return {
         "patient": {
@@ -738,13 +1034,21 @@ def _line_item_total(line_items: list[dict[str, Any]]) -> float | None:
     return round(sum(amounts), 2)
 
 
-def parse_bill_pdf(file_path: str) -> dict[str, Any]:
-    """Parse a bill PDF and return structured extraction results."""
-    path = _resolve_pdf_path(file_path)
-    if path.suffix.lower() != ".pdf":
-        raise ValueError(f"Expected a PDF file, got: {path.suffix}")
+def parse_bill_file(file_path: str) -> dict[str, Any]:
+    """Parse a bill PDF or photo and return structured extraction results."""
+    path = _resolve_bill_path(file_path)
+    suffix = path.suffix.lower()
 
-    text, tables, page_count = _extract_pdf_content(path)
+    if suffix == ".pdf":
+        text, tables, page_count = _extract_pdf_content(path)
+    elif suffix in IMAGE_EXTENSIONS or suffix in HEIC_EXTENSIONS:
+        text, tables, page_count = _extract_image_content(path)
+    else:
+        raise ValueError(
+            f"Unsupported file type: {suffix}. Expected a PDF or a photo "
+            "(.pdf, .jpg, .jpeg, .png, .heic, .heif)."
+        )
+
     table_items = _parse_line_items_from_tables(tables)
     text_items = _parse_line_items_from_text(text)
     line_items = table_items if table_items else text_items
@@ -757,7 +1061,7 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
     billing_flags = _bill_flags(text, line_items)
     header_fields = _extract_bill_header_fields(text)
 
-    return {
+    result = {
         "source_file": str(path),
         "filename": path.name,
         "page_count": page_count,
@@ -771,15 +1075,30 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
         "billing_flags": billing_flags,
         "suggested_next_steps": _suggested_next_steps(billing_flags),
         "parse_method": "tables" if table_items else "text",
+        "source_type": "pdf" if suffix == ".pdf" else "photo",
     }
+
+    if suffix != ".pdf":
+        # Photos go through OCR, which can misread digits in a way that
+        # still looks like a plausible number — this check catches the
+        # cases where the misread also breaks internal math consistency.
+        # See _math_consistency_check's docstring for what it can't catch.
+        result["math_consistency"] = _math_consistency_check(text, line_items)
+
+    return result
+
+
+# Backwards-compatible alias; existing callers/tests use this name.
+parse_bill_pdf = parse_bill_file
 
 
 @tool(
     name="bill_parser",
     description=(
-        "Parse an uploaded patient bill PDF and return structured JSON with "
-        "patient name, service date, insurance, contact info, line items, "
-        "billing codes (CPT, HCPCS, ICD-10), service dates, and dollar amounts. "
+        "Parse an uploaded patient bill — PDF or photo (.pdf, .jpg, .jpeg, "
+        ".png, .heic, .heif) — and return structured JSON with patient "
+        "name, service date, insurance, contact info, line items, billing "
+        "codes (CPT, HCPCS, ICD-10), service dates, and dollar amounts. "
         "Pass the uploaded filename or full path."
     ),
     parameters={
@@ -788,8 +1107,8 @@ def parse_bill_pdf(file_path: str) -> dict[str, Any]:
             "file_path": {
                 "type": "string",
                 "description": (
-                    "Filename or path of the uploaded bill PDF "
-                    "(e.g. 'sample_bill_pdf.pdf')"
+                    "Filename or path of the uploaded bill file "
+                    "(e.g. 'sample_bill.pdf' or 'bill_photo.jpg')"
                 ),
             },
         },
@@ -802,11 +1121,36 @@ def bill_parser(args: dict) -> str:
         return json.dumps({"error": "file_path is required"})
 
     try:
-        result = parse_bill_pdf(file_path)
+        result = parse_bill_file(file_path)
         return json.dumps(result)
+    except LowConfidenceOCRError as exc:
+        return json.dumps(
+            {
+                "error": str(exc),
+                "error_type": "low_confidence_ocr",
+                "suggested_response": (
+                    "I couldn't clearly read this photo. Could you retake it "
+                    "with better lighting, holding the camera flat and "
+                    "square to the page, or upload the bill as a PDF instead?"
+                ),
+            }
+        )
+    except UnidentifiedImageError:
+        return json.dumps(
+            {
+                "error": "File could not be read as an image.",
+                "error_type": "invalid_image",
+                "suggested_response": (
+                    "That file doesn't look like a valid photo — it may not "
+                    "have uploaded correctly. Could you try uploading it "
+                    "again, or as a PDF instead?"
+                ),
+            }
+        )
     except FileNotFoundError as exc:
         return json.dumps({"error": str(exc)})
     except ValueError as exc:
         return json.dumps({"error": str(exc)})
     except Exception as exc:
-        return json.dumps({"error": f"Failed to parse bill PDF: {exc}"})
+        logger.exception("Failed to parse bill file")
+        return json.dumps({"error": f"Failed to parse bill file: {exc}"})

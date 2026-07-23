@@ -172,7 +172,7 @@ def my_sub_agent(args: dict) -> str:
 
 Drop files into the `Knowledge Docs/` directory (one level up from this project):
 - PDFs, text files, and Excel files are indexed automatically on startup
-- Images are stored as references (add an OCR tool to extract their content)
+- Photos (.jpg/.jpeg/.png/.heic/.heif) are stored as references, not indexed for search — the `bill_parser` tool OCRs bill photos directly on request, the same way it reads PDFs
 - Use the `/upload` endpoint or the Upload button in the UI to add files at runtime
 
 ### Improving Search (RAG)

@@ -7,6 +7,11 @@ anthropic>=0.39.0
 pdfplumber>=0.10.0
 openpyxl>=3.1.0
 
+# Photo bill upload (OCR)
+pytesseract>=0.3.10
+opencv-python-headless>=4.9.0
+pillow-heif>=0.15.0
+
 # Optional: Better search (students can add these)
 # sentence-transformers>=2.0.0
 # chromadb>=0.4.0

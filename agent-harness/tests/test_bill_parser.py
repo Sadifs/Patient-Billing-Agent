@@ -1,15 +1,33 @@
+import json
 import unittest
+from pathlib import Path
 
 from app.tools.bill_parser import (
+    ACCOUNT_NUMBER_PATTERN,
+    GUARANTOR_NAME_PATTERN,
+    GUARANTOR_NUMBER_PATTERN,
+    PATIENT_NAME_PATTERN,
+    PAY_BY_PHONE_PATTERN,
+    PAY_ONLINE_PATTERN,
+    SERVICE_DATE_PATTERN,
+    TOTAL_DUE_PATTERN,
+    LowConfidenceOCRError,
     _bill_flags,
     _extract_bill_header_fields,
+    _extract_guarantor_info,
     _extract_insurance_info,
     _line_item_duplicate_signals,
     _line_item_total,
+    _looks_like_id,
+    _math_consistency_check,
     _parse_line_items_from_tables,
     _suggested_next_steps,
+    bill_parser,
+    parse_bill_file,
     parse_bill_pdf,
 )
+
+TESTDATA_DIR = Path(__file__).resolve().parent.parent / "testdata"
 
 
 SAMPLE_BILL_TEXT = """
@@ -214,6 +232,190 @@ Pay by Phone: 866-803-1777
             ),
             5460.0,
         )
+
+
+class MathConsistencyCheckTest(unittest.TestCase):
+    """Unit tests for the consistency check's own comparison/threshold logic,
+    decoupled from real OCR accuracy (which is inherently variable) so the
+    check's correctness can be verified with controlled inputs."""
+
+    def test_flags_inconsistent_totals(self):
+        text = "Total Amount Due: $600.00"
+        line_items = [{"amount": 300.0}, {"amount": 9600.0}, {"amount": 2000.0}]
+
+        result = _math_consistency_check(text, line_items)
+
+        self.assertTrue(result["checked"])
+        self.assertFalse(result["consistent"])
+        self.assertEqual(result["stated_total"], 600.0)
+        self.assertEqual(result["summed_total"], 11900.0)
+
+    def test_passes_within_tolerance_for_minor_rounding(self):
+        text = "Balance Due: $600.00"
+        line_items = [{"amount": 300.0}, {"amount": 150.0}, {"amount": 149.50}]
+
+        result = _math_consistency_check(text, line_items)
+
+        self.assertTrue(result["checked"])
+        self.assertTrue(result["consistent"])
+
+    def test_fails_when_outside_tolerance(self):
+        text = "Patient Balance: $600.00"
+        line_items = [{"amount": 300.0}, {"amount": 150.0}, {"amount": 100.0}]
+
+        result = _math_consistency_check(text, line_items)
+
+        self.assertTrue(result["checked"])
+        self.assertFalse(result["consistent"])
+
+    def test_unchecked_when_no_stated_total_found(self):
+        text = "No total line here at all."
+        line_items = [{"amount": 300.0}]
+
+        result = _math_consistency_check(text, line_items)
+
+        self.assertFalse(result["checked"])
+        self.assertIsNone(result["consistent"])
+        self.assertIsNone(result["stated_total"])
+
+
+class PhotoBillParsingTest(unittest.TestCase):
+    """Integration tests against real (downsized) test images — see
+    testdata/bill_photo_*. These exercise the actual OCR pipeline, so
+    they verify the pipeline runs and produces plausible structure, not
+    exact field values (OCR output can shift slightly across Tesseract
+    versions)."""
+
+    def test_reads_legible_photo_without_crashing(self):
+        result = parse_bill_file(str(TESTDATA_DIR / "bill_photo_legible.png"))
+
+        self.assertEqual(result["source_type"], "photo")
+        self.assertIn("Anthem", result["insurance"]["primary"])
+        self.assertTrue(result["math_consistency"]["checked"])
+
+    def test_reads_heic_photo_via_conversion(self):
+        result = parse_bill_file(str(TESTDATA_DIR / "bill_photo_legible.heic"))
+
+        self.assertEqual(result["source_type"], "photo")
+        self.assertIn("Anthem", result["insurance"]["primary"])
+
+    def test_rejects_unreadable_photo(self):
+        with self.assertRaises(LowConfidenceOCRError):
+            parse_bill_file(str(TESTDATA_DIR / "bill_photo_unreadable.png"))
+
+    def test_rejects_unsupported_file_type(self):
+        with self.assertRaises(ValueError):
+            parse_bill_file(str(TESTDATA_DIR / "unsupported_file.gif"))
+
+    def test_bill_parser_tool_gives_friendly_message_for_unreadable_photo(self):
+        result = json.loads(
+            bill_parser.handler({"file_path": str(TESTDATA_DIR / "bill_photo_unreadable.png")})
+        )
+
+        self.assertEqual(result["error_type"], "low_confidence_ocr")
+        self.assertIn("retake", result["suggested_response"])
+
+    def test_pdf_path_still_works_unchanged(self):
+        """Guards against the PDF path regressing while adding photo support."""
+        result = parse_bill_file(str(TESTDATA_DIR / "bill_commercial_outpatient_01.pdf"))
+
+        self.assertEqual(result["source_type"], "pdf")
+        self.assertNotIn("math_consistency", result)
+
+
+class OCRLabelToleranceTest(unittest.TestCase):
+    """These header-field patterns are the root-cause fix for OCR label
+    noise: real photos this session showed OCR misreading "Patient:" as
+    "Pationt", "Service Date:" as "Serve Date:", colons as semicolons,
+    etc. Rather than patching each label as it turned up broken, every
+    pattern here tolerates the same class of noise: a few dropped/altered
+    letters after a stable prefix, and colon/semicolon interchangeably."""
+
+    def test_patient_name_tolerates_ocr_typo_and_semicolon(self):
+        match = PATIENT_NAME_PATTERN.search(
+            "Pationt Name; JOHNNIE MOR Secondary Insurance: No Insurance on file"
+        )
+        self.assertEqual(match.group(1).strip(), "JOHNNIE MOR")
+
+    def test_service_date_tolerates_ocr_typo_and_spelled_out_date(self):
+        match = SERVICE_DATE_PATTERN.search("Serve Date: November 25, 2013\nNext line")
+        self.assertEqual(match.group(1).strip(), "November 25, 2013")
+
+    def test_service_date_does_not_span_into_unrelated_earlier_services_word(self):
+        """Regression test: \\s* between the label and "Date" previously
+        matched all the way from an unrelated "...Services" earlier in
+        the text to a "Date:" line further down, grabbing the statement
+        date instead of the real service date."""
+        text = (
+            "Cedars-Sinai Statement of Hospital and Physician Services\n"
+            "Date: 2026-04-01\n"
+            "Service Date: 2026-03-15\n"
+        )
+        match = SERVICE_DATE_PATTERN.search(text)
+        self.assertEqual(match.group(1).strip(), "2026-03-15")
+
+    def test_guarantor_name_tolerates_semicolon(self):
+        match = GUARANTOR_NAME_PATTERN.search("Guarantor Name; Maria Gutierrez")
+        self.assertEqual(match.group(1).strip(), "Maria Gutierrez")
+
+    def test_guarantor_number_tolerates_ocr_typo(self):
+        match = GUARANTOR_NUMBER_PATTERN.search("Guarentor #: GU-2026-01154")
+        self.assertEqual(match.group(1), "GU-2026-01154")
+
+    def test_account_number_matches_number_label_without_hash(self):
+        """Real bills sometimes label this "Account Number:" rather than
+        "Account #:", which the original pattern required literally."""
+        match = ACCOUNT_NUMBER_PATTERN.search("Account Number: 22237958")
+        self.assertEqual(match.group(1), "22237958")
+
+    def test_pay_online_tolerates_semicolon_and_suffix_typo(self):
+        match = PAY_ONLINE_PATTERN.search("Pay Onlne; cedars-sinai.org/billing")
+        self.assertEqual(match.group(1), "cedars-sinai.org/billing")
+
+    def test_pay_by_phone_tolerates_semicolon_and_suffix_typo(self):
+        match = PAY_BY_PHONE_PATTERN.search("Pay by Phonne; 866-803-1777")
+        self.assertEqual(match.group(1), "866-803-1777")
+
+    def test_total_due_feeds_safety_net_even_with_ocr_typo(self):
+        """TOTAL_DUE_PATTERN feeds _math_consistency_check directly — if
+        this fails to match on noisy text, the safety net silently
+        doesn't run at all rather than failing loudly, so it gets the
+        same tolerance as the other header patterns."""
+        for text in [
+            "Total Amount Due: $600.00",
+            "Total Amount Due : $600.00",
+            "Totel Due: $600.00",
+            "Balance Due; $600.00",
+            "Patient Responsibility: $600.00",
+        ]:
+            match = TOTAL_DUE_PATTERN.search(text)
+            self.assertIsNotNone(match, f"did not match: {text!r}")
+            self.assertEqual(match.group(1), "600.00")
+
+
+class LooksLikeIdTest(unittest.TestCase):
+    """_looks_like_id guards against multi-column OCR bleed — e.g. reading
+    "Account Number: Primary Insurance" when the real value sits in a
+    different column than Tesseract expects. A real ID always has a
+    digit; a bare word grabbed from a neighboring label doesn't."""
+
+    def test_accepts_real_looking_ids(self):
+        for value in ["CS-2026-00441", "22237958", "272", "GU-2026-01154"]:
+            self.assertTrue(_looks_like_id(value), value)
+
+    def test_rejects_pure_word_values(self):
+        for value in ["Primary", "Insurance", "None"]:
+            self.assertFalse(_looks_like_id(value), value)
+
+    def test_extract_guarantor_info_drops_implausible_number(self):
+        text = "Guarantor Number: Primary Insurance: UNITED HEALTHCARE"
+        info = _extract_guarantor_info(text)
+        self.assertIsNone(info["guarantor_account_number"])
+
+    def test_extract_bill_header_fields_keeps_plausible_account_number(self):
+        text = "Account Number: 22237958\nOther text"
+        fields = _extract_bill_header_fields(text)
+        self.assertEqual(fields["patient"]["patient_account_number"], "22237958")
 
 
 if __name__ == "__main__":

@@ -2,9 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for PDF processing
+# Install system dependencies for PDF processing and photo-bill OCR
+# (opencv-python-headless in requirements.txt avoids needing libgl1/GUI deps)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
