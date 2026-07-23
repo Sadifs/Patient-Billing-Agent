@@ -8,7 +8,8 @@ Supported formats:
     - .pdf  (requires PyPDF2 or pdfplumber)
     - .txt, .md
     - .xlsx (reads first sheet as text)
-    - .jpg, .jpeg, .png (stores metadata only — use OCR tool for content)
+    - .jpg, .jpeg, .png, .heic, .heif (stores metadata only — not searched
+      here; the bill_parser tool OCRs these directly on request)
 """
 
 from __future__ import annotations
@@ -64,10 +65,15 @@ class KnowledgeBaseIndexer:
             text = path.read_text(encoding="utf-8", errors="ignore")
         elif suffix == ".xlsx":
             text = self._read_xlsx(path)
-        elif suffix in (".jpg", ".jpeg", ".png"):
+        elif suffix in (".jpg", ".jpeg", ".png", ".heic", ".heif"):
             self.documents.append({
                 "title": path.name,
-                "content": f"[Image file: {path.name}. Use the OCR tool to extract text from this image.]",
+                "content": (
+                    f"[Photo file: {path.name}. This is not indexed for text "
+                    "search here — call the bill_parser tool with this "
+                    "filename to read it (it OCRs photos the same way it "
+                    "reads PDFs).]"
+                ),
                 "source": str(path),
                 "type": "image",
             })

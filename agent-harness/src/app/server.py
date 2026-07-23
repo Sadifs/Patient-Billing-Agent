@@ -35,7 +35,7 @@ from agent_harness import AgentHarness, Message, OpenAICompatibleClient
 from app.rag.indexer import KnowledgeBaseIndexer
 from app.rag.search import LocalSearchService
 from app.tools import TOOLS as REGISTERED_TOOLS
-from app.tools.bill_parser import parse_bill_pdf
+from app.tools.bill_parser import LowConfidenceOCRError, parse_bill_pdf
 from app.tools.calculate_fpl import calculate_fpl
 from app.tools.search_bills import create_search_bills_tool
 from app.hooks import HOOKS as REGISTERED_HOOKS
@@ -309,7 +309,7 @@ def _direct_billing_website_answer(user_message: str) -> str | None:
 
 
 _UPLOADED_FILENAME_PATTERN = re.compile(
-    r'(?:uploaded|file(?:\s+called)?)\s+"([^"]+\.(?:pdf|json|png|jpg|jpeg|txt))"',
+    r'(?:uploaded|file(?:\s+called)?)\s+"([^"]+\.(?:pdf|json|png|jpg|jpeg|heic|heif|txt))"',
     re.IGNORECASE,
 )
 
@@ -443,6 +443,12 @@ def _direct_bill_header_answer(
     base_dir = upload_dir or UPLOAD_DIR
     try:
         parsed = parse_bill_pdf(str(base_dir / filename))
+    except LowConfidenceOCRError:
+        return (
+            "I couldn't clearly read this photo. Could you retake it with "
+            "better lighting, holding the camera flat and square to the "
+            "page, or upload the bill as a PDF instead?"
+        )
     except Exception:
         return (
             "I could not read that field from the uploaded bill. Please check "
