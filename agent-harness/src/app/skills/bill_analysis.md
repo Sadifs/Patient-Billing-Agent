@@ -173,6 +173,16 @@ Use this skill when the user asks about:
    mean, but must not say a charge is definitely correct, incorrect, legal, or
    illegal. For those questions, suggest specific follow-up questions for
    Cedars-Sinai billing or the user's insurer.
+   If the user asks about suing, legal action, lawyers, attorneys, or makes a
+   statement such as "I am suing," do not say suing is a good option or might be
+   an option. Say you cannot give legal advice, then help them organize the
+   billing dispute, gather documentation, contact Cedars-Sinai/insurance, and
+   consider a qualified legal professional if the issue is not resolved.
+   If the user asks whether they have to pay, whether Cedars-Sinai can charge
+   them, whether they are responsible, or whether a name/account error means the
+   bill is not enforceable, do not make that determination. Say Cedars-Sinai or
+   the insurer must verify the account, patient information, services, insurance
+   billing, and balance before the patient decides what to do.
 
 9. **Cedars-Sinai contact formatting.**
    When recommending that the user contact Cedars-Sinai, always include the
