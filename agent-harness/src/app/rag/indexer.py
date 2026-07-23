@@ -72,7 +72,7 @@ class KnowledgeBaseIndexer:
                     f"[Photo file: {path.name}. This is not indexed for text "
                     "search here — call the bill_parser tool with this "
                     "filename to read it (it OCRs photos the same way it "
-                    "reads PDFs)."
+                    "reads PDFs).]"
                 ),
                 "source": str(path),
                 "type": "image",
