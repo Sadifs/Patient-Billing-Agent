@@ -156,7 +156,7 @@ PATIENT_SERVICES_MAIL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 PO_BOX_MERGE_PATTERN = re.compile(
-    r"(?:P[\.\)\s]*O[\.\)\s]*\.?\s*Box|Box\s+48750|Los Angeles, CA 90048|\)\s*48750)",
+    r"(?:\bP[\.\)\s]+O[\.\)\s]*\.?\s*Box|\bP\.O\.?\s*Box|Box\s+48750|Los Angeles, CA 90048|\)\s*48750)",
     re.IGNORECASE,
 )
 TOTAL_DUE_PATTERN = re.compile(
@@ -168,6 +168,19 @@ TOTAL_DUE_PATTERN = re.compile(
     r"\s*[:;]?\s*\$?\s*([\d,]+\.\d{2})",
     re.IGNORECASE,
 )
+STATEMENT_DATE_PATTERN = re.compile(
+    r"\bStatement[ \t]+Date\s*[:;]\s*([^\n\r|]+)",
+    re.IGNORECASE,
+)
+DUE_DATE_PATTERN = re.compile(
+    r"\bDue[ \t]+Date\s*[:;]\s*([^\n\r|]+)",
+    re.IGNORECASE,
+)
+FACILITY_NAME_PATTERN = re.compile(
+    r"^\s*(Cedars-Sinai Medical Center)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+TOTALS_LINE_PATTERN = re.compile(r"^\s*Totals\s+(.+)$", re.IGNORECASE | re.MULTILINE)
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
@@ -316,6 +329,18 @@ def _clean_insurance_value(value: str | None) -> str | None:
         return None
 
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:\t|")
+    cleaned = re.sub(
+        r"\(parent employer-[^)]*\)",
+        "(parent employer-sponsored)",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(
+        r"(\(parent employer-sponsored\))\s*48750.*",
+        r"\1",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
     cleaned = re.split(r"\s+Secondary Insurance:", cleaned, maxsplit=1)[0].strip()
     cleaned = re.split(
         r"\s+(?:Date|Service Date|Service Type|Due Date|Statement Date|"
@@ -478,6 +503,58 @@ def _amounts_from_cell(value: str | None) -> list[float]:
         if amount is not None:
             amounts.append(amount)
     return amounts
+
+
+def _extract_bill_totals(text: str) -> dict[str, float | None]:
+    """Extract bill-level total fields from summary/totals lines.
+
+    The line-item ``amount`` field usually represents the provider's billed
+    charge. For insured bills, that is not the same thing as the patient's
+    balance. These explicit total fields give downstream prompts a safer
+    source for "what do I owe?" questions.
+    """
+    totals: dict[str, float | None] = {
+        "total_billed": None,
+        "total_insurance_payments": None,
+        "total_adjustments": None,
+        "outstanding_balance": None,
+        "patient_balance": None,
+        "total_amount_due": None,
+    }
+
+    due_match = TOTAL_DUE_PATTERN.search(text)
+    if due_match:
+        totals["total_amount_due"] = _parse_amount(due_match.group(1))
+
+    totals_lines = [match.group(1).strip() for match in TOTALS_LINE_PATTERN.finditer(text)]
+    four_amount_line: list[float] | None = None
+    three_amount_line: list[float] | None = None
+    for line in totals_lines:
+        amounts = _amounts_from_cell(line)
+        if len(amounts) >= 4:
+            four_amount_line = amounts[:4]
+        elif len(amounts) == 3 and three_amount_line is None:
+            three_amount_line = amounts
+
+    if four_amount_line:
+        (
+            totals["total_billed"],
+            totals["total_insurance_payments"],
+            totals["total_adjustments"],
+            totals["patient_balance"],
+        ) = four_amount_line
+        totals["outstanding_balance"] = totals["patient_balance"]
+    elif three_amount_line:
+        (
+            totals["total_billed"],
+            totals["outstanding_balance"],
+            totals["patient_balance"],
+        ) = three_amount_line
+
+    if totals["total_amount_due"] is None and totals["patient_balance"] is not None:
+        totals["total_amount_due"] = totals["patient_balance"]
+
+    return totals
 
 
 def _parse_line_items_from_tables(tables: list[list[list[Any]]]) -> list[dict[str, Any]]:
@@ -784,18 +861,57 @@ def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int]
 def _math_consistency_check(
     text: str, line_items: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    """Compare summed line items against the bill's stated total.
+    """Compare summed line items against the bill's stated patient balance.
 
-    Catches numbers that don't add up (a likely OCR misread). Does NOT
-    catch numbers that are consistently wrong in a way that still
-    reconciles internally — e.g. a systematic misread where every digit
-    is off but the arithmetic still holds. There's no cheap fix for that
-    without independent ground truth; this check only validates internal
-    consistency, not correctness.
+    For insured bills, the line-item ``amount``/``billed_amount`` total is
+    not what the patient owes. Prefer summed ``patient_balance`` when present,
+    and also check whether each row reconciles as:
+    billed - insurance payments - adjustments = patient balance.
     """
+    def sum_field(field: str, fallback: str | None = None) -> float | None:
+        values: list[float] = []
+        for item in line_items:
+            value = item.get(field)
+            if value is None and fallback:
+                value = item.get(fallback)
+            if isinstance(value, (int, float)):
+                values.append(float(value))
+        if not values:
+            return None
+        return round(sum(values), 2)
+
     stated_match = TOTAL_DUE_PATTERN.search(text)
     stated_total = _parse_amount(stated_match.group(1)) if stated_match else None
-    summed_total = _line_item_total(line_items)
+    totals = _extract_bill_totals(text)
+
+    summed_billed = sum_field("billed_amount", fallback="amount")
+    summed_insurance_payments = sum_field("insurance_payments")
+    summed_adjustments = sum_field("adjustments")
+    summed_patient_balance = sum_field("patient_balance")
+    summed_total = summed_patient_balance if summed_patient_balance is not None else _line_item_total(line_items)
+
+    row_violations: list[dict[str, Any]] = []
+    tolerance_base = stated_total or summed_total or 1
+    row_tolerance = max(tolerance_base * MATH_CONSISTENCY_TOLERANCE, 0.01)
+    for index, item in enumerate(line_items, start=1):
+        billed = item.get("billed_amount")
+        insurance = item.get("insurance_payments")
+        adjustments = item.get("adjustments")
+        patient_balance = item.get("patient_balance")
+        if not all(isinstance(value, (int, float)) for value in [billed, insurance, adjustments, patient_balance]):
+            continue
+        expected_patient_balance = round(float(billed) - float(insurance) - float(adjustments), 2)
+        difference = round(abs(expected_patient_balance - float(patient_balance)), 2)
+        if difference > row_tolerance:
+            row_violations.append(
+                {
+                    "line_item_number": index,
+                    "description": item.get("description"),
+                    "expected_patient_balance": expected_patient_balance,
+                    "actual_patient_balance": patient_balance,
+                    "difference": difference,
+                }
+            )
 
     if stated_total is None or summed_total is None:
         return {
@@ -803,11 +919,45 @@ def _math_consistency_check(
             "consistent": None,
             "stated_total": stated_total,
             "summed_total": summed_total,
+            "summed_billed": summed_billed,
+            "summed_insurance_payments": summed_insurance_payments,
+            "summed_adjustments": summed_adjustments,
+            "summed_patient_balance": summed_patient_balance,
+            "row_reconciliation_violations": row_violations,
             "reason": "Could not find both a stated total and summed line items to compare.",
         }
 
     tolerance = max(stated_total * MATH_CONSISTENCY_TOLERANCE, 0.01)
-    consistent = abs(stated_total - summed_total) <= tolerance
+    stated_vs_summed_consistent = abs(stated_total - summed_total) <= tolerance
+
+    total_reconciliation_consistent = None
+    if (
+        summed_billed is not None
+        and summed_insurance_payments is not None
+        and summed_adjustments is not None
+        and summed_patient_balance is not None
+    ):
+        expected_patient_total = round(
+            summed_billed - summed_insurance_payments - summed_adjustments, 2
+        )
+        total_reconciliation_consistent = (
+            abs(expected_patient_total - summed_patient_balance) <= tolerance
+        )
+
+    header_total_consistent = None
+    header_patient_balance = totals.get("patient_balance")
+    if isinstance(header_patient_balance, (int, float)):
+        header_total_consistent = abs(stated_total - header_patient_balance) <= tolerance
+
+    consistency_checks = [stated_vs_summed_consistent]
+    if total_reconciliation_consistent is not None:
+        consistency_checks.append(total_reconciliation_consistent)
+    if header_total_consistent is not None:
+        consistency_checks.append(header_total_consistent)
+    if row_violations:
+        consistency_checks.append(False)
+
+    consistent = all(consistency_checks)
 
     result = {
         "checked": True,
@@ -815,16 +965,21 @@ def _math_consistency_check(
         "stated_total": stated_total,
         "summed_total": summed_total,
         "difference": round(abs(stated_total - summed_total), 2),
+        "summed_billed": summed_billed,
+        "summed_insurance_payments": summed_insurance_payments,
+        "summed_adjustments": summed_adjustments,
+        "summed_patient_balance": summed_patient_balance,
+        "row_reconciliation_violations": row_violations,
+        "total_reconciliation_consistent": total_reconciliation_consistent,
+        "header_total_consistent": header_total_consistent,
     }
     if not consistent:
         result["recommended_guidance_if_false"] = (
-            "This bill was read from a photo and the extracted line items "
-            "do not add up to the stated total — the photo may have been "
-            "misread. State the bill's stated total (not the summed line "
-            "items) if asked what the patient owes, explicitly say this was "
-            "read from a photo and should be double-checked, and recommend "
-            "the patient verify the full breakdown with Cedars-Sinai Patient "
-            "Financial Services before paying."
+            "The extracted bill numbers do not fully reconcile. State the "
+            "bill's stated total amount due if asked what the patient owes, "
+            "avoid presenting the mismatched line-item math as final, and "
+            "recommend the patient verify the full breakdown with Cedars-Sinai "
+            "Patient Financial Services before paying."
         )
     return result
 
@@ -1003,11 +1158,26 @@ def _extract_guarantor_info(text: str) -> dict[str, str | None]:
 
 
 def _extract_bill_header_fields(text: str) -> dict[str, Any]:
-    """Extract patient, insurance, and contact fields from bill header text."""
+    """Extract patient, insurance, contact, and bill-level total fields."""
     service_date = None
     match = SERVICE_DATE_PATTERN.search(text)
     if match:
         service_date = _normalize_date(match.group(1))
+
+    statement_date = None
+    match = STATEMENT_DATE_PATTERN.search(text)
+    if match:
+        statement_date = _normalize_date(match.group(1).strip())
+
+    due_date = None
+    match = DUE_DATE_PATTERN.search(text)
+    if match:
+        due_date = _normalize_date(match.group(1).strip())
+
+    facility_name = None
+    match = FACILITY_NAME_PATTERN.search(text)
+    if match:
+        facility_name = match.group(1).strip()
 
     account_number = None
     match = ACCOUNT_NUMBER_PATTERN.search(text)
@@ -1025,6 +1195,10 @@ def _extract_bill_header_fields(text: str) -> dict[str, Any]:
         "guarantor": _extract_guarantor_info(text),
         "insurance": _extract_insurance_info(text),
         "contact_info": _extract_contact_info(text),
+        "statement_date": statement_date,
+        "due_date": due_date,
+        "facility_name": facility_name,
+        **_extract_bill_totals(text),
     }
 
 
@@ -1083,12 +1257,7 @@ def parse_bill_file(file_path: str) -> dict[str, Any]:
         "source_type": "pdf" if suffix == ".pdf" else "photo",
     }
 
-    if suffix != ".pdf":
-        # Photos go through OCR, which can misread digits in a way that
-        # still looks like a plausible number — this check catches the
-        # cases where the misread also breaks internal math consistency.
-        # See _math_consistency_check's docstring for what it can't catch.
-        result["math_consistency"] = _math_consistency_check(text, line_items)
+    result["math_consistency"] = _math_consistency_check(text, line_items)
 
     return result
 

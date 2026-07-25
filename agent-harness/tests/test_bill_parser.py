@@ -32,7 +32,8 @@ TESTDATA_DIR = Path(__file__).resolve().parent.parent / "testdata"
 
 SAMPLE_BILL_TEXT = """
 Cedars-Sinai Statement of Hospital and Physician Services
-Date: 2026-04-01
+Cedars-Sinai Medical Center
+Statement Date: 2026-04-01
 Maria Gutierrez A l Pay Online: cedars-sinai.org/billing
 l Pay by Phone: 866-803-1777
 Account #: CS-2026-00441
@@ -40,6 +41,9 @@ Service Date: 2026-03-15
 Primary Insurance: None on file P.O. Box 48750, Los Angeles, CA 90048
 Secondary Insurance: None on file
 Guarantor Name: Maria Gutierrez
+Totals $19,000.00 $0.00 $0.00 $19,000.00
+Total Amount Due: $19,000.00
+Due Date: 2026-05-01 | Questions? Call 866-803-1777
 For account information or to discuss financial assistance, call 866-803-1777,
 Monday–Friday, 8:00 AM – 4:30 PM PT, or email patient.billing@cshs.org.
 Patient: Maria Gutierrez Account #: CS-2026-00441 Service Date: 2026-03-15
@@ -62,6 +66,15 @@ class BillParserHelperTest(unittest.TestCase):
         self.assertEqual(fields["contact_info"]["email"], "patient.billing@cshs.org")
         self.assertIn("Monday", fields["contact_info"]["hours"])
         self.assertIn("48750", fields["contact_info"]["mail"])
+        self.assertEqual(fields["statement_date"], "04/01/2026")
+        self.assertEqual(fields["due_date"], "05/01/2026")
+        self.assertEqual(fields["facility_name"], "Cedars-Sinai Medical Center")
+        self.assertEqual(fields["total_billed"], 19000.0)
+        self.assertEqual(fields["total_insurance_payments"], 0.0)
+        self.assertEqual(fields["total_adjustments"], 0.0)
+        self.assertEqual(fields["outstanding_balance"], 19000.0)
+        self.assertEqual(fields["patient_balance"], 19000.0)
+        self.assertEqual(fields["total_amount_due"], 19000.0)
 
     def test_extract_bill_header_fields_insured_patient(self):
         text = """
@@ -89,6 +102,29 @@ Pay by Phone: 866-803-1777
         self.assertEqual(result["patient"]["service_date"], "03/15/2026")
         self.assertEqual(result["insurance"]["primary"], "None on file")
         self.assertEqual(result["contact_info"]["phone"], "866-803-1777")
+        self.assertEqual(result["facility_name"], "Cedars-Sinai Medical Center")
+        self.assertEqual(result["statement_date"], "04/01/2026")
+        self.assertEqual(result["due_date"], "05/01/2026")
+        self.assertEqual(result["total_amount_due"], 19000.0)
+        self.assertTrue(result["math_consistency"]["checked"])
+
+    def test_parse_bill_pdf_includes_bill_level_totals(self):
+        result = parse_bill_pdf(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_air_ambulance_transfer_44.pdf"
+        )
+
+        self.assertEqual(result["total_billed"], 31200.0)
+        self.assertEqual(result["total_insurance_payments"], 9360.0)
+        self.assertEqual(result["total_adjustments"], 0.0)
+        self.assertEqual(result["outstanding_balance"], 21840.0)
+        self.assertEqual(result["patient_balance"], 21840.0)
+        self.assertEqual(result["total_amount_due"], 21840.0)
+        self.assertEqual(result["statement_date"], "06/15/2026")
+        self.assertEqual(result["due_date"], "07/15/2026")
+        self.assertTrue(result["math_consistency"]["checked"])
+        self.assertTrue(result["math_consistency"]["consistent"])
+        self.assertEqual(result["math_consistency"]["summed_billed"], 31200.0)
+        self.assertEqual(result["math_consistency"]["summed_patient_balance"], 21840.0)
 
     def test_parse_bill_pdf_cleans_merged_insurance_address_noise(self):
         result = parse_bill_pdf(
@@ -259,6 +295,36 @@ class MathConsistencyCheckTest(unittest.TestCase):
         self.assertTrue(result["checked"])
         self.assertTrue(result["consistent"])
 
+    def test_uses_patient_balance_for_insured_bill_math(self):
+        text = "Totals $1,500.00 $1,200.00 $0.00 $300.00\nTotal Amount Due: $300.00"
+        line_items = [
+            {
+                "billed_amount": 1000.0,
+                "insurance_payments": 800.0,
+                "adjustments": 0.0,
+                "patient_balance": 200.0,
+                "amount": 1000.0,
+            },
+            {
+                "billed_amount": 500.0,
+                "insurance_payments": 400.0,
+                "adjustments": 0.0,
+                "patient_balance": 100.0,
+                "amount": 500.0,
+            },
+        ]
+
+        result = _math_consistency_check(text, line_items)
+
+        self.assertTrue(result["checked"])
+        self.assertTrue(result["consistent"])
+        self.assertEqual(result["stated_total"], 300.0)
+        self.assertEqual(result["summed_total"], 300.0)
+        self.assertEqual(result["summed_billed"], 1500.0)
+        self.assertEqual(result["summed_insurance_payments"], 1200.0)
+        self.assertEqual(result["summed_patient_balance"], 300.0)
+        self.assertEqual(result["row_reconciliation_violations"], [])
+
     def test_fails_when_outside_tolerance(self):
         text = "Patient Balance: $600.00"
         line_items = [{"amount": 300.0}, {"amount": 150.0}, {"amount": 100.0}]
@@ -320,7 +386,7 @@ class PhotoBillParsingTest(unittest.TestCase):
         result = parse_bill_file(str(TESTDATA_DIR / "bill_commercial_outpatient_01.pdf"))
 
         self.assertEqual(result["source_type"], "pdf")
-        self.assertNotIn("math_consistency", result)
+        self.assertIn("math_consistency", result)
 
 
 class OCRLabelToleranceTest(unittest.TestCase):
