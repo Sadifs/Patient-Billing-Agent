@@ -309,9 +309,16 @@ def _strip_corrupted_parenthetical(value: str) -> str:
     """Remove parentheticals corrupted by PDF text-merge with mailing addresses."""
 
     def is_corrupted(inner: str) -> bool:
+        # A former third check here — "2+ single-letter-period
+        # abbreviations" (meant to catch "P.O." bleed) — was removed.
+        # It also matched legitimate content like "L.A." in "Medi-Cal
+        # (Managed Care – L.A. Care Health Plan)", silently deleting a
+        # real payer detail. The two checks below already cover the
+        # actual corruption signature specifically; the removed one
+        # generalized to over-stripping on suspicion rather than positive
+        # evidence — exactly the failure mode Professor Vo's feedback
+        # (parser-vs-gold, item 1B) called out by name.
         if re.search(r"Box|48750|Los Angeles|P[\.\)]\s*O", inner, re.IGNORECASE):
-            return True
-        if len(re.findall(r"\b[A-Za-z]\.", inner)) >= 2:
             return True
         if len(re.findall(r"[^\w\s\-–(),./&+]", inner)) > 2:
             return True
@@ -604,6 +611,16 @@ def _extract_bill_totals(text: str) -> dict[str, float | None]:
     four_amount_line: list[float] | None = None
     three_amount_line: list[float] | None = None
     for line in totals_lines:
+        # Self-pay/no-insurance bills render the "Ins Pmts" column as an
+        # em dash ("—") instead of "$0.00" — a real dollar amount is never
+        # a literal dash, so this substitution is unambiguous. Without it,
+        # a 4-column totals line (billed/ins pmts/adj/patient bal) with a
+        # dashed-out insurance column only yields 3 *numeric* amounts,
+        # which previously got misread as (billed, outstanding_balance,
+        # patient_balance) instead of (billed, adjustments, patient_balance)
+        # — silently losing total_insurance_payments and total_adjustments
+        # for every self-pay bill.
+        line = line.replace("—", "$0.00")
         amounts = _amounts_from_cell(line)
         if len(amounts) >= 4:
             four_amount_line = amounts[:4]
@@ -617,13 +634,18 @@ def _extract_bill_totals(text: str) -> dict[str, float | None]:
             totals["total_adjustments"],
             totals["patient_balance"],
         ) = four_amount_line
+        # Default outstanding_balance = patient_balance since a 4-column
+        # line has no separate slot for it — true for every bill in this
+        # corpus except one (deliberately built so the two differ, to
+        # test discrepancy detection). Prefer a three_amount_line's real,
+        # distinct outstanding_balance when one was also found, rather
+        # than unconditionally overwriting it with this assumption.
         totals["outstanding_balance"] = totals["patient_balance"]
-    elif three_amount_line:
-        (
-            totals["total_billed"],
-            totals["outstanding_balance"],
-            totals["patient_balance"],
-        ) = three_amount_line
+    if three_amount_line:
+        billed, outstanding_balance, patient_balance = three_amount_line
+        totals["total_billed"] = totals["total_billed"] or billed
+        totals["outstanding_balance"] = outstanding_balance
+        totals["patient_balance"] = totals["patient_balance"] or patient_balance
 
     if totals["total_amount_due"] is None and totals["patient_balance"] is not None:
         totals["total_amount_due"] = totals["patient_balance"]
