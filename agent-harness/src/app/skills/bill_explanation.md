@@ -13,6 +13,24 @@ When a bill has been uploaded and parsed, and you are explaining its contents, u
 
 ## Format
 
+If parsed bill data shows `math_consistency.consistent` is `false`, start the
+answer with this section before the normal summary:
+
+**Important: Possible Billing Math Issue**
+The bill's numbers do not fully reconcile. State the specific mismatch using
+the parsed fields when available (for example, stated patient balance vs summed
+line-item patient responsibility), and tell the patient to ask Cedars-Sinai
+Patient Financial Services to review the bill before paying. Do not bury this
+warning after the charges breakdown.
+
+When `math_consistency.consistent` is `false`, prioritize next steps in this
+order:
+1. Ask Cedars-Sinai Patient Financial Services to review the discrepancy before
+   payment.
+2. Ask what the correct patient balance should be.
+3. Then, if affordability is a concern, ask about financial assistance or
+   payment-plan options.
+
 **Summary**
 Start with the patient name and service date from the parsed bill if available,
 then state what procedure/service the bill is for and the bottom-line amount

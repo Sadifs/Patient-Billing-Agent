@@ -313,6 +313,10 @@ _UPLOADED_FILENAME_PATTERN = re.compile(
     r'(?:uploaded(?:\s+bill)?|file(?:\s+called)?|regarding\s+my\s+uploaded\s+bills?:)\s+"([^"]+\.(?:pdf|json|png|jpg|jpeg|heic|heif|txt))"',
     re.IGNORECASE,
 )
+_QUOTED_BILL_FILENAME_PATTERN = re.compile(
+    r'"([^"]+\.(?:pdf|json|png|jpg|jpeg|heic|heif|txt))"',
+    re.IGNORECASE,
+)
 
 
 def _latest_uploaded_filename(
@@ -328,6 +332,9 @@ def _latest_uploaded_filename(
         )
 
     for text in messages:
+        matches = _QUOTED_BILL_FILENAME_PATTERN.findall(text)
+        if matches and re.search(r"\b(?:uploaded|file|regarding)\b", text, re.IGNORECASE):
+            return Path(matches[-1]).name
         match = _UPLOADED_FILENAME_PATTERN.search(text)
         if match:
             return Path(match.group(1)).name
@@ -520,6 +527,24 @@ def _bill_parser_context_message(
 
     # Match bill_parser tool behavior: keep patient names, redact account IDs.
     redacted = input_redactor.redact(parsed, preserve_names=True)
+    math_context = ""
+    math_check = parsed.get("math_consistency") or {}
+    if math_check.get("consistent") is False:
+        stated_total = math_check.get("stated_total")
+        summed_total = math_check.get("summed_total")
+        math_context = (
+            "\n\nImportant response instruction: math_consistency.consistent is false. "
+            "Lead the patient-facing answer with an 'Important: Possible Billing "
+            "Math Issue' section before the normal bill summary. Tell the patient "
+            "the bill numbers do not fully reconcile and recommend asking "
+            "Cedars-Sinai Patient Financial Services to review the bill before "
+            "paying."
+        )
+        if isinstance(stated_total, (int, float)) and isinstance(summed_total, (int, float)):
+            math_context += (
+                f" The stated amount due is {_format_usd(stated_total)}, while "
+                f"the summed line-item patient responsibility is {_format_usd(summed_total)}."
+            )
     return Message(
         role="system",
         content=(
@@ -529,7 +554,8 @@ def _bill_parser_context_message(
             "(patient header fields, insurance, line items, balances, codes). "
             "Do not invent charges or balances that are absent from this data. "
             "Prefer line_items[].patient_balance and related structured fields "
-            "when explaining charges.\n\n"
+            "when explaining charges."
+            f"{math_context}\n\n"
             f"{json.dumps(redacted, default=str)}"
         ),
     )
@@ -751,9 +777,13 @@ def _direct_fpl_answer(user_message: str, history: list[dict] | None = None) -> 
             "- Ask about payment plan options and whether hardship review is available."
         )
     else:
+        program_name = {
+            "Charity Care candidate": "Cedars-Sinai Charity Care",
+            "Discount Payment candidate": "Cedars-Sinai's Discount Payment program",
+        }.get(assistance_tier, assistance_tier)
         summary = (
             "Based on the household size and income you shared, you may be a "
-            f"{assistance_tier.lower()}."
+            f"candidate for {program_name}."
         )
         meaning = (
             f"{guidance} This does not guarantee approval, but it means applying "

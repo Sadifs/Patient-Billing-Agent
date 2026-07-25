@@ -17,6 +17,7 @@ from app.server import (
     _direct_payment_plan_answer,
     _extract_fpl_inputs,
     _fpl_context_message,
+    _latest_uploaded_filename,
     _message_has_phi,
     _sensitive_info_notice,
     _technical_fallback_message,
@@ -142,10 +143,18 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("- Annual household income: $115,000", answer)
         self.assertIn("$38,680", answer)
         self.assertIn("297.3%", answer)
-        self.assertIn("charity care candidate", answer)
+        self.assertIn("candidate for Cedars-Sinai Charity Care", answer)
         self.assertIn("does not guarantee approval", answer)
         self.assertIn("applying is worth asking about", answer)
         self.assertNotIn("may not qualify", answer.lower())
+
+    def test_direct_fpl_answer_uses_natural_discount_payment_wording(self):
+        answer = _direct_fpl_answer(
+            "It's just me and I make $95,000 a year"
+        )
+
+        self.assertIn("candidate for Cedars-Sinai's Discount Payment program", answer)
+        self.assertNotIn("a discount payment candidate", answer.lower())
 
     def test_direct_fpl_answer_handles_above_threshold_case(self):
         answer = _direct_fpl_answer(
@@ -393,6 +402,26 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("Fixed Indemnity Plan", answer)
 
+    def test_latest_uploaded_filename_uses_most_recent_file_in_multi_bill_prefix(self):
+        filename = _latest_uploaded_filename(
+            '(Regarding my uploaded bills: "bill_v2_air_ambulance_transfer_44.pdf", '
+            '"bill_v2_intentionally_incorrect_math_13.pdf") explain this bill',
+            history=[],
+        )
+
+        self.assertEqual(filename, "bill_v2_intentionally_incorrect_math_13.pdf")
+
+    def test_direct_bill_header_answer_uses_latest_bill_from_multi_bill_prefix(self):
+        answer = _direct_bill_header_answer(
+            '(Regarding my uploaded bills: "bill_v2_air_ambulance_transfer_44.pdf", '
+            '"bill_v2_intentionally_incorrect_math_13.pdf") What insurance is listed?',
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("Cigna Open Access Plus EPO", answer)
+        self.assertNotIn("Aetna", answer)
+
     def test_direct_bill_header_answer_does_not_expose_account_number(self):
         history = [
             {
@@ -441,6 +470,21 @@ class ServerHelperTest(unittest.TestCase):
         # Account number should be redacted; patient name preserved.
         self.assertNotIn("CS-2026-776203", msg.content)
         self.assertIn("Sarah Kim", msg.content)
+
+    def test_bill_parser_context_message_prioritizes_math_discrepancy(self):
+        msg = _bill_parser_context_message(
+            '(Regarding my uploaded bill: "bill_v2_intentionally_incorrect_math_13.pdf") '
+            "Can you explain my bill?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNotNone(msg)
+        self.assertIn("math_consistency.consistent is false", msg.content)
+        self.assertIn("Lead the patient-facing answer", msg.content)
+        self.assertIn("Important: Possible Billing Math Issue", msg.content)
+        self.assertIn("$960", msg.content)
+        self.assertIn("$260", msg.content)
 
     def test_bill_parser_context_message_returns_none_without_upload(self):
         self.assertIsNone(

@@ -87,6 +87,16 @@
         .prose strong {
             font-weight: 600;
         }
+        .prose a {
+            color: #007A8A;
+            font-weight: 600;
+            text-decoration: underline;
+            text-decoration-thickness: 1.5px;
+            text-underline-offset: 3px;
+        }
+        .prose a:hover {
+            color: #DC1E34;
+        }
         .prose ul, .prose ol {
             margin-top: 0.75em;
             margin-bottom: 0.75em;
@@ -433,11 +443,18 @@
             const userText = input.value.trim();
             if (!userText) return;
 
-            // Prepend a note about uploaded files so the backend RAG context references them.
+            // Prepend bill context for the backend. If the user names an
+            // uploaded file, use that file; otherwise default to the most
+            // recently uploaded bill so follow-ups do not accidentally blend
+            // older bills into the answer.
             let backendText = userText;
             if (uploadedFiles.length > 0) {
-                const names = uploadedFiles.map(f => `"${f.name}"`).join(', ');
-                backendText = `(Regarding my uploaded bill${uploadedFiles.length > 1 ? 's' : ''}: ${names}) ${userText}`;
+                const mentionedFiles = uploadedFiles.filter((file) => userText.includes(file.name));
+                const contextFiles = mentionedFiles.length > 0
+                    ? mentionedFiles
+                    : [uploadedFiles[uploadedFiles.length - 1]];
+                const names = contextFiles.map(f => `"${f.name}"`).join(', ');
+                backendText = `(Regarding my uploaded bill${contextFiles.length > 1 ? 's' : ''}: ${names}) ${userText}`;
             }
 
             input.value = '';

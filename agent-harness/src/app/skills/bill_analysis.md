@@ -98,6 +98,14 @@ Use this skill when the user asks about:
      account number in chat.
    - Distinguish billed charges, insurance payments, adjustments, outstanding
      balance, patient balance, and total amount due.
+   - If parsed bill data shows `math_consistency.consistent` is `false`, make
+     that one of the first things in the answer. Start with an "Important:
+     Possible Billing Math Issue" section before the normal bill summary,
+     briefly state what does not reconcile, and recommend asking Cedars-Sinai
+     Patient Financial Services to review the bill before paying. In next
+     steps, list discrepancy review and confirming the correct balance before
+     financial assistance or payment-plan options, because the billing error is
+     the urgent issue.
    - In the insurance section, use easy-to-scan bullets for primary insurance,
      secondary insurance, and adjustments/discounts. If no secondary insurance
      is listed, say "Secondary Insurance: None listed on this bill. If you have
@@ -134,6 +142,13 @@ Use this skill when the user asks about:
    - For simple follow-ups like "What is the total amount I owe?", answer the
      specific question directly and briefly. Do not repeat the full financial-
      assistance explanation unless the user asks about help paying.
+   - For due-date or payment-deadline questions, state what the uploaded bill
+     shows without treating it as a final determination. If the user asks
+     whether a deadline is correct, reasonable, or whether they only have a
+     certain amount of time to pay, say: "That is what the bill shows, but you
+     can contact Cedars-Sinai Patient Financial Services to confirm the due date
+     or ask about payment-plan options." Do not answer with only "yes" or imply
+     the patient must pay by that date without verification.
 
 7. **Self-pay or collections bills.**
    If the bill shows no insurance on file, self-pay status, collections, a
