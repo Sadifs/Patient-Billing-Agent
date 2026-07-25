@@ -229,7 +229,17 @@ def _parse_amount(raw: str) -> float | None:
     cleaned = raw.replace("$", "").replace(",", "").strip()
     if not cleaned:
         return None
-    negative = raw.strip().startswith("(") and raw.strip().endswith(")")
+    negative = cleaned.startswith("(") and cleaned.endswith(")")
+    if negative:
+        # Strip the parens themselves, not just surrounding whitespace —
+        # float("( 9120.00 )") raises ValueError, which previously caused
+        # every parenthesized (credit/payment) amount to silently parse as
+        # None instead of a negative number. That dropped credit line
+        # items from sums entirely rather than subtracting them, which is
+        # why a bill with a payment-plan credit line summed to more than
+        # its stated total (e.g. $77,520 summed vs $68,400 stated, off by
+        # exactly the $9,120 credit that got discarded).
+        cleaned = cleaned[1:-1].strip()
     try:
         value = float(cleaned)
     except ValueError:
