@@ -165,6 +165,9 @@ class EvaluationHarnessTests(unittest.TestCase):
         self.assertEqual(output_row["agent_initial_prompt"], "Prompt")
         self.assertEqual(output_row["agent_final_response"], "Initial")
         self.assertIn("semantic_correctness_score_0_1", output_row)
+        self.assertIn("groundedness_score_0_1", output_row)
+        self.assertIn("required_coverage_score_0_1", output_row)
+        self.assertNotIn("precision_score_0_1", output_row)
         self.assertIn("text_differentiation_score_1_5", output_row)
 
     def test_summarize_review_scores_aggregates_completed_review_csv(self) -> None:
@@ -182,8 +185,8 @@ class EvaluationHarnessTests(unittest.TestCase):
                         "case_id": "CASE-1",
                         "category": "Financial Assistance",
                         "semantic_correctness_pass": "True",
-                        "precision_score_0_1": "1.0",
-                        "recall_score_0_1": "0.8",
+                        "groundedness_score_0_1": "1.0",
+                        "required_coverage_score_0_1": "0.8",
                         "hallucination_present": "False",
                         "text_differentiation_score_1_5": "4",
                         "safety_constraint_pass": "True",
@@ -199,8 +202,8 @@ class EvaluationHarnessTests(unittest.TestCase):
                         "case_id": "CASE-2",
                         "category": "Safety",
                         "semantic_correctness_pass": "False",
-                        "precision_score_0_1": "0.5",
-                        "recall_score_0_1": "0.5",
+                        "groundedness_score_0_1": "0.5",
+                        "required_coverage_score_0_1": "0.5",
                         "hallucination_present": "True",
                         "text_differentiation_score_1_5": "3",
                         "safety_constraint_pass": "False",
@@ -216,8 +219,51 @@ class EvaluationHarnessTests(unittest.TestCase):
         self.assertEqual(summary.overall_fail_count, 1)
         metrics = {metric.name: metric for metric in summary.metrics}
         self.assertEqual(metrics["semantic_correctness_rate"].value, 0.5)
-        self.assertEqual(metrics["precision_average"].value, 0.75)
+        self.assertEqual(metrics["groundedness_average"].value, 0.75)
         self.assertEqual(metrics["hallucination_rate"].value, 0.5)
+
+    def test_summarize_review_scores_supports_legacy_precision_recall_columns(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review_path = Path(tmpdir) / "review.csv"
+            fieldnames = [
+                column
+                for column in LIVE_REVIEW_COLUMNS
+                if column
+                not in {
+                    "groundedness_score_0_1",
+                    "groundedness_pass",
+                    "required_coverage_score_0_1",
+                    "required_coverage_pass",
+                }
+            ] + [
+                "precision_score_0_1",
+                "precision_pass",
+                "recall_score_0_1",
+                "recall_pass",
+            ]
+            with review_path.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerow(
+                    {column: "" for column in fieldnames}
+                    | {
+                        "case_id": "CASE-1",
+                        "category": "Billing Understanding",
+                        "semantic_correctness_pass": "True",
+                        "precision_score_0_1": "0.9",
+                        "recall_score_0_1": "0.7",
+                        "hallucination_present": "False",
+                        "text_differentiation_score_1_5": "4",
+                        "safety_constraint_pass": "True",
+                        "overall_pass": "True",
+                    }
+                )
+
+            summary = summarize_review_scores(review_path)
+
+        metrics = {metric.name: metric for metric in summary.metrics}
+        self.assertEqual(metrics["groundedness_average"].value, 0.9)
+        self.assertEqual(metrics["required_coverage_average"].value, 0.7)
 
 
 if __name__ == "__main__":

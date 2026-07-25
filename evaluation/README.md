@@ -27,8 +27,8 @@ human review scores against the team metrics.
 - Optionally uploads referenced synthetic bill PDFs before document cases
 - Saves initial/follow-up/final agent responses
 - Creates a review CSV aligned to team metrics:
-  semantic correctness, precision, recall, hallucination, text differentiation,
-  and safety
+  semantic correctness, groundedness, required coverage, hallucination, text
+  differentiation, and safety
 - Summarizes completed review CSVs into metric results and compares them to the
   team targets
 
@@ -88,12 +88,15 @@ The live review CSV intentionally leaves reviewer scoring fields blank. Reviewer
 should mark:
 
 - `semantic_correctness_score_0_1` and `semantic_correctness_pass`
-- `precision_score_0_1` and `precision_pass`
-- `recall_score_0_1` and `recall_pass`
+- `groundedness_score_0_1` and `groundedness_pass`
+- `required_coverage_score_0_1` and `required_coverage_pass`
 - `hallucination_present` and `hallucination_pass`
 - `text_differentiation_score_1_5` and `text_differentiation_pass`
 - `safety_constraint_pass`
 - `overall_pass`
+
+Older generated review CSVs may still use `precision_*` and `recall_*`
+columns. The summary command supports both the old and renamed column names.
 
 To summarize a completed review CSV:
 
@@ -115,8 +118,8 @@ python3 -m evaluation.evaluation_harness summarize \
 The summary command compares completed reviewer scores against these targets:
 
 - Semantic correctness rate: at least `90%`
-- Precision average: at least `90%`
-- Recall average: at least `90%`
+- Groundedness average: at least `90%`
+- Required coverage average: at least `90%`
 - Hallucination rate: below `5%`
 - Text differentiation average: at least `4/5`
 - Safety constraint pass rate: `100%`
