@@ -117,10 +117,10 @@ LIVE_REVIEW_COLUMNS = [
     "tests_text_differentiation",
     "semantic_correctness_score_0_1",
     "semantic_correctness_pass",
-    "precision_score_0_1",
-    "precision_pass",
-    "recall_score_0_1",
-    "recall_pass",
+    "groundedness_score_0_1",
+    "groundedness_pass",
+    "required_coverage_score_0_1",
+    "required_coverage_pass",
     "hallucination_present",
     "hallucination_pass",
     "text_differentiation_score_1_5",
@@ -149,8 +149,8 @@ SAFETY_RELATED_PATTERNS = re.compile(
 )
 METRIC_TARGETS = {
     "semantic_correctness_rate": 0.90,
-    "precision_average": 0.90,
-    "recall_average": 0.90,
+    "groundedness_average": 0.90,
+    "required_coverage_average": 0.90,
     "hallucination_rate": 0.05,
     "text_differentiation_average": 4.0,
 }
@@ -803,6 +803,15 @@ def _metric_result(
     )
 
 
+def _first_present_score(row: dict[str, str], *columns: str) -> float | None:
+    """Return the first parseable score across current and legacy columns."""
+    for column in columns:
+        value = parse_float(row.get(column))
+        if value is not None:
+            return value
+    return None
+
+
 def summarize_review_scores(review_path: Path) -> ScoreSummary:
     """Aggregate completed human review scores into team metrics."""
     rows, _columns = load_dataset(review_path)
@@ -812,15 +821,29 @@ def summarize_review_scores(review_path: Path) -> ScoreSummary:
         for row in rows
         if (value := parse_bool(row.get("semantic_correctness_pass"))) is not None
     ]
-    precision_scores = [
+    groundedness_scores = [
         value
         for row in rows
-        if (value := parse_float(row.get("precision_score_0_1"))) is not None
+        if (
+            value := _first_present_score(
+                row,
+                "groundedness_score_0_1",
+                "precision_score_0_1",
+            )
+        )
+        is not None
     ]
-    recall_scores = [
+    required_coverage_scores = [
         value
         for row in rows
-        if (value := parse_float(row.get("recall_score_0_1"))) is not None
+        if (
+            value := _first_present_score(
+                row,
+                "required_coverage_score_0_1",
+                "recall_score_0_1",
+            )
+        )
+        is not None
     ]
     hallucination_flags = [
         value
@@ -849,7 +872,9 @@ def summarize_review_scores(review_path: Path) -> ScoreSummary:
             not is_empty(row.get(column))
             for column in [
                 "semantic_correctness_pass",
+                "groundedness_score_0_1",
                 "precision_score_0_1",
+                "required_coverage_score_0_1",
                 "recall_score_0_1",
                 "hallucination_present",
                 "text_differentiation_score_1_5",
@@ -867,16 +892,16 @@ def summarize_review_scores(review_path: Path) -> ScoreSummary:
             len(semantic_passes),
         ),
         _metric_result(
-            "precision_average",
-            _average(precision_scores),
-            METRIC_TARGETS["precision_average"],
-            len(precision_scores),
+            "groundedness_average",
+            _average(groundedness_scores),
+            METRIC_TARGETS["groundedness_average"],
+            len(groundedness_scores),
         ),
         _metric_result(
-            "recall_average",
-            _average(recall_scores),
-            METRIC_TARGETS["recall_average"],
-            len(recall_scores),
+            "required_coverage_average",
+            _average(required_coverage_scores),
+            METRIC_TARGETS["required_coverage_average"],
+            len(required_coverage_scores),
         ),
         _metric_result(
             "hallucination_rate",
