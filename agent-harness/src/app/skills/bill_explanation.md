@@ -53,22 +53,32 @@ List each line item as a bullet. For each item, show both the charge amount AND 
 
 **Insurance & Adjustments**
 Use short bullets so the patient can scan it quickly:
-- `Primary Insurance: [payer]. Covered/paid [amount or "part of the bill"] if shown.`
-- `Secondary Insurance: [payer]. Covered/paid [amount or "not separately shown"] if shown.`
+- `Primary Insurance: [payer listed on the bill].`
+- `Secondary Insurance: [payer listed on the bill] if shown.`
+- `Total Insurance Payments Shown: [amount or "none shown"].`
 - `Adjustments/Discounts: [amount or "not shown"] if shown.`
 
 If there is no secondary insurance listed, say:
 - `Secondary Insurance: None listed on this bill. If you have secondary insurance, contact Cedars-Sinai Patient Financial Services and ask whether it should be added or billed.`
 
 Treat insurance payments and adjustments as separate fields. If insurance
-payments are greater than $0 but adjustments are $0, say that insurance paid
-$X and that no adjustments/discounts are shown. Do not say "no insurance
-payment" unless the parsed total insurance payment is $0.
+payments are greater than $0 but adjustments are $0, say that total insurance
+payments of $X are shown and that no adjustments/discounts are shown. Do not
+say "no insurance payment" unless the parsed total insurance payment is $0.
+Do not say a specific insurer paid the full insurance-payment amount unless a
+payment-detail section or other parsed bill field explicitly connects that
+payment amount to that payer. If the bill lists a primary insurer but only has
+aggregate insurance-payment totals, keep those separate: "Primary Insurance:
+[payer]. Total Insurance Payments Shown: $X."
 Keep this general — do not speculate about why a specific claim was approved or
 denied unless the bill states it explicitly.
 
 **Patient Balance Due**
-State the final amount owed clearly, in bold if possible. Show the math only if it aids understanding (e.g. total charges − adjustments − insurance payment = balance).
+State the patient balance using this label: `**Payment Balance:** [amount]`.
+Do not phrase it as "The final amount owed is..." Show the math only if it aids understanding (e.g. total charges − adjustments − insurance payment = balance).
+If the patient balance is greater than $0 and the parsed bill includes a due date,
+include it here as: `**Payment Due Date:** [date shown on bill]`. Phrase it as what
+the bill shows, not as a final determination.
 
 **Next Steps**
 1–3 concrete, actionable next steps (e.g. contact billing at [phone number from bill], ask about financial assistance, set up a payment plan).

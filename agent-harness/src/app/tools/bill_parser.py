@@ -309,9 +309,16 @@ def _strip_corrupted_parenthetical(value: str) -> str:
     """Remove parentheticals corrupted by PDF text-merge with mailing addresses."""
 
     def is_corrupted(inner: str) -> bool:
+        # A former third check here — "2+ single-letter-period
+        # abbreviations" (meant to catch "P.O." bleed) — was removed.
+        # It also matched legitimate content like "L.A." in "Medi-Cal
+        # (Managed Care – L.A. Care Health Plan)", silently deleting a
+        # real payer detail. The two checks below already cover the
+        # actual corruption signature specifically; the removed one
+        # generalized to over-stripping on suspicion rather than positive
+        # evidence — exactly the failure mode Professor Vo's feedback
+        # (parser-vs-gold, item 1B) called out by name.
         if re.search(r"Box|48750|Los Angeles|P[\.\)]\s*O", inner, re.IGNORECASE):
-            return True
-        if len(re.findall(r"\b[A-Za-z]\.", inner)) >= 2:
             return True
         if len(re.findall(r"[^\w\s\-–(),./&+]", inner)) > 2:
             return True
@@ -376,6 +383,70 @@ def _clean_insurance_value(value: str | None) -> str | None:
     )
     cleaned = _strip_corrupted_parenthetical(cleaned)
     return cleaned.strip(" .,") or None
+
+
+def _extract_insurance_by_line_clustering(path: Path) -> dict[str, str | None] | None:
+    """Extract Primary/Secondary Insurance values from a PDF using precise
+    word-position clustering, bypassing pdfplumber's flattened text.
+
+    Some bills in this dataset render the insurance parenthetical and an
+    unrelated P.O. Box address line at nearly the same y-position — gaps as
+    small as ~0.4pt, well under pdfplumber's default ~3pt line-merging
+    tolerance. That causes extract_text() to treat them as one line and
+    sort their characters by x-position, interleaving two unrelated strings
+    character-by-character, e.g. "(Medicare AdvantageP).O. Box 48750, Los
+    Angeles, CA 90048" instead of "(Medicare Advantage)".
+
+    A blanket tighter y_tolerance can't fix this globally: legitimate
+    same-line label/value pairs elsewhere in this same bill template (e.g.
+    "Total Amount Due:" and its dollar amount) have a LARGER y-gap (~1.6pt)
+    than this corruption's gap (~0.4pt) — so no single tolerance value
+    keeps genuine pairs together while splitting the corrupted ones apart.
+
+    Instead, this targets the one field known to be affected: a label like
+    "Primary Insurance:" is drawn as a single continuous text run with
+    ~0 internal y-jitter, so grouping ALL characters on the page by their
+    exact y-position and taking only the group the label itself belongs to
+    cleanly reconstructs just that one logical line — any unrelated text
+    an accidental overlap glued in sits at a measurably different y and is
+    naturally excluded, no heuristic guessing required.
+
+    Returns None (signaling "fall back to regex-over-text") if the labels
+    can't be found this way — e.g. for any bill whose layout differs enough
+    that this approach doesn't apply.
+    """
+    try:
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                lines_by_top: dict[float, list[dict[str, Any]]] = {}
+                for char in page.chars:
+                    lines_by_top.setdefault(round(char["top"], 1), []).append(char)
+
+                lines = {}
+                for top, chars in lines_by_top.items():
+                    chars.sort(key=lambda c: c["x0"])
+                    lines[top] = "".join(c["text"] for c in chars)
+
+                primary = None
+                secondary = None
+                for line in lines.values():
+                    if primary is None:
+                        match = re.match(r"\s*Primary Insurance:\s*(.+)", line, re.IGNORECASE)
+                        if match:
+                            primary = match.group(1).strip()
+                    if secondary is None:
+                        match = re.match(r"\s*Secondary Insurance:\s*(.+)", line, re.IGNORECASE)
+                        if match:
+                            secondary = match.group(1).strip()
+
+                if primary is not None or secondary is not None:
+                    return {
+                        "primary": _clean_insurance_value(primary),
+                        "secondary": _clean_insurance_value(secondary),
+                    }
+    except Exception:
+        logger.exception("Word-position insurance extraction failed; falling back to text regex")
+    return None
 
 
 def _extract_insurance_info(text: str) -> dict[str, str | None]:
@@ -540,6 +611,16 @@ def _extract_bill_totals(text: str) -> dict[str, float | None]:
     four_amount_line: list[float] | None = None
     three_amount_line: list[float] | None = None
     for line in totals_lines:
+        # Self-pay/no-insurance bills render the "Ins Pmts" column as an
+        # em dash ("—") instead of "$0.00" — a real dollar amount is never
+        # a literal dash, so this substitution is unambiguous. Without it,
+        # a 4-column totals line (billed/ins pmts/adj/patient bal) with a
+        # dashed-out insurance column only yields 3 *numeric* amounts,
+        # which previously got misread as (billed, outstanding_balance,
+        # patient_balance) instead of (billed, adjustments, patient_balance)
+        # — silently losing total_insurance_payments and total_adjustments
+        # for every self-pay bill.
+        line = line.replace("—", "$0.00")
         amounts = _amounts_from_cell(line)
         if len(amounts) >= 4:
             four_amount_line = amounts[:4]
@@ -553,13 +634,18 @@ def _extract_bill_totals(text: str) -> dict[str, float | None]:
             totals["total_adjustments"],
             totals["patient_balance"],
         ) = four_amount_line
+        # Default outstanding_balance = patient_balance since a 4-column
+        # line has no separate slot for it — true for every bill in this
+        # corpus except one (deliberately built so the two differ, to
+        # test discrepancy detection). Prefer a three_amount_line's real,
+        # distinct outstanding_balance when one was also found, rather
+        # than unconditionally overwriting it with this assumption.
         totals["outstanding_balance"] = totals["patient_balance"]
-    elif three_amount_line:
-        (
-            totals["total_billed"],
-            totals["outstanding_balance"],
-            totals["patient_balance"],
-        ) = three_amount_line
+    if three_amount_line:
+        billed, outstanding_balance, patient_balance = three_amount_line
+        totals["total_billed"] = totals["total_billed"] or billed
+        totals["outstanding_balance"] = outstanding_balance
+        totals["patient_balance"] = totals["patient_balance"] or patient_balance
 
     if totals["total_amount_due"] is None and totals["patient_balance"] is not None:
         totals["total_amount_due"] = totals["patient_balance"]
@@ -1167,8 +1253,13 @@ def _extract_guarantor_info(text: str) -> dict[str, str | None]:
     }
 
 
-def _extract_bill_header_fields(text: str) -> dict[str, Any]:
-    """Extract patient, insurance, contact, and bill-level total fields."""
+def _extract_bill_header_fields(text: str, pdf_path: Path | None = None) -> dict[str, Any]:
+    """Extract patient, insurance, contact, and bill-level total fields.
+
+    pdf_path, when given, enables word-position-based insurance extraction
+    (see _extract_insurance_by_line_clustering) instead of the regex-over-
+    flattened-text fallback — pass it for real PDFs, not OCR'd photo text.
+    """
     service_date = None
     match = SERVICE_DATE_PATTERN.search(text)
     if match:
@@ -1203,7 +1294,10 @@ def _extract_bill_header_fields(text: str) -> dict[str, Any]:
             "service_date": service_date,
         },
         "guarantor": _extract_guarantor_info(text),
-        "insurance": _extract_insurance_info(text),
+        "insurance": (
+            (pdf_path and _extract_insurance_by_line_clustering(pdf_path))
+            or _extract_insurance_info(text)
+        ),
         "contact_info": _extract_contact_info(text),
         "statement_date": statement_date,
         "due_date": due_date,
@@ -1248,7 +1342,7 @@ def parse_bill_file(file_path: str) -> dict[str, Any]:
             if code not in {entry["code"] for entry in billing_codes}:
                 billing_codes.append({"code": code, "type": "unknown"})
     billing_flags = _bill_flags(text, line_items)
-    header_fields = _extract_bill_header_fields(text)
+    header_fields = _extract_bill_header_fields(text, pdf_path=path if suffix == ".pdf" else None)
 
     result = {
         "source_file": str(path),

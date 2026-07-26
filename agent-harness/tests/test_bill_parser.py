@@ -15,6 +15,7 @@ from app.tools.bill_parser import (
     _bill_flags,
     _extract_bill_header_fields,
     _extract_guarantor_info,
+    _extract_insurance_by_line_clustering,
     _extract_insurance_info,
     _line_item_duplicate_signals,
     _line_item_total,
@@ -159,6 +160,44 @@ Pay by Phone: 866-803-1777
         self.assertTrue(result["math_consistency"]["consistent"])
         self.assertEqual(result["math_consistency"]["summed_billed"], 68400.0)
 
+    def test_parse_bill_pdf_preserves_distinct_outstanding_and_patient_balance(self):
+        """Regression test: bill_v2_intentionally_incorrect_math_13 is
+        deliberately built so outstanding_balance (260.0, mathematically
+        correct) differs from patient_balance/total_amount_due (960.0,
+        the intentional error) — every other bill in the corpus has these
+        equal. The summary "Totals" line correctly gives both as distinct
+        values, but a later itemized "Totals" line (4 columns: billed/
+        ins pmts/adj/patient bal) has no separate slot for outstanding
+        balance, so _extract_bill_totals defaulted it to equal
+        patient_balance — silently overwriting the real 260.0 with 960.0
+        for this one bill. Fixed by letting a 3-amount line's distinct
+        outstanding_balance take precedence over that default."""
+        result = parse_bill_pdf(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_intentionally_incorrect_math_13.pdf"
+        )
+
+        self.assertEqual(result["outstanding_balance"], 260.0)
+        self.assertEqual(result["patient_balance"], 960.0)
+        self.assertFalse(result["math_consistency"]["consistent"])
+
+    def test_parse_bill_pdf_fills_self_pay_zero_insurance_and_adjustments(self):
+        """Regression test: self-pay bills render the itemized "Totals"
+        line's "Ins Pmts" column as an em dash ("—") instead of "$0.00"
+        since there's no insurance. _amounts_from_cell only recognizes
+        real dollar-amount text, so the dash was silently skipped —
+        collapsing what should be a 4-column line (billed/0/adjustments/
+        patient_balance) down to 3 numeric matches, which then got
+        misread as (billed, outstanding_balance, patient_balance),
+        losing total_insurance_payments and total_adjustments entirely
+        (both stayed None instead of their real values, 0.0 and
+        $11,480.00 respectively for this bill)."""
+        result = parse_bill_pdf(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_charity_partial_writeoff_68.pdf"
+        )
+
+        self.assertEqual(result["total_insurance_payments"], 0.0)
+        self.assertEqual(result["total_adjustments"], 11480.0)
+
     def test_parse_bill_pdf_cleans_merged_insurance_address_noise(self):
         result = parse_bill_pdf(
             "../synthetic-data/synthetic_bills_v2/bill_v2_pediatric_er_appendectomy_29.pdf"
@@ -276,6 +315,22 @@ Pay by Phone: 866-803-1777
 
         self.assertEqual(insurance["primary"], "Aetna – PPO")
         self.assertEqual(insurance["secondary"], "None on file")
+
+    def test_does_not_strip_legitimate_abbreviation_in_parenthetical(self):
+        """Regression test: bill_v2_medicaid_outpatient_20's payer name is
+        "Medi-Cal (Managed Care – L.A. Care Health Plan)". A former
+        is_corrupted() heuristic ("2+ single-letter-period abbreviations",
+        meant to catch "P.O." address bleed) also matched "L.A." here —
+        two innocent abbreviation periods — and deleted the whole
+        parenthetical, losing real plan detail. This is Professor Vo's
+        second flagged concern in parser-vs-gold item 1B: over-stripping
+        on suspicion rather than positive evidence of actual corruption."""
+        insurance = _extract_insurance_info(
+            "Primary Insurance: Medi-Cal (Managed Care – L.A. Care Health Plan)\n"
+            "Secondary Insurance: None on file\n"
+        )
+
+        self.assertEqual(insurance["primary"], "Medi-Cal (Managed Care – L.A. Care Health Plan)")
 
     def test_extracts_bare_insurance_label_with_wrapped_payer_name(self):
         text = (
@@ -530,6 +585,180 @@ class LooksLikeIdTest(unittest.TestCase):
         text = "Account Number: 22237958\nOther text"
         fields = _extract_bill_header_fields(text)
         self.assertEqual(fields["patient"]["patient_account_number"], "22237958")
+
+
+class InsuranceColumnBleedTest(unittest.TestCase):
+    """Regression tests for every bill found with the column-bleed bug
+    Professor Vo flagged (parser-vs-gold feedback, item 1B): pdfplumber's
+    default line-merging renders an insurance parenthetical and an
+    unrelated P.O. Box address line (positioned ~0.4pt apart in these
+    PDFs — well under the ~3pt default tolerance) as one interleaved
+    line. _extract_insurance_by_line_clustering fixes this by grouping
+    characters by their exact y-position instead of flattened text.
+
+    Every one of these was independently confirmed corrupted via a full
+    70-bill corpus scan before the fix, and confirmed clean with zero
+    side effects on any other field afterward — these pin that result."""
+
+    KNOWN_AFFECTED_BILLS = {
+        "bill_v2_medicare_advantage_oon_66.pdf": "SCAN Health Plan – HMO (Medicare Advantage)",
+        "bill_v2_medicare_advantage_pffs_32.pdf": "Alignment Health – PFFS (Medicare Advantage)",
+        "bill_v2_medicare_advantage_snp_33.pdf": "Scan Health Plan – D-SNP (Dual Special Needs)",
+        "bill_v2_secondary_insurance_cob_18.pdf": "Cigna – PPO (Commercial, employer-sponsored)",
+        "bill_v2_medicare_advantage_copay_discrepancy_08.pdf": (
+            "Kaiser Permanente Senior Advantage PPO (Medicare Advantage)"
+        ),
+        "bill_v2_eob_commercial_22.pdf": "UnitedHealthcare – Choice Plus PPO (employer-sponsored)",
+        "bill_v2_selfpay_prompt_pay_64.pdf": "None on file (Self-pay – prompt pay discount applied)",
+        "bill_v2_workers_comp_disputed_67.pdf": "State Compensation Insurance Fund (claim disputed)",
+        "bill_v2_workers_comp_er_15.pdf": "State Compensation Insurance Fund (Workers Comp)",
+        "bill_v2_international_selfpay_59.pdf": "None on file (International visitor – no US insurance)",
+        "bill_v2_medicaid_share_of_cost_10.pdf": "Medi-Cal – Share of Cost Plan (California Medicaid)",
+        "bill_v2_prior_auth_denial_30.pdf": "Kaiser Permanente – HMO (employer-sponsored)",
+    }
+
+    def test_all_known_affected_bills_extract_clean_insurance(self):
+        for filename, expected in self.KNOWN_AFFECTED_BILLS.items():
+            with self.subTest(filename=filename):
+                result = parse_bill_file(
+                    f"../synthetic-data/synthetic_bills_v2/{filename}"
+                )
+                self.assertEqual(result["insurance"]["primary"], expected)
+
+    def test_line_clustering_returns_none_for_non_pdf_path(self):
+        """Falls back cleanly (no exception) when given something that
+        isn't a real PDF pdfplumber can open."""
+        result = _extract_insurance_by_line_clustering(
+            TESTDATA_DIR / "bill_photo_legible.png"
+        )
+        self.assertIsNone(result)
+
+    def test_line_clustering_extracts_secondary_insurance_too(self):
+        result = _extract_insurance_by_line_clustering(
+            Path("../synthetic-data/synthetic_bills_v2/bill_v2_secondary_insurance_cob_18.pdf")
+        )
+        self.assertIsNotNone(result)
+        self.assertIsNotNone(result["secondary"])
+
+
+def _json_date_to_parsed_format(raw: str | None) -> str | None:
+    """Convert a bill JSON's "YYYY-MM-DD" date to the parser's "MM/DD/YYYY"
+    output format, for direct comparison against parsed results."""
+    if not raw:
+        return None
+    year, month, day = raw.split("-")
+    return f"{month}/{day}/{year}"
+
+
+class CorpusFieldRecallTest(unittest.TestCase):
+    """Corpus-wide regression gate: parses every real bill PDF and checks
+    key header fields directly against that bill's own source JSON (the
+    ground truth the PDF was generated from) — not hand-labeled data, so
+    this covers all 70 bills at effectively no authoring cost.
+
+    This is the closest equivalent this repo has to Professor Vo's
+    "core_field_recall... regression gate" (parser-vs-gold feedback,
+    item 1) — there's no separate audit notebook or CI pipeline here, but
+    this runs as part of the same test suite already run before every PR,
+    and fails loudly if a future change regresses any bill's extraction."""
+
+    FIELDS_TO_CHECK = [
+        "facility_name",
+        "statement_date",
+        "due_date",
+        "total_amount_due",
+        "total_billed",
+        "total_insurance_payments",
+        "total_adjustments",
+        "outstanding_balance",
+        "patient_balance",
+    ]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.bill_dir = Path("../synthetic-data/synthetic_bills_v2")
+        cls.pdf_paths = sorted(cls.bill_dir.glob("*.pdf"))
+        assert len(cls.pdf_paths) == 70, f"expected 70 bills, found {len(cls.pdf_paths)}"
+
+    def _load_gold(self, json_path: Path) -> dict:
+        with json_path.open() as f:
+            return json.load(f)
+
+    def test_header_fields_match_source_json_across_full_corpus(self):
+        mismatches = []
+        for pdf_path in self.pdf_paths:
+            json_path = pdf_path.with_suffix(".json")
+            gold = self._load_gold(json_path)
+            result = parse_bill_file(str(pdf_path))
+
+            gold_flat = {
+                "facility_name": gold.get("facility", {}).get("name"),
+                "statement_date": _json_date_to_parsed_format(gold.get("statement_date")),
+                "due_date": _json_date_to_parsed_format(gold.get("due_date")),
+                "total_amount_due": gold.get("total_amount_due"),
+                **{
+                    k: gold.get("summary_of_services", {}).get("totals", {}).get(k)
+                    for k in [
+                        "total_billed",
+                        "total_insurance_payments",
+                        "total_adjustments",
+                        "outstanding_balance",
+                        "patient_balance",
+                    ]
+                },
+            }
+
+            for field in self.FIELDS_TO_CHECK:
+                expected = gold_flat.get(field)
+                actual = result.get(field)
+                if expected is not None and expected != actual:
+                    mismatches.append(
+                        (pdf_path.name, field, expected, actual)
+                    )
+
+        total_checks = len(self.pdf_paths) * len(self.FIELDS_TO_CHECK)
+        recall = 1 - (len(mismatches) / total_checks)
+        if mismatches:
+            detail = "\n".join(
+                f"  {name}: {field} expected={expected!r} actual={actual!r}"
+                for name, field, expected, actual in mismatches
+            )
+            self.fail(
+                f"core_field_recall={recall:.4f} "
+                f"({len(mismatches)}/{total_checks} field checks failed):\n{detail}"
+            )
+
+    def test_insurance_and_guarantor_match_source_json_across_full_corpus(self):
+        """Separate from the numeric/date header fields above since these
+        are the two fields with known historical fragility (column-bleed
+        corruption, OCR label noise) — tracked on their own so a future
+        regression here is unambiguous about which subsystem broke."""
+        mismatches = []
+        for pdf_path in self.pdf_paths:
+            json_path = pdf_path.with_suffix(".json")
+            gold = self._load_gold(json_path)
+            result = parse_bill_file(str(pdf_path))
+
+            checks = [
+                ("insurance.primary", gold.get("insurance", {}).get("primary"), result["insurance"].get("primary")),
+                ("insurance.secondary", gold.get("insurance", {}).get("secondary"), result["insurance"].get("secondary")),
+                ("guarantor.guarantor_name", gold.get("guarantor", {}).get("guarantor_name"), result["guarantor"].get("guarantor_name")),
+            ]
+            for field, expected, actual in checks:
+                if expected is not None and expected != actual:
+                    mismatches.append((pdf_path.name, field, expected, actual))
+
+        total_checks = len(self.pdf_paths) * 3
+        recall = 1 - (len(mismatches) / total_checks)
+        if mismatches:
+            detail = "\n".join(
+                f"  {name}: {field} expected={expected!r} actual={actual!r}"
+                for name, field, expected, actual in mismatches
+            )
+            self.fail(
+                f"insurance/guarantor field_recall={recall:.4f} "
+                f"({len(mismatches)}/{total_checks} field checks failed):\n{detail}"
+            )
 
 
 if __name__ == "__main__":
