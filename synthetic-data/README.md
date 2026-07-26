@@ -197,11 +197,49 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 | Field | Text-only | Document-linked | Total |
 |---|---|---|---|
 | Total cases | 30 | 70 | **100** |
-| Fields per case | 27 | 27 | 27 |
+| Fields per case | 28 | 28 | 28 |
 | Synthetic bills | 0 | 70 (JSON+PDF) | 70 unique bill sets |
 | FPL range | 0% – 689% | 0% – 915% | 0% – 915% |
 
 ---
+
+## Master CSV Schema
+
+`synthetic_validation_dataset.csv` has **28 columns**. These columns are the
+answer key and evaluation metadata for the agent; reviewers should use the
+linked bill JSON/PDF as the source of truth when a generated CSV value appears
+stale.
+
+| Column | What it represents |
+|---|---|
+| `case_id` | Stable case identifier used by the evaluation harness, such as `DV2-009` |
+| `category` | High-level evaluation category: Billing Understanding, Financial Assistance, Action Planning, Document Parsing, or Safety |
+| `document_type` | Legacy descriptive label for the case or bill type; useful for reading, but not controlled enough for coverage analysis |
+| `input_format` | Original harness input type: `text` for text-only cases or `document` for bill-linked cases |
+| `insurance_type` | Legacy payer/insurance description from the original dataset; may include payer and plan details together |
+| `modality` | Controlled input medium: `pdf`, `photo`, or `text` |
+| `scenario` | Controlled billing/evaluation scenario, such as `math_error`, `duplicate`, `collections`, `cob`, or `financial_assistance` |
+| `payer` | Normalized payer class, such as `Commercial`, `Medicare`, `Medicare Advantage`, `Medicaid`, `Uninsured`, or `Other` |
+| `plan_type` | Controlled plan-level detail, such as `Commercial PPO`, `HDHP`, `Medigap`, `Self-Pay`, or `Workers Comp` |
+| `household_size` | Household size used for FPL/financial-assistance cases, or `N/A` when not relevant |
+| `annual_income_usd` | Annual household income used for FPL/financial-assistance cases, or `N/A` when not relevant |
+| `amount_owed_usd` | Expected patient balance or amount owed for the case |
+| `fpl_percentage` | Expected Federal Poverty Level percentage when applicable, or `N/A` |
+| `expected_eligibility_tier` | Expected financial-assistance tier or screening outcome when applicable |
+| `patient_input` | Initial user prompt to send to the agent |
+| `agent_clarifying_question` | Expected clarification the agent should ask, if the case requires one |
+| `patient_followup` | Follow-up user turn for multi-turn cases, or `N/A` for single-turn cases |
+| `expected_agent_response_summary` | Human-readable summary of what a strong answer should include |
+| `expected_extracted_fields` | Key facts the agent should extract or ground on, such as patient balance, insurance, dates, or line items |
+| `expected_next_steps` | Expected action guidance, such as who to call, what to ask, or what documents to compare |
+| `safety_constraint` | Case-specific safety rule, boundary, or prohibited behavior; may be blank only for low-risk cases |
+| `tests_semantic_correctness` | `True` if this case should be scored for factual correctness against the bill and expected answer |
+| `tests_groundedness` | `True` if this case should be scored for whether the answer stays supported by the bill and Cedars-specific context |
+| `tests_required_coverage` | `True` if this case should be scored for whether the answer includes required facts, guidance, and next steps |
+| `tests_hallucination_rate` | `True` if this case should be checked for invented or unsupported details |
+| `tests_text_differentiation` | `True` if this case should be scored for responding specifically to the case rather than giving generic advice |
+| `source_docs` | Knowledge documents expected to support the answer |
+| `bill_doc_file` | Linked synthetic bill JSON file, or `N/A` for text-only cases |
 
 The master CSV includes four controlled evaluation metadata columns used for
 coverage analysis:

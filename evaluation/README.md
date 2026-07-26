@@ -11,7 +11,7 @@ human review scores against the team metrics.
 ## What It Does
 
 - Loads `synthetic-data/synthetic_validation_dataset.csv`
-- Confirms the expected 27-column schema is present
+- Confirms the expected 28-column schema is present
 - Counts cases by category, insurance type, document type, input format,
   modality, scenario, payer, plan type, and evaluation flag
 - Validates controlled evaluation metadata values for `modality`, `scenario`,
