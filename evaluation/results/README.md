@@ -51,12 +51,39 @@ python3 -m evaluation.evaluation_harness summarize \
 
 Use this CSV as an evidence base for future agent improvements:
 
-1. Find cases with low scores or `overall_pass = FALSE`.
-2. Read `reviewer_notes` to identify the failure pattern.
-3. Decide whether the fix belongs in prompts, parser logic, safety hooks, UI
-   context handling, or evaluation data.
-4. Add or update a regression test for the failing behavior.
-5. Rerun the affected case through the live-agent evaluation harness.
+1. Open `midterm_agent_evaluation_scoring.csv`.
+2. Filter for rows where `overall_pass = FALSE`.
+3. Also review rows with any of these risk signals:
+   - `semantic_correctness_score_0_1 < 0.90`
+   - `groundedness_score_0_1 < 0.90`
+   - `required_coverage_score_0_1 < 0.90`
+   - `hallucination_present = TRUE`
+   - `text_differentiation_score_1_5 < 4`
+   - `safety_constraint_pass = FALSE`
+4. Read `reviewer_notes`, `expected_agent_response_summary`,
+   `expected_extracted_fields`, and `expected_next_steps` for those cases.
+5. Compare the agent response against the linked bill PDF/JSON when numbers,
+   payer fields, dates, balances, or line items are involved.
+6. Label the failure type:
+   - **Prompt/skill issue:** the bill data was available, but the response was
+     generic, poorly ordered, or missed required next steps.
+   - **Parser issue:** the agent used wrong or missing fields because bill
+     extraction failed.
+   - **Safety issue:** the agent made a final legal, billing-validity, payment,
+     or insurance-coverage determination it should have bounded.
+   - **UI/context issue:** follow-up questions lost the uploaded bill context or
+     confused multiple uploaded bills.
+   - **Evaluation-data issue:** the expected answer or CSV field disagrees with
+     the source bill JSON/PDF.
+7. Make the smallest targeted fix in the relevant area.
+8. Add or update a regression test for that behavior.
+9. Rerun the affected case through the live-agent evaluation harness.
+10. If the fix changes expected behavior, update the synthetic case or reviewer
+    notes so future reviewers understand the new standard.
+
+In short: use the scored CSV to find the failure, use the bill PDF/JSON and
+expected fields to confirm the source of truth, then turn the reviewer note into
+a targeted code, prompt, parser, safety, UI, or evaluation-data fix.
 
 This file should be treated as a versioned evaluation artifact, not as training
 data containing real patient information. The cases are synthetic.

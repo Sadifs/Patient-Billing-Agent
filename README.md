@@ -118,6 +118,47 @@ The `knowledge-docs/` directory contains Cedars-Sinai billing and financial assi
 | Common Procedures | Pricing for 25 most common outpatient procedures |
 | Debt Collection Policy | Patient rights and collection process |
 
+## Evaluation
+
+The formal evaluation workflow lives in [`evaluation/README.md`](evaluation/README.md).
+Use it to validate the synthetic dataset, run cases through the local agent, and
+summarize scored review CSVs.
+
+For the current evaluation artifacts:
+
+- **Synthetic answer key:** [`synthetic-data/synthetic_validation_dataset.csv`](synthetic-data/synthetic_validation_dataset.csv)
+- **Synthetic dataset schema:** [`synthetic-data/README.md`](synthetic-data/README.md)
+- **Midterm scored review CSV:** [`evaluation/results/midterm_agent_evaluation_scoring.csv`](evaluation/results/midterm_agent_evaluation_scoring.csv)
+- **Midterm results guide:** [`evaluation/results/README.md`](evaluation/results/README.md)
+- **Midterm error analysis:** [`evaluation/results/midterm_error_analysis.md`](evaluation/results/midterm_error_analysis.md)
+
+Basic evaluation flow:
+
+1. Validate the synthetic dataset:
+   ```bash
+   python3 -m evaluation.evaluation_harness validate
+   ```
+2. Start the local agent:
+   ```bash
+   cd agent-harness
+   docker compose up --build
+   ```
+3. In another terminal, run selected cases through the live agent:
+   ```bash
+   python3 -m evaluation.evaluation_harness run-live \
+     --case-id DV2-021 \
+     --case-id DV2-063 \
+     --output evaluation/live_agent_review_selected.csv
+   ```
+4. Score the generated CSV using human review plus optional LLM assistance.
+5. Summarize the completed review CSV:
+   ```bash
+   python3 -m evaluation.evaluation_harness summarize \
+     evaluation/live_agent_review_selected.csv
+   ```
+6. Use low scores and `reviewer_notes` to decide whether fixes belong in
+   prompts, parser logic, safety hooks, UI context handling, or evaluation data.
+
 ## Architecture
 
 The application uses an **agent harness** pattern:
