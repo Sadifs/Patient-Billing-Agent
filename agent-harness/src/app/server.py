@@ -352,7 +352,12 @@ def _bill_header_question_field(text: str) -> str | None:
         )
     )
     asks_explanation = bool(
-        re.search(r"\b(why|how come|did(?:n't| not)|does(?:n't| not)|cover|covered|pay|paid)\b", normalized)
+        re.search(
+            r"\b(why|how come|explain|break\s*down|did(?:n't| not)|"
+            r"does(?:n't| not)|cover|covered|pay|paid|payments?|"
+            r"adjustments?|discounts?)\b",
+            normalized,
+        )
     )
 
     if re.search(

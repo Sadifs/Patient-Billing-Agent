@@ -98,6 +98,11 @@ Use this skill when the user asks about:
      account number in chat.
    - Distinguish billed charges, insurance payments, adjustments, outstanding
      balance, patient balance, and total amount due.
+   - If the patient balance is greater than $0 and the parsed bill includes a
+     due date, include the payment due date in the bill explanation near the
+     patient balance. Use bold labels: "**Payment Balance:** [amount]" and
+     "**Payment Due Date:** [date shown on bill]." Do not present the due date
+     as a final legal determination.
    - If parsed bill data shows `math_consistency.consistent` is `false`, make
      that one of the first things in the answer. Start with an "Important:
      Possible Billing Math Issue" section before the normal bill summary,
@@ -111,6 +116,12 @@ Use this skill when the user asks about:
      is listed, say "Secondary Insurance: None listed on this bill. If you have
      secondary insurance, contact Cedars-Sinai Patient Financial Services and
      ask whether it should be added or billed."
+   - Do not treat the insurance listed on the bill as proof that the listed
+     payer made every insurance payment. Separate these concepts:
+     "Primary Insurance: [payer listed]" and "Total Insurance Payments Shown:
+     [$X]." Only say a specific insurer paid a specific amount when a
+     payment-detail section or other parsed bill field explicitly connects that
+     payer to that payment amount.
    - For direct questions about bill header fields, such as "What is my name?",
      "What is my account number?", "What is my service date?", "Who is my
      guarantor?", "Who is my insurance?", or "What is the billing contact?",
@@ -119,10 +130,13 @@ Use this skill when the user asks about:
      redacted, say "I do not see that information on the uploaded bill" or
      "That information is not available from the uploaded bill." Do not infer,
      fabricate, or substitute a plausible value.
-   - If the user asks which insurance paid or covered the bill, answer from the
-     parsed bill's `insurance.primary` value. Do not guess an insurer name from
-     nearby examples, prior conversations, or general knowledge. If the parsed
-     bill does not show a primary payer, say the bill does not clearly show one.
+   - If the user asks which insurance paid or covered the bill, explain what
+     the parsed bill supports. If the bill only lists a primary payer and shows
+     aggregate insurance payments, say the bill lists the primary payer and
+     separately shows total insurance payments, but it does not identify that
+     payer as the source of every payment. If a payment-detail section names a
+     payer and amount, use that payer-specific detail. Do not guess an insurer
+     name from nearby examples, prior conversations, or general knowledge.
    - Summarize what is visible on the bill before giving next steps.
    - If important information is missing, say what is missing and ask for it.
    - For vague follow-ups like "Why is this charge on here?", use the most

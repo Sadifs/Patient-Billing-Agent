@@ -353,6 +353,22 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIsNone(answer)
 
+    def test_direct_bill_header_answer_does_not_hijack_payment_adjustment_explanations(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_charity_partial_writeoff_68.pdf".',
+            }
+        ]
+
+        answer = _direct_bill_header_answer(
+            "Can you explain the insurance payments and adjustments on this bill?",
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
     def test_direct_bill_header_answer_reads_service_date_from_uploaded_bill(self):
         history = [
             {
