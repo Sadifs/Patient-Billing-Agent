@@ -197,9 +197,22 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 | Field | Text-only | Document-linked | Total |
 |---|---|---|---|
 | Total cases | 30 | 70 | **100** |
-| Fields per case | 23 | 23 | 23 |
+| Fields per case | 27 | 27 | 27 |
 | Synthetic bills | 0 | 70 (JSON+PDF) | 70 unique bill sets |
 | FPL range | 0% – 689% | 0% – 915% | 0% – 915% |
+
+---
+
+The master CSV includes four controlled evaluation metadata columns used for
+coverage analysis:
+
+- `modality`: `pdf`, `photo`, or `text`
+- `scenario`: controlled billing/evaluation scenario such as `coverage_issue`,
+  `math_error`, `duplicate`, `collections`, `cob`, or `financial_assistance`
+- `payer`: normalized payer class such as `Commercial`, `Medicare`,
+  `Medicare Advantage`, `Medicaid`, `Uninsured`, or `Other`
+- `plan_type`: plan-level detail such as `Commercial PPO`, `HDHP`,
+  `Medicaid Managed Care`, `Medigap`, `Self-Pay`, or `Workers Comp`
 
 ---
 
