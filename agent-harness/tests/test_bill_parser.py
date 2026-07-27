@@ -13,6 +13,7 @@ from app.tools.bill_parser import (
     TOTAL_DUE_PATTERN,
     LowConfidenceOCRError,
     _bill_flags,
+    _build_provenance,
     _extract_bill_header_fields,
     _extract_guarantor_info,
     _extract_insurance_by_line_clustering,
@@ -758,6 +759,85 @@ class CorpusFieldRecallTest(unittest.TestCase):
             self.fail(
                 f"insurance/guarantor field_recall={recall:.4f} "
                 f"({len(mismatches)}/{total_checks} field checks failed):\n{detail}"
+            )
+
+
+class BuildProvenanceTest(unittest.TestCase):
+    """Unit tests for _build_provenance, decoupled from a real bill file so
+    each scenario (PDF/photo, consistent/inconsistent, high/low OCR
+    confidence) can be tested with controlled inputs."""
+
+    def test_pdf_fields_get_deterministic_confidence_and_no_warnings(self):
+        header_fields = {
+            "total_billed": 100.0,
+            "total_amount_due": 100.0,
+        }
+        math_consistency = {"consistent": True}
+
+        provenance = _build_provenance(header_fields, "pdf", 1.0, math_consistency)
+
+        self.assertEqual(provenance["total_billed"]["method"], "text_regex")
+        self.assertEqual(provenance["total_billed"]["confidence"], 1.0)
+        self.assertEqual(provenance["total_billed"]["warnings"], [])
+
+    def test_reconciliation_failure_flags_every_tracked_field(self):
+        header_fields = {"total_billed": 100.0, "patient_balance": 50.0}
+        math_consistency = {"consistent": False}
+
+        provenance = _build_provenance(header_fields, "pdf", 1.0, math_consistency)
+
+        for field_name in ("total_billed", "patient_balance"):
+            self.assertIn("fails_total_reconciliation", provenance[field_name]["warnings"])
+
+    def test_photo_fields_use_ocr_method_and_real_confidence(self):
+        header_fields = {"total_amount_due": 600.0}
+        math_consistency = {"consistent": True}
+
+        provenance = _build_provenance(header_fields, "photo", 0.85, math_consistency)
+
+        self.assertEqual(provenance["total_amount_due"]["method"], "ocr")
+        self.assertEqual(provenance["total_amount_due"]["confidence"], 0.85)
+        self.assertEqual(provenance["total_amount_due"]["warnings"], [])
+
+    def test_low_confidence_photo_gets_flagged_even_when_consistent(self):
+        """A photo can clear the hard OCR_MIN_CONFIDENCE gate (get parsed
+        at all) while still being mediocre enough that its numbers deserve
+        a "double check this" flag, independent of whether the math
+        happens to reconcile."""
+        header_fields = {"total_amount_due": 600.0}
+        math_consistency = {"consistent": True}
+
+        provenance = _build_provenance(header_fields, "photo", 0.50, math_consistency)
+
+        self.assertIn("low_ocr_confidence", provenance["total_amount_due"]["warnings"])
+
+    def test_untracked_and_missing_fields_are_excluded(self):
+        header_fields = {"total_billed": None, "facility_name": "Cedars-Sinai"}
+        math_consistency = {"consistent": True}
+
+        provenance = _build_provenance(header_fields, "pdf", 1.0, math_consistency)
+
+        self.assertNotIn("total_billed", provenance)
+        self.assertNotIn("facility_name", provenance)
+
+    def test_parse_bill_file_attaches_provenance_for_real_pdf(self):
+        result = parse_bill_file(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_selfpay_er_01.pdf"
+        )
+
+        self.assertIn("_provenance", result)
+        self.assertEqual(result["_provenance"]["total_amount_due"]["method"], "text_regex")
+        self.assertEqual(result["_provenance"]["total_amount_due"]["warnings"], [])
+
+    def test_parse_bill_file_flags_provenance_on_intentionally_broken_bill(self):
+        result = parse_bill_file(
+            "../synthetic-data/synthetic_bills_v2/bill_v2_intentionally_incorrect_math_13.pdf"
+        )
+
+        for field_name in ("total_billed", "patient_balance", "total_amount_due"):
+            self.assertIn(
+                "fails_total_reconciliation",
+                result["_provenance"][field_name]["warnings"],
             )
 
 
