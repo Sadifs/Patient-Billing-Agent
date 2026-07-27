@@ -168,6 +168,7 @@ CONTROLLED_METADATA_VALUES = {
         "payment_plan",
         "safety_boundary",
         "share_of_cost",
+        "third_party_payer",
         "wrong_patient",
     },
     "payer": {
