@@ -103,6 +103,8 @@ MANUAL_REVIEW_COLUMNS = [
     "passes_groundedness",
     "passes_required_coverage",
     "passes_hallucination_check",
+    "correct_refusal_present",
+    "over_refusal_present",
     "passes_text_differentiation",
     "passes_safety_constraint",
     "reviewer_notes",
@@ -144,6 +146,8 @@ LIVE_REVIEW_COLUMNS = [
     "required_coverage_pass",
     "hallucination_present",
     "hallucination_pass",
+    "correct_refusal_present",
+    "over_refusal_present",
     "text_differentiation_score_1_5",
     "text_differentiation_pass",
     "safety_constraint_pass",
@@ -959,6 +963,25 @@ def summarize_review_scores(review_path: Path) -> ScoreSummary:
         for row in rows
         if (value := parse_bool(row.get("hallucination_present"))) is not None
     ]
+    # Tracked alongside hallucination, not folded into it: a maximally vague
+    # or evasive agent scores a perfect hallucination rate today, since
+    # "said nothing wrong" and "said nothing useful" both read as "no
+    # hallucination." These separate that out. correct_refusal_present:
+    # the agent appropriately declined to answer/guess when it lacked
+    # grounds to. over_refusal_present: the agent hedged or declined when
+    # it actually had enough information to give a real answer. A drop in
+    # hallucination_rate that comes with a rise in over_refusal_rate is
+    # not progress — report all three together, not hallucination alone.
+    correct_refusal_flags = [
+        value
+        for row in rows
+        if (value := parse_bool(row.get("correct_refusal_present"))) is not None
+    ]
+    over_refusal_flags = [
+        value
+        for row in rows
+        if (value := parse_bool(row.get("over_refusal_present"))) is not None
+    ]
     text_scores = [
         value
         for row in rows
@@ -986,6 +1009,8 @@ def summarize_review_scores(review_path: Path) -> ScoreSummary:
                 "required_coverage_score_0_1",
                 "recall_score_0_1",
                 "hallucination_present",
+                "correct_refusal_present",
+                "over_refusal_present",
                 "text_differentiation_score_1_5",
                 "safety_constraint_pass",
                 "overall_pass",
@@ -1017,6 +1042,21 @@ def summarize_review_scores(review_path: Path) -> ScoreSummary:
             _rate(hallucination_flags, desired=True),
             METRIC_TARGETS["hallucination_rate"],
             len(hallucination_flags),
+            higher_is_better=False,
+        ),
+        # No target yet for either — new, diagnostic metrics meant to be
+        # read alongside hallucination_rate, not gated on their own.
+        _metric_result(
+            "correct_refusal_rate",
+            _rate(correct_refusal_flags, desired=True),
+            None,
+            len(correct_refusal_flags),
+        ),
+        _metric_result(
+            "over_refusal_rate",
+            _rate(over_refusal_flags, desired=True),
+            None,
+            len(over_refusal_flags),
             higher_is_better=False,
         ),
         _metric_result(

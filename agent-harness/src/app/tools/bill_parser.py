@@ -40,6 +40,12 @@ OCR_PSM_MODE = 6
 # we treat the photo as unreadable rather than risk parsing garbage.
 OCR_MIN_CONFIDENCE = 45
 
+# A second, softer threshold (0-1 scale, unlike OCR_MIN_CONFIDENCE above)
+# for _provenance warnings. A photo can clear OCR_MIN_CONFIDENCE (get
+# parsed at all) while still being mediocre enough that its numbers
+# deserve a "double check this" flag rather than being stated as fact.
+OCR_SOFT_CONFIDENCE_THRESHOLD = 0.70
+
 # Minimum recognized word count. Confidence alone isn't enough — a heavily
 # degraded image can yield a handful of garbage single-character "words"
 # that Tesseract is individually confident about, pulling the mean
@@ -793,7 +799,7 @@ def _line_item_duplicate_signals(line_items: list[dict[str, Any]]) -> list[dict[
     return signals
 
 
-def _extract_pdf_content(path: Path) -> tuple[str, list[list[list[Any]]], int]:
+def _extract_pdf_content(path: Path) -> tuple[str, list[list[list[Any]]], int, float]:
     text_parts: list[str] = []
     tables: list[list[list[Any]]] = []
     page_count = 0
@@ -810,7 +816,11 @@ def _extract_pdf_content(path: Path) -> tuple[str, list[list[list[Any]]], int]:
                 if table:
                     tables.append(table)
 
-    return "\n\n".join(text_parts), tables, page_count
+    # PDF text extraction is deterministic — no OCR confidence score
+    # applies, so this is a fixed 1.0 rather than a measured value. See
+    # _extract_image_content for the OCR path, which returns a real
+    # per-photo confidence instead.
+    return "\n\n".join(text_parts), tables, page_count, 1.0
 
 
 def _load_image(path: Path) -> Image.Image:
@@ -910,9 +920,12 @@ def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
     return thresholded
 
 
-def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int]:
-    """OCR a bill photo into the same (text, tables, page_count) shape
-    _extract_pdf_content returns, so it feeds the same downstream pipeline.
+def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int, float]:
+    """OCR a bill photo into the same (text, tables, page_count, confidence)
+    shape _extract_pdf_content returns, so it feeds the same downstream
+    pipeline. Unlike the PDF path's fixed 1.0, confidence here is the real
+    measured OCR confidence (0.0-1.0) for this specific photo — used to
+    populate _provenance on every field extracted from it.
 
     Tables is always empty — Tesseract gives us text, not table structure —
     which means callers fall back to the existing text-based line-item
@@ -951,7 +964,7 @@ def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int]
         lines.setdefault(key, []).append(word)
 
     text = "\n".join(" ".join(words) for words in lines.values())
-    return text, [], 1
+    return text, [], 1, round(mean_confidence / 100, 4)
 
 
 def _math_consistency_check(
@@ -1317,15 +1330,70 @@ def _line_item_total(line_items: list[dict[str, Any]]) -> float | None:
     return round(sum(amounts), 2)
 
 
+# Bill-level total fields tracked in _provenance — not every field in the
+# output, just the ones most likely to feed a derived number (FPL
+# calculations, "how much do I owe" answers) and the ones
+# _math_consistency_check already independently evaluates. Extending this
+# to insurance/patient-name fields would need _extract_bill_header_fields
+# to expose which extraction path won (regex vs. position clustering),
+# which is a real but separate piece of plumbing, not built here.
+PROVENANCE_TRACKED_FIELDS = [
+    "total_billed",
+    "total_insurance_payments",
+    "total_adjustments",
+    "outstanding_balance",
+    "patient_balance",
+    "total_amount_due",
+]
+
+
+def _build_provenance(
+    header_fields: dict[str, Any],
+    source_type: str,
+    extraction_confidence: float,
+    math_consistency: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Return a _provenance entry per bill-total field: how it was
+    extracted, how confident that extraction is, and any reason to doubt
+    it.
+
+    Per Professor Vo's parser-vs-gold feedback (item 3): any field
+    carrying a warning or below-threshold confidence should be stated
+    with the uncertainty attached and never used as an input to a
+    derived number. This block makes that reasoning inspectable per
+    field instead of only at the whole-bill level (which
+    math_consistency.recommended_guidance_if_false already covers).
+    """
+    method = "ocr" if source_type == "photo" else "text_regex"
+    confidence = round(extraction_confidence, 4)
+    reconciliation_failed = math_consistency.get("consistent") is False
+
+    provenance: dict[str, dict[str, Any]] = {}
+    for field_name in PROVENANCE_TRACKED_FIELDS:
+        if header_fields.get(field_name) is None:
+            continue
+        warnings: list[str] = []
+        if reconciliation_failed:
+            warnings.append("fails_total_reconciliation")
+        if source_type == "photo" and confidence < OCR_SOFT_CONFIDENCE_THRESHOLD:
+            warnings.append("low_ocr_confidence")
+        provenance[field_name] = {
+            "method": method,
+            "confidence": confidence,
+            "warnings": warnings,
+        }
+    return provenance
+
+
 def parse_bill_file(file_path: str) -> dict[str, Any]:
     """Parse a bill PDF or photo and return structured extraction results."""
     path = _resolve_bill_path(file_path)
     suffix = path.suffix.lower()
 
     if suffix == ".pdf":
-        text, tables, page_count = _extract_pdf_content(path)
+        text, tables, page_count, extraction_confidence = _extract_pdf_content(path)
     elif suffix in IMAGE_EXTENSIONS or suffix in HEIC_EXTENSIONS:
-        text, tables, page_count = _extract_image_content(path)
+        text, tables, page_count, extraction_confidence = _extract_image_content(path)
     else:
         raise ValueError(
             f"Unsupported file type: {suffix}. Expected a PDF or a photo "
@@ -1362,6 +1430,12 @@ def parse_bill_file(file_path: str) -> dict[str, Any]:
     }
 
     result["math_consistency"] = _math_consistency_check(text, line_items)
+    result["_provenance"] = _build_provenance(
+        result,
+        result["source_type"],
+        extraction_confidence,
+        result["math_consistency"],
+    )
 
     return result
 

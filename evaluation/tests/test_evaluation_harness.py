@@ -235,6 +235,47 @@ class EvaluationHarnessTests(unittest.TestCase):
         self.assertEqual(metrics["groundedness_average"].value, 0.75)
         self.assertEqual(metrics["hallucination_rate"].value, 0.5)
 
+    def test_summarize_review_scores_tracks_refusal_separately_from_hallucination(self) -> None:
+        """A maximally vague/evasive agent should not look identical to a
+        well-grounded one just because both have hallucination_rate=0 —
+        correct_refusal_rate and over_refusal_rate are tracked alongside
+        it specifically so that distinction is visible in the summary."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review_path = Path(tmpdir) / "review.csv"
+            with review_path.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=LIVE_REVIEW_COLUMNS)
+                writer.writeheader()
+                writer.writerow(
+                    {column: "" for column in LIVE_REVIEW_COLUMNS}
+                    | {
+                        "case_id": "CASE-1",
+                        "category": "Financial Assistance",
+                        "hallucination_present": "False",
+                        "correct_refusal_present": "True",
+                        "over_refusal_present": "False",
+                    }
+                )
+                writer.writerow(
+                    {column: "" for column in LIVE_REVIEW_COLUMNS}
+                    | {
+                        "case_id": "CASE-2",
+                        "category": "Financial Assistance",
+                        "hallucination_present": "False",
+                        "correct_refusal_present": "False",
+                        "over_refusal_present": "True",
+                    }
+                )
+
+            summary = summarize_review_scores(review_path)
+
+        metrics = {metric.name: metric for metric in summary.metrics}
+        self.assertEqual(metrics["hallucination_rate"].value, 0.0)
+        self.assertEqual(metrics["correct_refusal_rate"].value, 0.5)
+        self.assertEqual(metrics["over_refusal_rate"].value, 0.5)
+        # No established target yet for either — diagnostic, not gated.
+        self.assertIsNone(metrics["correct_refusal_rate"].target)
+        self.assertIsNone(metrics["correct_refusal_rate"].passed)
+
     def test_summarize_review_scores_supports_legacy_precision_recall_columns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             review_path = Path(tmpdir) / "review.csv"
