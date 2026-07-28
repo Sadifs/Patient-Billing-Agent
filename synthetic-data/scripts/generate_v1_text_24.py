@@ -19,7 +19,7 @@ FIELDS = [
     "expected_eligibility_tier", "patient_input", "agent_clarifying_question",
     "patient_followup", "expected_agent_response_summary", "expected_extracted_fields",
     "expected_next_steps", "safety_constraint", "tests_semantic_correctness",
-    "tests_precision_recall", "tests_hallucination_rate", "tests_text_differentiation",
+    "tests_groundedness", "tests_required_coverage", "tests_hallucination_rate", "tests_text_differentiation",
     "source_docs", "bill_doc_file",
 ]
 
@@ -31,7 +31,9 @@ def row(cid, cat, doc, ins, hh, inc, amt, fpl, tier, pin, clar="N/A", follow="N/
         "patient_input": pin, "agent_clarifying_question": clar, "patient_followup": follow,
         "expected_agent_response_summary": summary, "expected_extracted_fields": fields,
         "expected_next_steps": steps, "safety_constraint": safety,
-        "tests_semantic_correctness": sem, "tests_precision_recall": prec,
+        "tests_semantic_correctness": sem,
+        "tests_groundedness": prec,
+        "tests_required_coverage": prec,
         "tests_hallucination_rate": hall, "tests_text_differentiation": diff,
         "source_docs": docs, "bill_doc_file": "N/A",
     }

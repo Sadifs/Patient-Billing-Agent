@@ -38,7 +38,7 @@ FIELDS = [
     "expected_eligibility_tier", "patient_input", "agent_clarifying_question",
     "patient_followup", "expected_agent_response_summary", "expected_extracted_fields",
     "expected_next_steps", "safety_constraint", "tests_semantic_correctness",
-    "tests_precision_recall", "tests_hallucination_rate", "tests_text_differentiation",
+    "tests_groundedness", "tests_required_coverage", "tests_hallucination_rate", "tests_text_differentiation",
     "source_docs", "bill_doc_file",
 ]
 FA_DOCS = (
@@ -155,7 +155,8 @@ def csv_row(case_id, fname, cat, doc_type, ins_type, hh, inc, due, tags, patient
         "expected_next_steps": steps,
         "safety_constraint": safety,
         "tests_semantic_correctness": sem,
-        "tests_precision_recall": prec,
+        "tests_groundedness": prec,
+        "tests_required_coverage": prec,
         "tests_hallucination_rate": hall,
         "tests_text_differentiation": diff,
         "source_docs": docs,

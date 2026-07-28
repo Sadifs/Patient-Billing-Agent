@@ -27,6 +27,10 @@ REQUIRED_COLUMNS = [
     "document_type",
     "input_format",
     "insurance_type",
+    "modality",
+    "scenario",
+    "payer",
+    "plan_type",
     "household_size",
     "annual_income_usd",
     "amount_owed_usd",
@@ -40,7 +44,8 @@ REQUIRED_COLUMNS = [
     "expected_next_steps",
     "safety_constraint",
     "tests_semantic_correctness",
-    "tests_precision_recall",
+    "tests_groundedness",
+    "tests_required_coverage",
     "tests_hallucination_rate",
     "tests_text_differentiation",
     "source_docs",
@@ -53,6 +58,10 @@ REQUIRED_VALUE_COLUMNS = [
     "document_type",
     "input_format",
     "insurance_type",
+    "modality",
+    "scenario",
+    "payer",
+    "plan_type",
     "patient_input",
     "expected_agent_response_summary",
     "expected_extracted_fields",
@@ -63,7 +72,8 @@ REQUIRED_VALUE_COLUMNS = [
 
 EVALUATION_FLAG_COLUMNS = [
     "tests_semantic_correctness",
-    "tests_precision_recall",
+    "tests_groundedness",
+    "tests_required_coverage",
     "tests_hallucination_rate",
     "tests_text_differentiation",
 ]
@@ -74,18 +84,24 @@ MANUAL_REVIEW_COLUMNS = [
     "document_type",
     "input_format",
     "insurance_type",
+    "modality",
+    "scenario",
+    "payer",
+    "plan_type",
     "patient_input",
     "expected_agent_response_summary",
     "expected_extracted_fields",
     "expected_next_steps",
     "safety_constraint",
     "tests_semantic_correctness",
-    "tests_precision_recall",
+    "tests_groundedness",
+    "tests_required_coverage",
     "tests_hallucination_rate",
     "tests_text_differentiation",
     "agent_response",
     "passes_semantic_correctness",
-    "passes_precision_recall",
+    "passes_groundedness",
+    "passes_required_coverage",
     "passes_hallucination_check",
     "passes_text_differentiation",
     "passes_safety_constraint",
@@ -98,6 +114,10 @@ LIVE_REVIEW_COLUMNS = [
     "document_type",
     "input_format",
     "insurance_type",
+    "modality",
+    "scenario",
+    "payer",
+    "plan_type",
     "bill_doc_file",
     "uploaded_bill_file",
     "patient_input",
@@ -112,7 +132,8 @@ LIVE_REVIEW_COLUMNS = [
     "expected_next_steps",
     "safety_constraint",
     "tests_semantic_correctness",
-    "tests_precision_recall",
+    "tests_groundedness",
+    "tests_required_coverage",
     "tests_hallucination_rate",
     "tests_text_differentiation",
     "semantic_correctness_score_0_1",
@@ -132,6 +153,63 @@ LIVE_REVIEW_COLUMNS = [
 
 TRUE_FALSE_VALUES = {"true", "false"}
 EMPTY_MARKERS = {"", "n/a", "na", "none", "null"}
+CONTROLLED_METADATA_VALUES = {
+    "modality": {"pdf", "photo", "text"},
+    "scenario": {
+        "action_planning",
+        "bill_understanding",
+        "cob",
+        "collections",
+        "coverage_issue",
+        "document_parsing",
+        "duplicate",
+        "financial_assistance",
+        "math_error",
+        "payment_plan",
+        "safety_boundary",
+        "share_of_cost",
+        "third_party_payer",
+        "wrong_patient",
+    },
+    "payer": {
+        "Commercial",
+        "Medicaid",
+        "Medicare",
+        "Medicare Advantage",
+        "Other",
+        "Uninsured",
+    },
+    "plan_type": {
+        "Association Health Plan",
+        "CHAMPVA",
+        "COB",
+        "COBRA",
+        "Commercial EPO",
+        "Commercial General",
+        "Commercial HMO",
+        "Commercial POS",
+        "Commercial PPO",
+        "Fixed Indemnity",
+        "HDHP",
+        "Marketplace",
+        "Medicaid General",
+        "Medicaid Managed Care",
+        "Medicaid Share of Cost",
+        "Medicare Advantage",
+        "Medicare Advantage D-SNP",
+        "Medicare Advantage OON",
+        "Medicare Advantage PFFS",
+        "Medicare General",
+        "Medicare Part A/B",
+        "Medicare Part B",
+        "Medigap",
+        "None",
+        "Self-Pay",
+        "Student Health",
+        "TRICARE",
+        "Workers Comp",
+    },
+}
 BILL_DIRECTORY_NAMES = [
     "synthetic_bills_v2_agent",
     "synthetic_bills_v2",
@@ -181,6 +259,10 @@ class ValidationReport:
     extra_columns: list[str] = field(default_factory=list)
     category_counts: dict[str, int] = field(default_factory=dict)
     insurance_type_counts: dict[str, int] = field(default_factory=dict)
+    modality_counts: dict[str, int] = field(default_factory=dict)
+    scenario_counts: dict[str, int] = field(default_factory=dict)
+    payer_counts: dict[str, int] = field(default_factory=dict)
+    plan_type_counts: dict[str, int] = field(default_factory=dict)
     input_format_counts: dict[str, int] = field(default_factory=dict)
     document_type_counts: dict[str, int] = field(default_factory=dict)
     evaluation_flag_counts: dict[str, int] = field(default_factory=dict)
@@ -207,6 +289,10 @@ class ValidationReport:
             "extra_columns": self.extra_columns,
             "category_counts": self.category_counts,
             "insurance_type_counts": self.insurance_type_counts,
+            "modality_counts": self.modality_counts,
+            "scenario_counts": self.scenario_counts,
+            "payer_counts": self.payer_counts,
+            "plan_type_counts": self.plan_type_counts,
             "input_format_counts": self.input_format_counts,
             "document_type_counts": self.document_type_counts,
             "evaluation_flag_counts": self.evaluation_flag_counts,
@@ -400,6 +486,10 @@ def validate_dataset(dataset_path: Path, repo_root: Path | None = None) -> Valid
         extra_columns=[column for column in columns if column not in REQUIRED_COLUMNS],
         category_counts=dict(Counter(row.get("category", "") for row in rows)),
         insurance_type_counts=dict(Counter(row.get("insurance_type", "") for row in rows)),
+        modality_counts=dict(Counter(row.get("modality", "") for row in rows)),
+        scenario_counts=dict(Counter(row.get("scenario", "") for row in rows)),
+        payer_counts=dict(Counter(row.get("payer", "") for row in rows)),
+        plan_type_counts=dict(Counter(row.get("plan_type", "") for row in rows)),
         input_format_counts=dict(Counter(row.get("input_format", "") for row in rows)),
         document_type_counts=dict(Counter(row.get("document_type", "") for row in rows)),
         evaluation_flag_counts=count_true_flags(rows),
@@ -430,6 +520,19 @@ def validate_dataset(dataset_path: Path, repo_root: Path | None = None) -> Valid
                         column=column,
                     )
                 )
+
+        for column, allowed_values in CONTROLLED_METADATA_VALUES.items():
+            if column in columns:
+                value = normalized(row.get(column))
+                if value not in allowed_values:
+                    report.issues.append(
+                        ValidationIssue(
+                            "error",
+                            "Metadata value is not in the controlled vocabulary",
+                            case_id=case_id,
+                            column=column,
+                        )
+                    )
 
         if "safety_constraint" in columns and is_empty(row.get("safety_constraint")):
             if requires_safety_constraint(row):
@@ -513,7 +616,8 @@ def write_manual_review_template(dataset_path: Path, output_path: Path) -> int:
             for column in [
                 "agent_response",
                 "passes_semantic_correctness",
-                "passes_precision_recall",
+                "passes_groundedness",
+                "passes_required_coverage",
                 "passes_hallucination_check",
                 "passes_text_differentiation",
                 "passes_safety_constraint",
@@ -665,6 +769,10 @@ def live_review_output_row(
         "document_type",
         "input_format",
         "insurance_type",
+        "modality",
+        "scenario",
+        "payer",
+        "plan_type",
         "bill_doc_file",
         "patient_input",
         "patient_followup",
@@ -673,7 +781,8 @@ def live_review_output_row(
         "expected_next_steps",
         "safety_constraint",
         "tests_semantic_correctness",
-        "tests_precision_recall",
+        "tests_groundedness",
+        "tests_required_coverage",
         "tests_hallucination_rate",
         "tests_text_differentiation",
     ]:
@@ -944,6 +1053,18 @@ def print_human_report(report: ValidationReport) -> None:
     print()
     print("Category counts:")
     for key, value in sorted(report.category_counts.items()):
+        print(f"  {key}: {value}")
+    print()
+    print("Modality counts:")
+    for key, value in sorted(report.modality_counts.items()):
+        print(f"  {key}: {value}")
+    print()
+    print("Scenario counts:")
+    for key, value in sorted(report.scenario_counts.items()):
+        print(f"  {key}: {value}")
+    print()
+    print("Payer counts:")
+    for key, value in sorted(report.payer_counts.items()):
         print(f"  {key}: {value}")
     print()
     print("Evaluation flag counts:")
