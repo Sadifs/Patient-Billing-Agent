@@ -7,6 +7,7 @@ from pathlib import Path
 
 from evaluation.evaluation_harness import (
     BILL_DIRECTORY_NAMES,
+    CONTROLLED_METADATA_VALUES,
     EVALUATION_FLAG_COLUMNS,
     LIVE_REVIEW_COLUMNS,
     MANUAL_REVIEW_COLUMNS,
@@ -35,6 +36,15 @@ class EvaluationHarnessTests(unittest.TestCase):
 
         self.assertGreater(len(rows), 0)
         self.assertEqual(columns, REQUIRED_COLUMNS)
+
+    def test_dataset_has_controlled_evaluation_metadata(self) -> None:
+        rows, columns = load_dataset(self.dataset_path)
+
+        for column, allowed_values in CONTROLLED_METADATA_VALUES.items():
+            self.assertIn(column, columns)
+            values = {row[column] for row in rows}
+            self.assertTrue(values)
+            self.assertLessEqual(values, allowed_values)
 
     def test_dataset_validation_passes_without_errors(self) -> None:
         rows, _columns = load_dataset(self.dataset_path)
@@ -164,6 +174,9 @@ class EvaluationHarnessTests(unittest.TestCase):
         self.assertEqual(list(output_row.keys()), LIVE_REVIEW_COLUMNS)
         self.assertEqual(output_row["agent_initial_prompt"], "Prompt")
         self.assertEqual(output_row["agent_final_response"], "Initial")
+        self.assertIn("tests_groundedness", output_row)
+        self.assertIn("tests_required_coverage", output_row)
+        self.assertNotIn("tests_precision_recall", output_row)
         self.assertIn("semantic_correctness_score_0_1", output_row)
         self.assertIn("groundedness_score_0_1", output_row)
         self.assertIn("required_coverage_score_0_1", output_row)
