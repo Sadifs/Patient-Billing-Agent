@@ -33,17 +33,15 @@ pdfplumber/pytesseract/opencv), unlike grounding_check.py on its own:
 from __future__ import annotations
 
 import csv
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+import sys
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _AGENT_HARNESS_SRC = _REPO_ROOT / "agent-harness" / "src"
 if str(_AGENT_HARNESS_SRC) not in sys.path:
     sys.path.insert(0, str(_AGENT_HARNESS_SRC))
-
-from app.tools.bill_parser import parse_bill_file  # noqa: E402
 
 from evaluation.evaluation_harness import synthetic_bill_upload_path  # noqa: E402
 from evaluation.grounding_check import check_grounding  # noqa: E402
@@ -94,6 +92,11 @@ def load_bill_and_provenance_warnings(
     path = synthetic_bill_upload_path(repo_root, bill_doc_file)
     if path is None:
         return {}, []
+
+    # Import lazily so the lightweight evaluation modules can still be
+    # imported without OCR/PDF dependencies. Running the full sweep still
+    # requires the agent-harness environment, as documented above.
+    from app.tools.bill_parser import parse_bill_file  # noqa: WPS433
 
     parsed = parse_bill_file(str(path))
     provenance = parsed.get("_provenance", {})

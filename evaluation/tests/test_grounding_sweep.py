@@ -12,6 +12,7 @@ in:
 from __future__ import annotations
 
 import csv
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +21,11 @@ from evaluation.grounding_sweep import (
     conversation_text_for_row,
     load_bill_and_provenance_warnings,
     run_sweep,
+)
+
+PARSER_DEPENDENCIES_AVAILABLE = all(
+    importlib.util.find_spec(module_name) is not None
+    for module_name in ("cv2", "pdfplumber")
 )
 
 
@@ -49,6 +55,10 @@ class LoadBillAndProvenanceWarningsTest(unittest.TestCase):
         self.assertEqual(bill_json, {})
         self.assertEqual(warnings, [])
 
+    @unittest.skipUnless(
+        PARSER_DEPENDENCIES_AVAILABLE,
+        "requires full agent-harness OCR/PDF dependencies",
+    )
     def test_parses_real_bill_and_surfaces_reconciliation_warning(self) -> None:
         bill_json, warnings = load_bill_and_provenance_warnings(
             self.repo_root, "bill_v2_intentionally_incorrect_math_13.json"
@@ -57,6 +67,10 @@ class LoadBillAndProvenanceWarningsTest(unittest.TestCase):
         self.assertIn("total_billed", bill_json)
         self.assertIn("fails_total_reconciliation", warnings)
 
+    @unittest.skipUnless(
+        PARSER_DEPENDENCIES_AVAILABLE,
+        "requires full agent-harness OCR/PDF dependencies",
+    )
     def test_parses_real_bill_with_no_warnings(self) -> None:
         _bill_json, warnings = load_bill_and_provenance_warnings(
             self.repo_root, "bill_v2_selfpay_er_01.json"
@@ -96,6 +110,10 @@ class RunSweepTest(unittest.TestCase):
         self.assertEqual(summary.total_cases, 1)
         self.assertEqual(summary.checked_cases, 0)
 
+    @unittest.skipUnless(
+        PARSER_DEPENDENCIES_AVAILABLE,
+        "requires full agent-harness OCR/PDF dependencies",
+    )
     def test_flags_a_fabricated_amount_against_a_real_bill(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             csv_path = Path(tmpdir) / "review.csv"
@@ -116,6 +134,10 @@ class RunSweepTest(unittest.TestCase):
         self.assertEqual(summary.grounded_count, 0)
         self.assertIn("999,999.99", summary.results[0].ungrounded_amounts)
 
+    @unittest.skipUnless(
+        PARSER_DEPENDENCIES_AVAILABLE,
+        "requires full agent-harness OCR/PDF dependencies",
+    )
     def test_surfaces_provenance_warnings_alongside_a_real_ungrounded_case(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             csv_path = Path(tmpdir) / "review.csv"

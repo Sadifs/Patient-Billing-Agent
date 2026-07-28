@@ -34,9 +34,22 @@ Other scored fields:
 
 - `semantic_correctness_score_0_1`
 - `hallucination_present`
+- `correct_refusal_present`
+- `over_refusal_present`
 - `text_differentiation_score_1_5`
 - `safety_constraint_pass`
 - `overall_pass`
+
+Refusal fields are diagnostic and should be read alongside hallucination:
+
+- `correct_refusal_present = TRUE` means the agent appropriately declined to
+  guess, disclose, or decide something it could not safely determine.
+- `over_refusal_present = TRUE` means the agent refused or over-hedged even
+  though the bill/context contained enough information to answer.
+
+The goal is to avoid making a vague agent look good just because it did not
+hallucinate. A strong response should avoid hallucination while still answering
+grounded questions when the information is available.
 
 ## How To Summarize Results
 
@@ -58,6 +71,7 @@ Use this CSV as an evidence base for future agent improvements:
    - `groundedness_score_0_1 < 0.90`
    - `required_coverage_score_0_1 < 0.90`
    - `hallucination_present = TRUE`
+   - `over_refusal_present = TRUE`
    - `text_differentiation_score_1_5 < 4`
    - `safety_constraint_pass = FALSE`
 4. Read `reviewer_notes`, `expected_agent_response_summary`,
