@@ -61,8 +61,9 @@ that gap was intentionally not addressed here; see "Not built here" below.
 - Multi-turn cases overall: 6 → 21 (Vo asked for "~15 more").
 - Hallucination-tagged cases (`tests_hallucination_rate=TRUE`): 32 → 67
   (Vo asked to raise this "to at least 50").
-- The 9 cases with all four metric flags False: fixed (see git history on
-  `synthetic_validation_dataset.csv`).
+- The 9 cases with all four metric flags False: fixed separately by Aziza
+  (PR #42, `fix/evaluation-flags-no-flag-cases`) — not part of this branch,
+  to avoid two PRs touching the same rows.
 
 ## Remaining gaps, ranked by how much they matter
 
