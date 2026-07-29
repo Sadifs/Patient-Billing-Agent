@@ -130,6 +130,31 @@ python3 -m evaluation.evaluation_harness summarize \
   --json
 ```
 
+## Running the Tests
+
+This directory's tests need two different Python environments, because
+`bill_parser.py` (used by `grounding_sweep.py`) pulls in OCR/PDF dependencies
+(`cv2`, `pdfplumber`, `pytesseract`) that the rest of `evaluation/` doesn't
+need — that split came from this team's own additions on top of the original
+starter harness, not something in Cedars' base repo.
+
+Tests that don't touch `bill_parser` (most of `evaluation/tests/`) run under
+a plain Python environment:
+
+```bash
+python3 -m unittest evaluation.tests.test_evaluation_harness evaluation.tests.test_grounding_check evaluation.tests.test_grounding_sweep
+```
+
+Tests that do touch `bill_parser` (a few cases in `test_grounding_sweep.py`,
+and everything in `agent-harness/tests/test_bill_parser.py`) need the
+`agent-harness/.venv` environment instead, or they'll fail with
+`ModuleNotFoundError: No module named 'cv2'`:
+
+```bash
+PYTHONPATH=agent-harness/src agent-harness/.venv/bin/python3 -m unittest evaluation.tests.test_grounding_sweep
+cd agent-harness && PYTHONPATH=src .venv/bin/python3 -m unittest tests.test_bill_parser
+```
+
 ## Team Metric Targets
 
 The summary command compares completed reviewer scores against these targets:
