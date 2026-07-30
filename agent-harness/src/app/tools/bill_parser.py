@@ -61,7 +61,15 @@ OCR_MIN_WORD_COUNT = 30
 # upscaling a 450x600 test photo before OCR. Images already at or above
 # this size are left untouched, both to avoid wasted work and because
 # upscaling an already-detailed image doesn't add real information.
-OCR_UPSCALE_TARGET_MIN_DIMENSION = 1500
+#
+# Raised from 1500 to 3000 (Professor Vo's parser-vs-gold feedback,
+# item 4/5 investigation): a 150 DPI page render (1275px smaller
+# dimension — a realistic resolution for a full-page phone photo) only
+# reached 1500px under the old target, a mere 1.18x upscale. Line-item
+# text on that image OCR'd as garbage; the same source upscaled to a
+# 3000px target (2.35x) OCR'd every line item's amounts and billing
+# codes correctly. Confirmed live on a real bill, not assumed.
+OCR_UPSCALE_TARGET_MIN_DIMENSION = 3000
 OCR_UPSCALE_MAX_FACTOR = 4
 
 # How far the summed line-item total is allowed to drift from the bill's
@@ -920,6 +928,136 @@ def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
     return thresholded
 
 
+# Single-word header tokens, checked per-word (not as substrings of the
+# joined line) so one ambiguous word can't satisfy two groups at once —
+# e.g. "Service" alone would otherwise match both "description" (via
+# "service") and "date" (via the phrase "service date") on a line like
+# "Patient: ... Service Date: 2026-03-15", which is a label:value line,
+# not a table header. Confirmed live: an earlier substring-based version
+# of this matched exactly that false positive on a real bill photo.
+_TABLE_HEADER_WORD_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("date", "dos"),
+    ("description", "service", "procedure", "item"),
+    ("code", "cpt", "hcpcs"),
+    ("billed", "charge", "amount", "qty", "quantity"),
+    ("pmts", "payments", "paid"),
+    ("adjustment", "adjustments", "adj"),
+    ("bal", "balance", "responsibility", "resp"),
+)
+_MIN_HEADER_WORDS_MATCHED = 3
+
+
+def _tesseract_words_with_boxes(data: dict[str, list]) -> list[dict[str, Any]]:
+    """Flatten pytesseract.image_to_data's parallel-array output into one
+    dict per confident word, keeping its bounding box and line grouping."""
+    words: list[dict[str, Any]] = []
+    for i, text in enumerate(data["text"]):
+        if not text.strip():
+            continue
+        conf = data["conf"][i]
+        if conf in ("-1", -1):
+            continue
+        words.append(
+            {
+                "text": text,
+                "left": data["left"][i],
+                "top": data["top"][i],
+                "width": data["width"][i],
+                "height": data["height"][i],
+                "line_key": (data["block_num"][i], data["par_num"][i], data["line_num"][i]),
+            }
+        )
+    return words
+
+
+def _cluster_words_into_table(data: dict[str, list]) -> list[list[list[str]]] | None:
+    """Reconstruct a real table (rows x columns) from Tesseract's
+    word-level bounding boxes, per Professor Vo's parser-vs-gold
+    feedback item 4: "Cluster word boxes by y-overlap into rows and by
+    x-position into columns, then return real tables instead of []."
+
+    Deliberately conservative: only returns a table when a line is found
+    where at least _MIN_HEADER_WORDS_MATCHED distinct words each match a
+    distinct header-keyword group from the same vocabulary
+    _parse_line_items_from_tables already checks for (date/description/
+    code/billed/etc.) — i.e. the same confidence bar the PDF table path
+    implicitly relies on via pdfplumber's own table detection. If no such
+    line is found, returns None so the caller falls back to the existing,
+    already-working text-based line-item parser unchanged. This bar
+    exists specifically so a photo of a non-tabular page (or one where
+    OCR garbled the header beyond recognition) can't produce a
+    confidently-wrong table that's worse than the text fallback.
+
+    Column boundaries are anchored to the header row's own word
+    positions (each header word's x-center defines one column); every
+    word in every row below the header is assigned to its nearest
+    column anchor. This mirrors the actual visual column structure of
+    the bill rather than guessing a fixed layout.
+    """
+    words = _tesseract_words_with_boxes(data)
+    if not words:
+        return None
+
+    lines: dict[tuple[int, int, int], list[dict[str, Any]]] = {}
+    for word in words:
+        lines.setdefault(word["line_key"], []).append(word)
+
+    ordered_line_keys = sorted(lines, key=lambda key: min(w["top"] for w in lines[key]))
+
+    header_key: tuple[int, int, int] | None = None
+    header_words: list[dict[str, Any]] | None = None
+    for key in ordered_line_keys:
+        line_words = sorted(lines[key], key=lambda w: w["left"])
+        # Label:value lines ("Service Date:", "Account #:") are never
+        # table headers — exclude them outright rather than risk an
+        # ambiguous word inside one being miscounted as a header match.
+        if any(w["text"].rstrip().endswith(":") for w in line_words):
+            continue
+
+        matched_group_indices: set[int] = set()
+        for word in line_words:
+            token = re.sub(r"[^a-z0-9]", "", word["text"].lower())
+            if not token:
+                continue
+            for group_index, group in enumerate(_TABLE_HEADER_WORD_GROUPS):
+                if group_index in matched_group_indices:
+                    continue
+                if token in group:
+                    matched_group_indices.add(group_index)
+                    break
+
+        if len(matched_group_indices) >= _MIN_HEADER_WORDS_MATCHED:
+            header_key = key
+            header_words = line_words
+            break
+
+    if header_key is None or header_words is None:
+        return None
+
+    column_anchors = [word["left"] + word["width"] / 2 for word in header_words]
+    header_row = [word["text"] for word in header_words]
+    header_top = min(word["top"] for word in header_words)
+
+    data_line_keys = [
+        key for key in ordered_line_keys if min(w["top"] for w in lines[key]) > header_top
+    ]
+
+    table_rows: list[list[str]] = [header_row]
+    for key in data_line_keys:
+        line_words = sorted(lines[key], key=lambda w: w["left"])
+        cell_words: list[list[str]] = [[] for _ in column_anchors]
+        for word in line_words:
+            word_center = word["left"] + word["width"] / 2
+            nearest_idx = min(
+                range(len(column_anchors)),
+                key=lambda i: abs(column_anchors[i] - word_center),
+            )
+            cell_words[nearest_idx].append(word["text"])
+        table_rows.append([" ".join(cell) if cell else "" for cell in cell_words])
+
+    return [table_rows]
+
+
 def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int, float]:
     """OCR a bill photo into the same (text, tables, page_count, confidence)
     shape _extract_pdf_content returns, so it feeds the same downstream
@@ -964,7 +1102,8 @@ def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int,
         lines.setdefault(key, []).append(word)
 
     text = "\n".join(" ".join(words) for words in lines.values())
-    return text, [], 1, round(mean_confidence / 100, 4)
+    tables = _cluster_words_into_table(data)
+    return text, (tables or []), 1, round(mean_confidence / 100, 4)
 
 
 def _math_consistency_check(
