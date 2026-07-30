@@ -899,6 +899,20 @@ def _upscale_if_small(gray: np.ndarray) -> tuple[np.ndarray, float]:
     return upscaled, factor
 
 
+def _grayscale_upscale_deskew(image: Image.Image) -> tuple[np.ndarray, float]:
+    """Shared first half of _preprocess_for_ocr's pipeline, extracted so
+    _extract_image_content can also detect reverse-video bands on this
+    intermediate image before it gets collapsed to black/white by
+    adaptive thresholding. _preprocess_for_ocr itself is unchanged
+    (still does grayscale -> upscale -> deskew -> threshold in one
+    call) — this is purely an extraction, not a behavior change."""
+    rgb = np.array(image.convert("RGB"))
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    gray, upscale_factor = _upscale_if_small(gray)
+    deskewed = _deskew(gray)
+    return deskewed, upscale_factor
+
+
 def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
     """Grayscale -> upscale (if small) -> deskew -> adaptive threshold.
 
@@ -908,10 +922,7 @@ def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
     Upscaling happens before deskew so the rotation-angle detection also
     benefits from the extra resolution.
     """
-    rgb = np.array(image.convert("RGB"))
-    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-    gray, upscale_factor = _upscale_if_small(gray)
-    deskewed = _deskew(gray)
+    deskewed, upscale_factor = _grayscale_upscale_deskew(image)
 
     block_size = max(3, int(31 * upscale_factor))
     if block_size % 2 == 0:
@@ -1058,6 +1069,140 @@ def _cluster_words_into_table(data: dict[str, list]) -> list[list[list[str]]] | 
     return [table_rows]
 
 
+# Minimum height (px, post-upscale) for a dark horizontal band to be
+# treated as reverse-video text rather than a decorative rule. Real
+# bills draw a plain ~1-4px divider line under section titles (e.g.
+# under "account detail") that a pure row-brightness scan can't tell
+# apart from genuine reverse-video text by darkness alone — only by
+# height. Confirmed live: a bill's actual "account detail" divider
+# line was exactly 4-5px tall; its real reverse-video table-header
+# banner directly below it was 91px tall. 30px sits well clear of
+# both, calibrated from that real measurement, not guessed.
+_REVERSE_VIDEO_MIN_BAND_HEIGHT = 30
+_REVERSE_VIDEO_ROW_MEAN_THRESHOLD = 150
+_REVERSE_VIDEO_MIN_WORD_CONFIDENCE = 70
+
+
+def _detect_reverse_video_bands(gray: np.ndarray) -> list[tuple[int, int]]:
+    """Find contiguous horizontal bands whose row-mean brightness
+    suggests a dark/colored background — a header banner rendered as
+    light text on a dark fill, which adaptive thresholding (built for
+    dark-text-on-light) corrupts regardless of image resolution.
+    Confirmed live: this is a separate, distinct problem from OCR
+    resolution — a native 300 DPI render of a bill with such a banner
+    still fails to read it, while a merely-upscaled 150 DPI render
+    reads its normal (non-reverse-video) body text perfectly.
+
+    Returns (start_row, end_row) pairs tall enough to plausibly hold a
+    real text line, per _REVERSE_VIDEO_MIN_BAND_HEIGHT — this filters
+    out thin decorative divider rules, which are dark but far too
+    short to contain readable text.
+    """
+    row_means = np.mean(gray, axis=1)
+    dark_mask = row_means < _REVERSE_VIDEO_ROW_MEAN_THRESHOLD
+
+    bands: list[tuple[int, int]] = []
+    band_start: int | None = None
+    for row_index, is_dark in enumerate(dark_mask):
+        if is_dark and band_start is None:
+            band_start = row_index
+        elif not is_dark and band_start is not None:
+            bands.append((band_start, row_index))
+            band_start = None
+    if band_start is not None:
+        bands.append((band_start, len(dark_mask)))
+
+    return [
+        (start, end)
+        for start, end in bands
+        if (end - start) >= _REVERSE_VIDEO_MIN_BAND_HEIGHT
+    ]
+
+
+def _reocr_reverse_video_bands(
+    gray: np.ndarray, bands: list[tuple[int, int]], psm_mode: int
+) -> dict[str, list]:
+    """Crop and invert each detected reverse-video band and OCR it in
+    isolation, rather than as part of the full page.
+
+    This is deliberately a separate, targeted second pass rather than
+    switching the main page's OCR to a different page-segmentation
+    mode (e.g. "sparse text") that could find reverse-video text.
+    Confirmed live: a full-page pass with the main pipeline's PSM mode
+    finds zero words anywhere in a reverse-video band's row range, even
+    after inverting those rows in place, while a small crop of just
+    that band reads perfectly — the main pass's page-segmentation mode
+    appears to treat a wide dark band as a non-text region and skips it
+    outright. A whole-page PSM change fixes that but isn't used here
+    because it also changes how every other block of ordinary text on
+    the page gets segmented — a much bigger, unvalidated blast radius
+    for a fix that only needs to apply to these specific bands.
+
+    Returns a pytesseract.image_to_data-shaped dict (only the keys
+    _tesseract_words_with_boxes reads) with 'top' translated back into
+    the full image's coordinate space, ready to merge with the main
+    pass's data dict.
+    """
+    merged: dict[str, list] = {
+        "text": [], "left": [], "top": [], "width": [], "height": [],
+        "conf": [], "block_num": [], "par_num": [], "line_num": [],
+    }
+    for band_index, (start, end) in enumerate(bands):
+        crop = gray[start:end, :]
+        inverted_crop = 255 - crop
+        data = pytesseract.image_to_data(
+            inverted_crop, config=f"--psm {psm_mode}", output_type=pytesseract.Output.DICT
+        )
+        for i, text in enumerate(data["text"]):
+            if not text.strip():
+                continue
+            conf = data["conf"][i]
+            # Real header words scored 92-96 confidence here; spurious
+            # single-character noise from the crop's top/bottom pixel
+            # edge (e.g. a stray "|" or "po") scored 15 — confirmed live
+            # on a real bill. This threshold sits well clear of both,
+            # not tuned to one example.
+            if conf not in ("-1", -1) and float(conf) < _REVERSE_VIDEO_MIN_WORD_CONFIDENCE:
+                continue
+            merged["text"].append(text)
+            merged["left"].append(data["left"][i])
+            merged["top"].append(data["top"][i] + start)
+            merged["width"].append(data["width"][i])
+            merged["height"].append(data["height"][i])
+            merged["conf"].append(conf)
+            # Each band is its own line/block — distinct from the main
+            # pass's numbering (which starts at 1) so words from
+            # different bands never accidentally get grouped together.
+            merged["block_num"].append(-1000 - band_index)
+            merged["par_num"].append(0)
+            merged["line_num"].append(0)
+    return merged
+
+
+# The only keys any caller (confidence/word-count math in
+# _extract_image_content, the flattened-text builder, and
+# _tesseract_words_with_boxes) actually reads from a
+# pytesseract.image_to_data dict. Real pytesseract output has more keys
+# (level, page_num, word_num) that nothing here uses — merging only
+# this fixed set avoids ending up with mismatched list lengths across
+# keys if a source dict is missing one of those unused extras.
+_TESSERACT_DATA_KEYS = (
+    "text", "left", "top", "width", "height", "conf",
+    "block_num", "par_num", "line_num",
+)
+
+
+def _merge_tesseract_data(base: dict[str, list], addition: dict[str, list]) -> dict[str, list]:
+    """Concatenate two pytesseract.image_to_data-shaped dicts, keeping
+    only the keys downstream code actually reads (see
+    _TESSERACT_DATA_KEYS) so every key in the result stays the same
+    length regardless of what extra keys either source dict has."""
+    return {
+        key: list(base.get(key, [])) + list(addition.get(key, []))
+        for key in _TESSERACT_DATA_KEYS
+    }
+
+
 def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int, float]:
     """OCR a bill photo into the same (text, tables, page_count, confidence)
     shape _extract_pdf_content returns, so it feeds the same downstream
@@ -1088,6 +1233,20 @@ def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int,
             f"words found={word_count}). The photo may be blurry, poorly lit, at a "
             "steep angle, or not a bill at all."
         )
+
+    # A second, targeted pass for reverse-video banners (light text on a
+    # dark/colored fill — common for table headers and section banners)
+    # that the main pass above structurally can't read: its page-
+    # segmentation mode finds zero words anywhere in such a band's row
+    # range, confirmed live, independent of image resolution. Runs after
+    # the confidence gate on purpose, so a photo's accept/reject decision
+    # is unaffected by this — it only enriches parsing on a photo already
+    # judged readable.
+    gray, _ = _grayscale_upscale_deskew(image)
+    reverse_video_bands = _detect_reverse_video_bands(gray)
+    if reverse_video_bands:
+        band_data = _reocr_reverse_video_bands(gray, reverse_video_bands, OCR_PSM_MODE)
+        data = _merge_tesseract_data(data, band_data)
 
     # Reconstruct real line breaks from Tesseract's block/paragraph/line
     # numbers rather than joining every word with a single space — many of

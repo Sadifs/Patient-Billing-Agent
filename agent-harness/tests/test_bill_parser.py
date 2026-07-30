@@ -2,6 +2,8 @@ import json
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 from app.tools.bill_parser import (
     ACCOUNT_NUMBER_PATTERN,
     GUARANTOR_NAME_PATTERN,
@@ -15,6 +17,8 @@ from app.tools.bill_parser import (
     _bill_flags,
     _build_provenance,
     _cluster_words_into_table,
+    _detect_reverse_video_bands,
+    _merge_tesseract_data,
     _extract_bill_header_fields,
     _extract_guarantor_info,
     _extract_insurance_by_line_clustering,
@@ -750,6 +754,86 @@ class TableClusteringTest(unittest.TestCase):
         ]
         data = _tesseract_data(rows)
         self.assertIsNone(_cluster_words_into_table(data))
+
+
+class ReverseVideoBandDetectionTest(unittest.TestCase):
+    """Unit tests for _detect_reverse_video_bands using synthetic
+    grayscale arrays — no real image/OCR needed, isolating the pure
+    row-brightness/height logic from OCR quality variance."""
+
+    def test_finds_a_tall_enough_dark_band(self):
+        gray = np.full((200, 500), 255, dtype=np.uint8)
+        gray[80:140, :] = 60  # 60px tall dark band, well above the 30px floor
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [(80, 140)])
+
+    def test_ignores_a_thin_divider_line(self):
+        """Regression test: a real bill's 'account detail' section has a
+        genuine ~4-5px divider line directly above its real ~91px
+        reverse-video table header. Confirmed live that a pure
+        darkness-only check (no height floor) can't tell them apart —
+        the height floor is what makes that distinction."""
+        gray = np.full((200, 500), 255, dtype=np.uint8)
+        gray[80:84, :] = 60  # 4px divider — must NOT be treated as a band
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [])
+
+    def test_finds_multiple_separate_bands(self):
+        gray = np.full((300, 500), 255, dtype=np.uint8)
+        gray[10:60, :] = 50
+        gray[200:260, :] = 70
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [(10, 60), (200, 260)])
+
+    def test_returns_empty_for_an_evenly_lit_image(self):
+        gray = np.full((200, 500), 255, dtype=np.uint8)
+
+        self.assertEqual(_detect_reverse_video_bands(gray), [])
+
+    def test_band_touching_the_bottom_edge_is_still_captured(self):
+        gray = np.full((150, 500), 255, dtype=np.uint8)
+        gray[100:150, :] = 60  # dark band runs to the very last row
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [(100, 150)])
+
+
+class MergeTesseractDataTest(unittest.TestCase):
+    def test_concatenates_only_the_keys_downstream_code_reads(self):
+        base = {
+            "text": ["Hello"], "left": [0], "top": [0], "width": [10], "height": [10],
+            "conf": [90], "block_num": [1], "par_num": [1], "line_num": [1],
+            "level": [5], "page_num": [1], "word_num": [1],  # extra keys real pytesseract output has
+        }
+        addition = {
+            "text": ["World"], "left": [20], "top": [5], "width": [10], "height": [10],
+            "conf": [95], "block_num": [-1000], "par_num": [0], "line_num": [0],
+        }
+
+        merged = _merge_tesseract_data(base, addition)
+
+        self.assertEqual(merged["text"], ["Hello", "World"])
+        self.assertEqual(merged["top"], [0, 5])
+        # every key present stays the same length — no misalignment even
+        # though `addition` never had level/page_num/word_num
+        lengths = {len(v) for v in merged.values()}
+        self.assertEqual(lengths, {2})
+        self.assertNotIn("level", merged)
+
+    def test_handles_an_empty_addition(self):
+        base = {"text": ["Hello"], "left": [0], "top": [0], "width": [10], "height": [10],
+                "conf": [90], "block_num": [1], "par_num": [1], "line_num": [1]}
+
+        merged = _merge_tesseract_data(base, {})
+
+        self.assertEqual(merged["text"], ["Hello"])
 
 
 def _json_date_to_parsed_format(raw: str | None) -> str | None:
