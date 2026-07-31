@@ -507,6 +507,171 @@ def _direct_bill_header_answer(
     return f"{labels[field]} is {value}."
 
 
+def _sum_line_item_amount(
+    parsed: dict,
+    field: str,
+    fallback: str | None = None,
+) -> float | None:
+    values: list[float] = []
+    for item in parsed.get("line_items") or []:
+        value = item.get(field)
+        if value is None and fallback:
+            value = item.get(fallback)
+        if isinstance(value, (int, float)):
+            values.append(float(value))
+    if not values:
+        return None
+    return round(sum(values), 2)
+
+
+def _bill_amount_question_kind(user_message: str) -> str | None:
+    normalized = user_message.lower().strip()
+
+    if re.search(r"\b(?:when|date|deadline|by when)\b", normalized) and re.search(
+        r"\b(?:due|pay|payment)\b", normalized
+    ):
+        return "due_date"
+    if re.search(
+        r"\b(?:totals?|math|numbers?)\b.*\b(?:add up|reconcile|correct|right)\b",
+        normalized,
+    ) or re.search(r"\b(?:add up|reconcile)\b", normalized):
+        return "reconcile"
+    if re.search(
+        r"\b(?:before insurance|pre[- ]insurance|prior to insurance)\b", normalized
+    ) and re.search(r"\b(?:billed|charged|charges?|total|amount)\b", normalized):
+        return "total_billed"
+    if re.search(
+        r"\b(?:total billed|total charges?|charged in total|amount billed|billed in total)\b",
+        normalized,
+    ):
+        return "total_billed"
+    if re.search(r"\binsurance\b", normalized) and re.search(
+        r"\b(?:paid|payment|payments|covered|cover|pay)\b", normalized
+    ):
+        return "insurance_paid"
+    if re.search(
+        r"\b(?:how much|what(?:'s| is)?)\b.*\b(?:owe|owed|amount due|balance due|patient balance)\b",
+        normalized,
+    ) or re.search(r"\b(?:amount due|balance due|patient balance)\b", normalized):
+        return "patient_balance"
+    return None
+
+
+def _direct_bill_amount_answer(
+    user_message: str,
+    history: list[dict] | None = None,
+    upload_dir: Path | None = None,
+) -> str | None:
+    """Answer simple uploaded-bill amount questions from parsed bill data."""
+    kind = _bill_amount_question_kind(user_message)
+    if not kind:
+        return None
+
+    filename = _latest_uploaded_filename(user_message, history)
+    if not filename:
+        return (
+            "I do not see an uploaded bill connected to this question. Please "
+            "upload the bill first, then I can read that field from the bill."
+        )
+
+    base_dir = upload_dir or UPLOAD_DIR
+    try:
+        parsed = parse_bill_pdf(str(base_dir / filename))
+    except LowConfidenceOCRError:
+        return (
+            "I couldn't clearly read this photo. Could you retake it with "
+            "better lighting, holding the camera flat and square to the "
+            "page, or upload the bill as a PDF instead?"
+        )
+    except Exception:
+        return (
+            "I could not read that amount from the uploaded bill. Please check "
+            "the bill directly or contact Cedars-Sinai Patient Financial "
+            "Services at [866-803-1777](tel:8668031777), Monday–Friday, "
+            "8:00 AM–4:30 PM PT."
+        )
+
+    math_check = parsed.get("math_consistency") or {}
+    total_billed = parsed.get("total_billed") or _sum_line_item_amount(
+        parsed, "billed_amount", fallback="amount"
+    )
+    insurance_paid = parsed.get("total_insurance_payments") or _sum_line_item_amount(
+        parsed, "insurance_payments"
+    )
+    adjustments = parsed.get("total_adjustments")
+    patient_balance = (
+        parsed.get("patient_balance")
+        or parsed.get("total_amount_due")
+        or math_check.get("stated_total")
+        or _sum_line_item_amount(parsed, "patient_balance")
+    )
+
+    if kind == "due_date":
+        due_date = parsed.get("due_date")
+        if not due_date:
+            return "I do not see a payment due date on the uploaded bill."
+        return f"The bill shows a **Payment Due Date:** {due_date}."
+
+    if kind == "total_billed":
+        if total_billed is None:
+            return "I do not see a total billed amount on the uploaded bill."
+        return (
+            "The total amount billed before insurance payments or adjustments is "
+            f"**{_format_usd(total_billed)}**."
+        )
+
+    if kind == "insurance_paid":
+        if insurance_paid is None:
+            return "I do not see a total insurance payment amount on the uploaded bill."
+        return (
+            "The bill shows total insurance payments of "
+            f"**{_format_usd(insurance_paid)}**."
+        )
+
+    if kind == "patient_balance":
+        if patient_balance is None:
+            return "I do not see a patient balance amount on the uploaded bill."
+        return f"**Payment Balance:** {_format_usd(patient_balance)}."
+
+    if kind == "reconcile":
+        if math_check.get("consistent") is False:
+            stated_total = math_check.get("stated_total") or patient_balance
+            summed_total = math_check.get("summed_patient_balance") or math_check.get(
+                "summed_total"
+            )
+            if isinstance(stated_total, (int, float)) and isinstance(
+                summed_total, (int, float)
+            ):
+                return (
+                    "The bill's numbers do **not** fully reconcile. The stated "
+                    f"patient balance is **{_format_usd(stated_total)}**, but the "
+                    "line-item patient responsibilities add up to "
+                    f"**{_format_usd(summed_total)}**. Ask Cedars-Sinai Patient "
+                    "Financial Services to review the discrepancy before paying."
+                )
+            return (
+                "The bill's numbers do **not** fully reconcile. Ask Cedars-Sinai "
+                "Patient Financial Services to review the discrepancy before paying."
+            )
+
+        parts = []
+        if isinstance(total_billed, (int, float)):
+            parts.append(f"Total billed: **{_format_usd(total_billed)}**")
+        if isinstance(insurance_paid, (int, float)):
+            parts.append(f"Total insurance payments: **{_format_usd(insurance_paid)}**")
+        if isinstance(adjustments, (int, float)):
+            parts.append(f"Total adjustments: **{_format_usd(adjustments)}**")
+        if isinstance(patient_balance, (int, float)):
+            parts.append(f"Payment Balance: **{_format_usd(patient_balance)}**")
+        if not parts:
+            return "I do not see enough total fields on the uploaded bill to verify the math."
+        return "The bill totals appear to reconcile based on the parsed fields:\n" + "\n".join(
+            f"- {part}" for part in parts
+        )
+
+    return None
+
+
 
 def _bill_parser_context_message(
     user_message: str,
@@ -548,7 +713,10 @@ def _bill_parser_context_message(
         if isinstance(stated_total, (int, float)) and isinstance(summed_total, (int, float)):
             math_context += (
                 f" The stated amount due is {_format_usd(stated_total)}, while "
-                f"the summed line-item patient responsibility is {_format_usd(summed_total)}."
+                f"the summed line-item patient responsibility is {_format_usd(summed_total)}. "
+                "Use this exact parsed math_consistency comparison; do not recalculate "
+                "the patient-responsibility total from billed charges, insurance payments, "
+                "or unrelated amount fields."
             )
     return Message(
         role="system",
@@ -847,6 +1015,24 @@ def _clean_duplicate_sensitive_notice(text: str) -> str:
     return cleaned.lstrip()
 
 
+def _bold_patient_bill_labels(text: str) -> str:
+    """Ensure common patient-facing bill labels render as scan-friendly bold labels."""
+    labels = [
+        "Primary Insurance",
+        "Secondary Insurance",
+        "Total Insurance Payments Shown",
+        "Adjustments/Discounts",
+        "Payment Balance",
+        "Payment Due Date",
+    ]
+    label_pattern = "|".join(re.escape(label) for label in labels)
+    return re.sub(
+        rf"(?m)^(\s*(?:[-*]\s*)?)({label_pattern}):",
+        r"\1**\2:**",
+        text,
+    )
+
+
 def _clean_internal_tool_text(text: str) -> str:
     """Remove accidental internal tool/function syntax from model text."""
     cleaned = re.sub(r"<function\.[^>]*>", "", text, flags=re.IGNORECASE)
@@ -882,6 +1068,7 @@ def _clean_internal_tool_text(text: str) -> str:
     }
     for placeholder, replacement in placeholder_replacements.items():
         cleaned = cleaned.replace(placeholder, replacement)
+    cleaned = _bold_patient_bill_labels(cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 
@@ -1125,6 +1312,19 @@ async def chat(request: Request):
 
         return response.ResponseStream(
             stream_direct_fpl,
+            content_type="text/event-stream",
+        )
+
+    direct_bill_amount = _direct_bill_amount_answer(user_message, history)
+    if direct_bill_amount:
+        async def stream_direct_bill_amount(resp):
+            await resp.write(
+                f"data: {json.dumps({'text': direct_bill_amount})}\n\n".encode()
+            )
+            await resp.write(b"data: [DONE]\n\n")
+
+        return response.ResponseStream(
+            stream_direct_bill_amount,
             content_type="text/event-stream",
         )
 

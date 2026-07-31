@@ -5,6 +5,7 @@ from app.server import (
     _bill_parser_context_message,
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
+    _direct_bill_amount_answer,
     _direct_bill_header_answer,
     _direct_billing_responsibility_boundary_answer,
     _direct_billing_website_answer,
@@ -418,6 +419,42 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("Fixed Indemnity Plan", answer)
 
+    def test_direct_bill_amount_answer_handles_before_insurance_wording(self):
+        answer = _direct_bill_amount_answer(
+            '(Regarding my uploaded bill: "bill_v2_champva_outpatient_36.pdf") '
+            "What is the total amount I was billed before insurance?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("$1,280", answer)
+        self.assertIn("before insurance", answer)
+        self.assertNotIn("CHAMPVA", answer)
+
+    def test_direct_bill_amount_answer_reads_insurance_payment_without_payer_guess(self):
+        answer = _direct_bill_amount_answer(
+            '(Regarding my uploaded bill: "bill_v2_champva_outpatient_36.pdf") '
+            "How much did insurance pay?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("$1,024", answer)
+        self.assertIn("total insurance payments", answer)
+
+    def test_direct_bill_amount_answer_reports_math_discrepancy_from_patient_balance_sum(self):
+        answer = _direct_bill_amount_answer(
+            '(Regarding my uploaded bill: "bill_v2_intentionally_incorrect_math_13.pdf") '
+            "Do the bill totals add up correctly?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("do **not** fully reconcile", answer)
+        self.assertIn("$960", answer)
+        self.assertIn("$260", answer)
+        self.assertNotIn("$3,320", answer)
+
     def test_latest_uploaded_filename_uses_most_recent_file_in_multi_bill_prefix(self):
         filename = _latest_uploaded_filename(
             '(Regarding my uploaded bills: "bill_v2_air_ambulance_transfer_44.pdf", '
@@ -580,6 +617,25 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("patient account number shown on the bill", cleaned)
         self.assertNotIn("[REDACTED:", cleaned)
+
+    def test_bolds_common_bill_labels_in_response_text(self):
+        model_text = (
+            "Primary Insurance: Cigna Open Access Plus EPO\n"
+            "Secondary Insurance: None listed on this bill\n"
+            "Total Insurance Payments Shown: $1,050\n"
+            "Adjustments/Discounts: Not shown\n"
+            "Payment Balance: $960\n"
+            "Payment Due Date: 06/01/2026"
+        )
+
+        cleaned = _clean_internal_tool_text(model_text)
+
+        self.assertIn("**Primary Insurance:** Cigna", cleaned)
+        self.assertIn("**Secondary Insurance:** None", cleaned)
+        self.assertIn("**Total Insurance Payments Shown:** $1,050", cleaned)
+        self.assertIn("**Adjustments/Discounts:** Not shown", cleaned)
+        self.assertIn("**Payment Balance:** $960", cleaned)
+        self.assertIn("**Payment Due Date:** 06/01/2026", cleaned)
 
 
 if __name__ == "__main__":

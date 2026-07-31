@@ -52,14 +52,14 @@ List each line item as a bullet. For each item, show both the charge amount AND 
 - If `billing_flags.potential_duplicate_line_item_signal` is true, mention the repeated service/code as a possible duplicate to verify. Do not say it is definitely wrong; say Cedars-Sinai billing should confirm why it appears more than once.
 
 **Insurance & Adjustments**
-Use short bullets so the patient can scan it quickly:
-- `Primary Insurance: [payer listed on the bill].`
-- `Secondary Insurance: [payer listed on the bill] if shown.`
-- `Total Insurance Payments Shown: [amount or "none shown"].`
-- `Adjustments/Discounts: [amount or "not shown"] if shown.`
+Use short bullets with bold labels so the patient can scan it quickly:
+- `**Primary Insurance:** [payer listed on the bill].`
+- `**Secondary Insurance:** [payer listed on the bill] if shown.`
+- `**Total Insurance Payments Shown:** [amount or "none shown"].`
+- `**Adjustments/Discounts:** [amount or "not shown"] if shown.`
 
 If there is no secondary insurance listed, say:
-- `Secondary Insurance: None listed on this bill. If you have secondary insurance, contact Cedars-Sinai Patient Financial Services and ask whether it should be added or billed.`
+- `**Secondary Insurance:** None listed on this bill. If you have secondary insurance, contact Cedars-Sinai Patient Financial Services and ask whether it should be added or billed.`
 
 Treat insurance payments and adjustments as separate fields. If insurance
 payments are greater than $0 but adjustments are $0, say that total insurance
@@ -68,8 +68,8 @@ say "no insurance payment" unless the parsed total insurance payment is $0.
 Do not say a specific insurer paid the full insurance-payment amount unless a
 payment-detail section or other parsed bill field explicitly connects that
 payment amount to that payer. If the bill lists a primary insurer but only has
-aggregate insurance-payment totals, keep those separate: "Primary Insurance:
-[payer]. Total Insurance Payments Shown: $X."
+aggregate insurance-payment totals, keep those separate: "**Primary Insurance:**
+[payer]. **Total Insurance Payments Shown:** $X."
 Keep this general — do not speculate about why a specific claim was approved or
 denied unless the bill states it explicitly.
 
@@ -82,6 +82,9 @@ the bill shows, not as a final determination.
 
 **Next Steps**
 1–3 concrete, actionable next steps (e.g. contact billing at [phone number from bill], ask about financial assistance, set up a payment plan).
+When affordability comes up in a bill explanation, use direct patient-friendly
+wording such as: "If you need help paying, ask about financial assistance or
+payment-plan options." Avoid vaguer phrasing like "reach out for guidance."
 If a potential duplicate line item is present, include a specific question the patient can ask, such as: "Can you verify why CPT [code] appears more than once on the same bill/service date?"
 If mentioning FPL as an optional next step, say it once in patient-friendly language: "Cedars-Sinai may offer payment assistance based partly on your Federal Poverty Level (FPL). If you share your household size and approximate annual household income, I can estimate your FPL percentage and suggest next steps." Do not also ask a second household-size/income question in the same response.
 If recommending a Cedars-Sinai website or online payment portal, include the actual billing website link: https://www.cedars-sinai.org/patients-visitors/billing.html.
