@@ -130,6 +130,7 @@ For the current evaluation artifacts:
 - **Synthetic dataset schema:** [`synthetic-data/README.md`](synthetic-data/README.md)
 - **Final evaluation scoring template:** [`evaluation/results/final_agent_evaluation_scoring_template.csv`](evaluation/results/final_agent_evaluation_scoring_template.csv)
 - **Final evaluation scoring rubric:** [`evaluation/results/final_evaluation_scoring_rubric.md`](evaluation/results/final_evaluation_scoring_rubric.md)
+- **Final LLM-assisted batch workflow:** [`evaluation/results/final_llm_assisted_evaluation_instructions.md`](evaluation/results/final_llm_assisted_evaluation_instructions.md)
 - **Midterm scored review CSV:** [`evaluation/results/midterm_agent_evaluation_scoring.csv`](evaluation/results/midterm_agent_evaluation_scoring.csv)
 - **Midterm results guide:** [`evaluation/results/README.md`](evaluation/results/README.md)
 - **Midterm error analysis:** [`evaluation/results/midterm_error_analysis.md`](evaluation/results/midterm_error_analysis.md)
@@ -152,7 +153,15 @@ Basic evaluation flow:
      --case-id DV2-063 \
      --output evaluation/live_agent_review_selected.csv
    ```
+   To batch-run all 135 final cases:
+   ```bash
+   python3 -m evaluation.evaluation_harness run-live \
+     --output evaluation/results/final_agent_evaluation_live_outputs.csv \
+     --timeout-seconds 180
+   ```
 4. Score the generated CSV using human review plus optional LLM assistance.
+   Use [`evaluation/results/final_llm_assisted_evaluation_instructions.md`](evaluation/results/final_llm_assisted_evaluation_instructions.md)
+   for the final handoff workflow and the `llm_*` scoring columns.
 5. Summarize the completed review CSV:
    ```bash
    python3 -m evaluation.evaluation_harness summarize \

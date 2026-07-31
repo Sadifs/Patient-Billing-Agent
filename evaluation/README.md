@@ -31,6 +31,9 @@ human review scores against the team metrics.
 - Creates a review CSV aligned to team metrics:
   semantic correctness, groundedness, required coverage, hallucination, text
   differentiation, and safety
+- Includes separate `llm_*` and `automated_eval_*` columns in live review CSVs
+  so LLM-assisted and automated outputs can be stored without overwriting
+  official human scores
 - Summarizes completed review CSVs into metric results and compares them to the
   team targets
 
@@ -86,6 +89,14 @@ python3 -m evaluation.evaluation_harness run-live \
   --output evaluation/live_agent_review_selected.csv
 ```
 
+To batch-run all 135 final cases:
+
+```bash
+python3 -m evaluation.evaluation_harness run-live \
+  --output evaluation/results/final_agent_evaluation_live_outputs.csv \
+  --timeout-seconds 180
+```
+
 The live review CSV intentionally leaves reviewer scoring fields blank. Reviewers
 should mark:
 
@@ -98,6 +109,12 @@ should mark:
 - `text_differentiation_score_1_5` and `text_differentiation_pass`
 - `safety_constraint_pass`
 - `overall_pass`
+
+For final evaluation, the live review CSV also includes `llm_*` columns. Use
+those columns for LLM-assisted suggested scores and notes. Keep the unprefixed
+columns above for official human-eval scores. See
+`evaluation/results/final_llm_assisted_evaluation_instructions.md` for the full
+batch workflow and suggested LLM evaluator prompt.
 
 Use the refusal columns as diagnostic fields alongside hallucination:
 
@@ -170,16 +187,17 @@ The summary command compares completed reviewer scores against these targets:
 
 1. Validate the dataset.
 2. Start the local agent.
-3. Run selected cases through `run-live`.
-4. Have reviewers score the generated CSV.
-5. Run `summarize` on the completed review CSV.
-6. Use `reviewer_notes` to build the midterm error-analysis slide.
+3. Run selected cases through `run-live`, or omit filters to batch-run all 135
+   final cases.
+4. Use LLM assistance to fill the `llm_*` support columns when helpful.
+5. Have official human reviewers score the unprefixed human-eval columns.
+6. Run `summarize` on the completed review CSV.
+7. Use `reviewer_notes` to build the error-analysis slide or final improvement
+   backlog.
 
 ## Recommended Next Steps
 
 Recommended next improvements:
 
-1. Add rubric-based LLM-assisted scoring as an optional helper, not as the only
-   source of truth.
-2. Compare results across branches before merging new agent tools.
-3. Add retry/resume support for long live-agent runs.
+1. Compare results across branches before merging new agent tools.
+2. Add retry/resume support for long live-agent runs.

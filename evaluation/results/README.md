@@ -1,7 +1,7 @@
-# Midterm Evaluation Results
+# Evaluation Results
 
-This folder contains the team's midterm evaluation results for the Cedars-Sinai
-Patient Billing Agent.
+This folder contains the team's midterm and final evaluation artifacts for the
+Cedars-Sinai Patient Billing Agent.
 
 ## Files
 
@@ -16,6 +16,8 @@ Patient Billing Agent.
   supporting LLM-assisted and automated evaluation outputs.
 - `final_evaluation_scoring_rubric.md`: scoring rules and ranges for the final
   evaluation template.
+- `final_llm_assisted_evaluation_instructions.md`: step-by-step workflow for
+  batch-running all final cases and filling the `llm_*` support columns.
 
 ## Evaluation Method
 
@@ -66,6 +68,26 @@ From the repository root:
 python3 -m evaluation.evaluation_harness summarize \
   evaluation/results/midterm_agent_evaluation_scoring.csv
 ```
+
+## How To Batch Run Final Evaluation Cases
+
+Start the local agent first:
+
+```bash
+cd agent-harness
+docker compose up --build
+```
+
+Then, from the repository root in another terminal:
+
+```bash
+python3 -m evaluation.evaluation_harness run-live \
+  --output evaluation/results/final_agent_evaluation_live_outputs.csv \
+  --timeout-seconds 180
+```
+
+Use `final_llm_assisted_evaluation_instructions.md` to fill the `llm_*` columns.
+Keep official human-eval scores in the unprefixed scoring columns.
 
 ## How To Use These Results
 

@@ -1,6 +1,8 @@
 # Final Evaluation Instructions And Scoring Rubric
 
 Use this document with `final_agent_evaluation_scoring_template.csv`.
+For the batch-run and LLM-assisted handoff process, use
+`final_llm_assisted_evaluation_instructions.md`.
 
 ## Quick Instructions
 
