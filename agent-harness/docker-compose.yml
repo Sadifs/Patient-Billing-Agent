@@ -8,7 +8,7 @@ services:
     volumes:
       # Mount knowledge docs so they persist and can be updated without rebuild
       - type: bind
-        source: ../knowledge-docs
+        source: ${KNOWLEDGE_DOCS_HOST_PATH:-../knowledge-docs}
         target: /app/knowledge-docs
         read_only: true
     environment:

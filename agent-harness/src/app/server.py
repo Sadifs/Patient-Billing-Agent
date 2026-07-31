@@ -71,11 +71,12 @@ def _extract_household_size(text: str) -> int | None:
         r"\b(\d{1,2})\s+(?:people|persons?|members?)\b",
         r"\bi\s+have\s+(\d{1,2})\s+(?:people|persons?|members?)\b",
         r"\bjust\s+(?:me|myself)\b",
+        r"\bi\s+live\s+alone\b",
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            if "just" in pattern:
+            if "just" in pattern or "alone" in pattern:
                 return 1
             return int(match.group(1))
     return None
@@ -84,7 +85,7 @@ def _extract_household_size(text: str) -> int | None:
 def _extract_income(text: str) -> float | None:
     """Extract annual income from a single text string. Handles k/K suffix."""
     match = re.search(
-        r"\b(?:household\s*)?(?:income|make|earn|salary)\b[^$\d]{0,20}\$?\s*([\d,]+(?:\.\d{2})?)([kK])?",
+        r"\b(?:household\s*)?(?:income|make|earn|salary)\b[^$\d]{0,80}\$?\s*(\d[\d,]*(?:\.\d{2})?)([kK])?",
         text,
         re.IGNORECASE,
     )

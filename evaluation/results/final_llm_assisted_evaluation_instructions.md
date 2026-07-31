@@ -32,7 +32,9 @@ In a second terminal, from the repository root:
 ```bash
 python3 -m evaluation.evaluation_harness run-live \
   --output evaluation/results/final_agent_evaluation_live_outputs.csv \
-  --timeout-seconds 180
+  --timeout-seconds 180 \
+  --resume \
+  --continue-on-error
 ```
 
 This runs all 135 rows from `synthetic-data/synthetic_validation_dataset.csv`.
@@ -45,6 +47,11 @@ The output CSV includes:
 - blank `llm_*` fields for LLM-assisted scoring
 - blank official human-eval fields for Diego/Matthew or the assigned human
   reviewer
+
+`--resume` lets you safely restart the same command if the run is interrupted.
+It skips cases already present in the output CSV. `--continue-on-error` writes
+an error row and keeps going if one case fails, so you can rerun only the failed
+case later.
 
 To test a smaller batch first:
 

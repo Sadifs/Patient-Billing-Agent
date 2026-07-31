@@ -83,7 +83,9 @@ Then, from the repository root in another terminal:
 ```bash
 python3 -m evaluation.evaluation_harness run-live \
   --output evaluation/results/final_agent_evaluation_live_outputs.csv \
-  --timeout-seconds 180
+  --timeout-seconds 180 \
+  --resume \
+  --continue-on-error
 ```
 
 Use `final_llm_assisted_evaluation_instructions.md` to fill the `llm_*` columns.

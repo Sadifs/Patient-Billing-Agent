@@ -94,6 +94,18 @@ class ServerHelperTest(unittest.TestCase):
         self.assertEqual(inputs["household_size"], 3)
         self.assertEqual(inputs["annual_income_usd"], 45000)
 
+    def test_extracts_income_after_non_numeric_income_description(self):
+        history = [{"role": "user", "content": "Just Medicare, no supplement. I live alone."}]
+        inputs = _extract_fpl_inputs(
+            "I'm on Medicare and got a $1,800 bill after my surgery. "
+            "I'm 72 and retired — my only income is Social Security, about $18,000 a year. "
+            "Can I get help?",
+            history,
+        )
+
+        self.assertEqual(inputs["household_size"], 1)
+        self.assertEqual(inputs["annual_income_usd"], 18000)
+
     def test_direct_fpl_answer_uses_history_for_missing_input(self):
         history = [{"role": "user", "content": "household size is 2"}]
         answer = _direct_fpl_answer("my income is $40,000", history)

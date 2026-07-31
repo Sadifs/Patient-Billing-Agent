@@ -94,7 +94,9 @@ To batch-run all 135 final cases:
 ```bash
 python3 -m evaluation.evaluation_harness run-live \
   --output evaluation/results/final_agent_evaluation_live_outputs.csv \
-  --timeout-seconds 180
+  --timeout-seconds 180 \
+  --resume \
+  --continue-on-error
 ```
 
 The live review CSV intentionally leaves reviewer scoring fields blank. Reviewers

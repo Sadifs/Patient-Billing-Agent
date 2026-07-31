@@ -834,6 +834,8 @@ def run_live_agent_review(
     upload_bills: bool = True,
     include_followup: bool = True,
     timeout_seconds: float = 120,
+    resume: bool = False,
+    continue_on_error: bool = False,
 ) -> int:
     """Run selected synthetic cases through the live local agent."""
     rows, _columns = load_dataset(dataset_path)
@@ -845,52 +847,69 @@ def run_live_agent_review(
         limit=limit,
     )
 
+    completed_case_ids: set[str] = set()
+    if resume and output_path.exists():
+        with output_path.open(newline="", encoding="utf-8") as existing_handle:
+            completed_case_ids = {
+                normalized(row.get("case_id"))
+                for row in csv.DictReader(existing_handle)
+                if not is_empty(row.get("case_id"))
+            }
+        if completed_case_ids:
+            rows_to_run = [
+                row
+                for row in rows_to_run
+                if normalized(row.get("case_id")) not in completed_case_ids
+            ]
+
     check_agent_health(agent_url)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with output_path.open("w", newline="", encoding="utf-8") as handle:
+    write_mode = "a" if resume and output_path.exists() else "w"
+    with output_path.open(write_mode, newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=LIVE_REVIEW_COLUMNS)
-        writer.writeheader()
+        if write_mode == "w":
+            writer.writeheader()
 
         for index, row in enumerate(rows_to_run, start=1):
             case_id = normalized(row.get("case_id"))
             print(f"[{index}/{len(rows_to_run)}] Running {case_id}...")
 
-            uploaded_path = None
-            uploaded_bill_file = ""
-            bill_doc_file = normalized(row.get("bill_doc_file"))
-            if upload_bills and not is_empty(bill_doc_file):
-                uploaded_path = synthetic_bill_upload_path(repo_root, bill_doc_file)
-                if uploaded_path:
-                    uploaded_bill_file = upload_bill_to_agent(
-                        agent_url,
-                        uploaded_path,
-                        timeout_seconds=min(timeout_seconds, 60),
-                    )
+            try:
+                uploaded_path = None
+                uploaded_bill_file = ""
+                bill_doc_file = normalized(row.get("bill_doc_file"))
+                if upload_bills and not is_empty(bill_doc_file):
+                    uploaded_path = synthetic_bill_upload_path(repo_root, bill_doc_file)
+                    if uploaded_path:
+                        uploaded_bill_file = upload_bill_to_agent(
+                            agent_url,
+                            uploaded_path,
+                            timeout_seconds=min(timeout_seconds, 60),
+                        )
 
-            prompt = agent_prompt_for_row(row, uploaded_path)
-            history = [{"role": "user", "content": prompt}]
-            initial_response = send_chat_to_agent(
-                agent_url,
-                prompt,
-                history=[],
-                timeout_seconds=timeout_seconds,
-            )
-            history.append({"role": "assistant", "content": initial_response})
-
-            followup_response = ""
-            followup = normalized(row.get("patient_followup"))
-            if include_followup and not is_empty(followup):
-                history.append({"role": "user", "content": followup})
-                followup_response = send_chat_to_agent(
+                prompt = agent_prompt_for_row(row, uploaded_path)
+                history = [{"role": "user", "content": prompt}]
+                initial_response = send_chat_to_agent(
                     agent_url,
-                    followup,
-                    history=history[:-1],
+                    prompt,
+                    history=[],
                     timeout_seconds=timeout_seconds,
                 )
+                history.append({"role": "assistant", "content": initial_response})
 
-            writer.writerow(
-                live_review_output_row(
+                followup_response = ""
+                followup = normalized(row.get("patient_followup"))
+                if include_followup and not is_empty(followup):
+                    history.append({"role": "user", "content": followup})
+                    followup_response = send_chat_to_agent(
+                        agent_url,
+                        followup,
+                        history=history[:-1],
+                        timeout_seconds=timeout_seconds,
+                    )
+
+                output_row = live_review_output_row(
                     row,
                     uploaded_bill_file=uploaded_bill_file,
                     agent_initial_prompt=prompt,
@@ -898,7 +917,22 @@ def run_live_agent_review(
                     agent_initial_response=initial_response,
                     agent_followup_response=followup_response,
                 )
-            )
+            except Exception as exc:
+                if not continue_on_error:
+                    raise
+                output_row = live_review_output_row(
+                    row,
+                    uploaded_bill_file="",
+                    agent_initial_prompt=agent_prompt_for_row(row, None),
+                    agent_followup_prompt="",
+                    agent_initial_response="",
+                    agent_followup_response="",
+                )
+                output_row["automated_eval_status"] = "error"
+                output_row["automated_eval_notes"] = f"{type(exc).__name__}: {exc}"
+                print(f"  Error on {case_id}: {exc}")
+
+            writer.writerow(output_row)
             handle.flush()
 
     return len(rows_to_run)
@@ -1254,6 +1288,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=120,
         help="HTTP timeout per chat request.",
     )
+    run_live_parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Append to an existing output CSV and skip case_ids already present.",
+    )
+    run_live_parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Write an error row and continue if a case fails.",
+    )
 
     summarize_parser = subparsers.add_parser(
         "summarize",
@@ -1308,6 +1352,8 @@ def main(argv: list[str] | None = None) -> int:
             upload_bills=not args.no_upload_bills,
             include_followup=not args.no_followup,
             timeout_seconds=args.timeout_seconds,
+            resume=args.resume,
+            continue_on_error=args.continue_on_error,
         )
         print(f"Wrote {row_count} live-agent review rows to {args.output}")
         return 0

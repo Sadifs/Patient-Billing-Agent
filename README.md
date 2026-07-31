@@ -157,7 +157,9 @@ Basic evaluation flow:
    ```bash
    python3 -m evaluation.evaluation_harness run-live \
      --output evaluation/results/final_agent_evaluation_live_outputs.csv \
-     --timeout-seconds 180
+     --timeout-seconds 180 \
+     --resume \
+     --continue-on-error
    ```
 4. Score the generated CSV using human review plus optional LLM assistance.
    Use [`evaluation/results/final_llm_assisted_evaluation_instructions.md`](evaluation/results/final_llm_assisted_evaluation_instructions.md)
