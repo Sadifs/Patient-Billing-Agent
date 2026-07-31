@@ -2,6 +2,8 @@ import json
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 from app.tools.bill_parser import (
     ACCOUNT_NUMBER_PATTERN,
     GUARANTOR_NAME_PATTERN,
@@ -14,6 +16,9 @@ from app.tools.bill_parser import (
     LowConfidenceOCRError,
     _bill_flags,
     _build_provenance,
+    _cluster_words_into_table,
+    _detect_reverse_video_bands,
+    _merge_tesseract_data,
     _extract_bill_header_fields,
     _extract_guarantor_info,
     _extract_insurance_by_line_clustering,
@@ -640,6 +645,195 @@ class InsuranceColumnBleedTest(unittest.TestCase):
         )
         self.assertIsNotNone(result)
         self.assertIsNotNone(result["secondary"])
+
+
+def _tesseract_data(rows: list[list[tuple[str, int, int, int, int]]]) -> dict[str, list]:
+    """Build a pytesseract.image_to_data-shaped dict from a list of rows,
+    each a list of (text, left, top, width, height) tuples — one row per
+    visual line, one tuple per word. line_num increments per row so each
+    row is its own block/par/line group, matching how real OCR output
+    keys words for _tesseract_words_with_boxes' line grouping."""
+    data: dict[str, list] = {
+        "text": [], "left": [], "top": [], "width": [], "height": [],
+        "conf": [], "block_num": [], "par_num": [], "line_num": [],
+    }
+    for line_num, row in enumerate(rows):
+        for text, left, top, width, height in row:
+            data["text"].append(text)
+            data["left"].append(left)
+            data["top"].append(top)
+            data["width"].append(width)
+            data["height"].append(height)
+            data["conf"].append(90)
+            data["block_num"].append(1)
+            data["par_num"].append(1)
+            data["line_num"].append(line_num)
+    return data
+
+
+class TableClusteringTest(unittest.TestCase):
+    """Unit tests for _cluster_words_into_table using synthetic
+    Tesseract-shaped word-box data — no real OCR needed, so these are
+    fast and deterministic, isolating the clustering logic itself from
+    OCR quality variance (which CorpusFieldRecallTest and the live photo
+    tests already cover separately)."""
+
+    def test_reconstructs_a_real_table_from_a_confident_header(self):
+        rows = [
+            [("Service", 0, 0, 60, 15), ("Code", 100, 0, 40, 15), ("Qty", 160, 0, 30, 15), ("Billed", 200, 0, 50, 15)],
+            [("ER Visit", 0, 20, 60, 15), ("99284", 100, 20, 40, 15), ("1", 160, 20, 30, 15), ("$3,200.00", 200, 20, 50, 15)],
+            [("CT Scan", 0, 40, 60, 15), ("74177", 100, 40, 40, 15), ("1", 160, 40, 30, 15), ("$5,800.00", 200, 40, 50, 15)],
+        ]
+        data = _tesseract_data(rows)
+        table = _cluster_words_into_table(data)
+        self.assertIsNotNone(table)
+        self.assertEqual(table[0][0], ["Service", "Code", "Qty", "Billed"])
+        self.assertEqual(table[0][1], ["ER Visit", "99284", "1", "$3,200.00"])
+        self.assertEqual(table[0][2], ["CT Scan", "74177", "1", "$5,800.00"])
+
+    def test_returns_none_when_no_confident_header_found(self):
+        rows = [
+            [("Thank", 0, 0, 40, 15), ("you", 45, 0, 30, 15), ("for", 80, 0, 25, 15), ("choosing", 110, 0, 60, 15), ("us", 175, 0, 20, 15)],
+            [("Please", 0, 20, 45, 15), ("call", 50, 20, 30, 15), ("866-803-1777", 85, 20, 90, 15)],
+        ]
+        data = _tesseract_data(rows)
+        self.assertIsNone(_cluster_words_into_table(data))
+
+    def test_does_not_misdetect_a_label_value_line_as_a_header(self):
+        """Regression test: 'Patient: ... Service Date: 2026-03-15' was
+        confirmed live to false-positive under an earlier substring-based
+        version of this matcher — 'Service' alone satisfied both the
+        'date' group (via the phrase 'service date') and the
+        'description' group (via 'service'). The fix requires per-word,
+        non-overlapping group matches and excludes any line containing a
+        label:value colon."""
+        rows = [
+            [
+                ("Patient:", 0, 0, 60, 15), ("Maria", 65, 0, 40, 15), ("Gutierrez", 110, 0, 60, 15),
+                ("Account", 175, 0, 55, 15), ("#:", 235, 0, 20, 15), ("CS-2026-00441", 260, 0, 90, 15),
+                ("Service", 355, 0, 50, 15), ("Date:", 410, 0, 40, 15), ("2026-03-15", 455, 0, 80, 15),
+            ],
+        ]
+        data = _tesseract_data(rows)
+        self.assertIsNone(_cluster_words_into_table(data))
+
+    def test_returns_none_for_empty_data(self):
+        data = _tesseract_data([])
+        self.assertIsNone(_cluster_words_into_table(data))
+
+    def test_ignores_low_confidence_words(self):
+        rows = [
+            [("Service", 0, 0, 60, 15), ("Code", 100, 0, 40, 15), ("Qty", 160, 0, 30, 15), ("Billed", 200, 0, 50, 15)],
+            [("ER Visit", 0, 20, 60, 15), ("99284", 100, 20, 40, 15), ("1", 160, 20, 30, 15), ("$3,200.00", 200, 20, 50, 15)],
+        ]
+        data = _tesseract_data(rows)
+        # inject a garbage low-confidence word that should be excluded entirely
+        data["text"].append("~garbage~")
+        data["left"].append(9999)
+        data["top"].append(9999)
+        data["width"].append(10)
+        data["height"].append(10)
+        data["conf"].append(-1)
+        data["block_num"].append(1)
+        data["par_num"].append(1)
+        data["line_num"].append(99)
+
+        table = _cluster_words_into_table(data)
+        self.assertIsNotNone(table)
+        all_text = [cell for row in table[0] for cell in row]
+        self.assertNotIn("~garbage~", all_text)
+
+    def test_requires_minimum_distinct_header_word_groups(self):
+        """A line matching only two header-ish words (e.g. 'Service' and
+        'Amount' with nothing else nearby) should not be confident enough
+        to treat as a header — real bill headers have several distinct
+        columns."""
+        rows = [
+            [("Service", 0, 0, 60, 15), ("Amount", 100, 0, 50, 15)],
+            [("ER Visit", 0, 20, 60, 15), ("$3,200.00", 100, 20, 50, 15)],
+        ]
+        data = _tesseract_data(rows)
+        self.assertIsNone(_cluster_words_into_table(data))
+
+
+class ReverseVideoBandDetectionTest(unittest.TestCase):
+    """Unit tests for _detect_reverse_video_bands using synthetic
+    grayscale arrays — no real image/OCR needed, isolating the pure
+    row-brightness/height logic from OCR quality variance."""
+
+    def test_finds_a_tall_enough_dark_band(self):
+        gray = np.full((200, 500), 255, dtype=np.uint8)
+        gray[80:140, :] = 60  # 60px tall dark band, well above the 30px floor
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [(80, 140)])
+
+    def test_ignores_a_thin_divider_line(self):
+        """Regression test: a real bill's 'account detail' section has a
+        genuine ~4-5px divider line directly above its real ~91px
+        reverse-video table header. Confirmed live that a pure
+        darkness-only check (no height floor) can't tell them apart —
+        the height floor is what makes that distinction."""
+        gray = np.full((200, 500), 255, dtype=np.uint8)
+        gray[80:84, :] = 60  # 4px divider — must NOT be treated as a band
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [])
+
+    def test_finds_multiple_separate_bands(self):
+        gray = np.full((300, 500), 255, dtype=np.uint8)
+        gray[10:60, :] = 50
+        gray[200:260, :] = 70
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [(10, 60), (200, 260)])
+
+    def test_returns_empty_for_an_evenly_lit_image(self):
+        gray = np.full((200, 500), 255, dtype=np.uint8)
+
+        self.assertEqual(_detect_reverse_video_bands(gray), [])
+
+    def test_band_touching_the_bottom_edge_is_still_captured(self):
+        gray = np.full((150, 500), 255, dtype=np.uint8)
+        gray[100:150, :] = 60  # dark band runs to the very last row
+
+        bands = _detect_reverse_video_bands(gray)
+
+        self.assertEqual(bands, [(100, 150)])
+
+
+class MergeTesseractDataTest(unittest.TestCase):
+    def test_concatenates_only_the_keys_downstream_code_reads(self):
+        base = {
+            "text": ["Hello"], "left": [0], "top": [0], "width": [10], "height": [10],
+            "conf": [90], "block_num": [1], "par_num": [1], "line_num": [1],
+            "level": [5], "page_num": [1], "word_num": [1],  # extra keys real pytesseract output has
+        }
+        addition = {
+            "text": ["World"], "left": [20], "top": [5], "width": [10], "height": [10],
+            "conf": [95], "block_num": [-1000], "par_num": [0], "line_num": [0],
+        }
+
+        merged = _merge_tesseract_data(base, addition)
+
+        self.assertEqual(merged["text"], ["Hello", "World"])
+        self.assertEqual(merged["top"], [0, 5])
+        # every key present stays the same length — no misalignment even
+        # though `addition` never had level/page_num/word_num
+        lengths = {len(v) for v in merged.values()}
+        self.assertEqual(lengths, {2})
+        self.assertNotIn("level", merged)
+
+    def test_handles_an_empty_addition(self):
+        base = {"text": ["Hello"], "left": [0], "top": [0], "width": [10], "height": [10],
+                "conf": [90], "block_num": [1], "par_num": [1], "line_num": [1]}
+
+        merged = _merge_tesseract_data(base, {})
+
+        self.assertEqual(merged["text"], ["Hello"])
 
 
 def _json_date_to_parsed_format(raw: str | None) -> str | None:

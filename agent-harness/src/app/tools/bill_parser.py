@@ -61,7 +61,15 @@ OCR_MIN_WORD_COUNT = 30
 # upscaling a 450x600 test photo before OCR. Images already at or above
 # this size are left untouched, both to avoid wasted work and because
 # upscaling an already-detailed image doesn't add real information.
-OCR_UPSCALE_TARGET_MIN_DIMENSION = 1500
+#
+# Raised from 1500 to 3000 (Professor Vo's parser-vs-gold feedback,
+# item 4/5 investigation): a 150 DPI page render (1275px smaller
+# dimension — a realistic resolution for a full-page phone photo) only
+# reached 1500px under the old target, a mere 1.18x upscale. Line-item
+# text on that image OCR'd as garbage; the same source upscaled to a
+# 3000px target (2.35x) OCR'd every line item's amounts and billing
+# codes correctly. Confirmed live on a real bill, not assumed.
+OCR_UPSCALE_TARGET_MIN_DIMENSION = 3000
 OCR_UPSCALE_MAX_FACTOR = 4
 
 # How far the summed line-item total is allowed to drift from the bill's
@@ -891,6 +899,20 @@ def _upscale_if_small(gray: np.ndarray) -> tuple[np.ndarray, float]:
     return upscaled, factor
 
 
+def _grayscale_upscale_deskew(image: Image.Image) -> tuple[np.ndarray, float]:
+    """Shared first half of _preprocess_for_ocr's pipeline, extracted so
+    _extract_image_content can also detect reverse-video bands on this
+    intermediate image before it gets collapsed to black/white by
+    adaptive thresholding. _preprocess_for_ocr itself is unchanged
+    (still does grayscale -> upscale -> deskew -> threshold in one
+    call) — this is purely an extraction, not a behavior change."""
+    rgb = np.array(image.convert("RGB"))
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    gray, upscale_factor = _upscale_if_small(gray)
+    deskewed = _deskew(gray)
+    return deskewed, upscale_factor
+
+
 def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
     """Grayscale -> upscale (if small) -> deskew -> adaptive threshold.
 
@@ -900,10 +922,7 @@ def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
     Upscaling happens before deskew so the rotation-angle detection also
     benefits from the extra resolution.
     """
-    rgb = np.array(image.convert("RGB"))
-    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-    gray, upscale_factor = _upscale_if_small(gray)
-    deskewed = _deskew(gray)
+    deskewed, upscale_factor = _grayscale_upscale_deskew(image)
 
     block_size = max(3, int(31 * upscale_factor))
     if block_size % 2 == 0:
@@ -918,6 +937,270 @@ def _preprocess_for_ocr(image: Image.Image) -> np.ndarray:
         C=15,
     )
     return thresholded
+
+
+# Single-word header tokens, checked per-word (not as substrings of the
+# joined line) so one ambiguous word can't satisfy two groups at once —
+# e.g. "Service" alone would otherwise match both "description" (via
+# "service") and "date" (via the phrase "service date") on a line like
+# "Patient: ... Service Date: 2026-03-15", which is a label:value line,
+# not a table header. Confirmed live: an earlier substring-based version
+# of this matched exactly that false positive on a real bill photo.
+_TABLE_HEADER_WORD_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("date", "dos"),
+    ("description", "service", "procedure", "item"),
+    ("code", "cpt", "hcpcs"),
+    ("billed", "charge", "amount", "qty", "quantity"),
+    ("pmts", "payments", "paid"),
+    ("adjustment", "adjustments", "adj"),
+    ("bal", "balance", "responsibility", "resp"),
+)
+_MIN_HEADER_WORDS_MATCHED = 3
+
+
+def _tesseract_words_with_boxes(data: dict[str, list]) -> list[dict[str, Any]]:
+    """Flatten pytesseract.image_to_data's parallel-array output into one
+    dict per confident word, keeping its bounding box and line grouping."""
+    words: list[dict[str, Any]] = []
+    for i, text in enumerate(data["text"]):
+        if not text.strip():
+            continue
+        conf = data["conf"][i]
+        if conf in ("-1", -1):
+            continue
+        words.append(
+            {
+                "text": text,
+                "left": data["left"][i],
+                "top": data["top"][i],
+                "width": data["width"][i],
+                "height": data["height"][i],
+                "line_key": (data["block_num"][i], data["par_num"][i], data["line_num"][i]),
+            }
+        )
+    return words
+
+
+def _cluster_words_into_table(data: dict[str, list]) -> list[list[list[str]]] | None:
+    """Reconstruct a real table (rows x columns) from Tesseract's
+    word-level bounding boxes, per Professor Vo's parser-vs-gold
+    feedback item 4: "Cluster word boxes by y-overlap into rows and by
+    x-position into columns, then return real tables instead of []."
+
+    Deliberately conservative: only returns a table when a line is found
+    where at least _MIN_HEADER_WORDS_MATCHED distinct words each match a
+    distinct header-keyword group from the same vocabulary
+    _parse_line_items_from_tables already checks for (date/description/
+    code/billed/etc.) — i.e. the same confidence bar the PDF table path
+    implicitly relies on via pdfplumber's own table detection. If no such
+    line is found, returns None so the caller falls back to the existing,
+    already-working text-based line-item parser unchanged. This bar
+    exists specifically so a photo of a non-tabular page (or one where
+    OCR garbled the header beyond recognition) can't produce a
+    confidently-wrong table that's worse than the text fallback.
+
+    Column boundaries are anchored to the header row's own word
+    positions (each header word's x-center defines one column); every
+    word in every row below the header is assigned to its nearest
+    column anchor. This mirrors the actual visual column structure of
+    the bill rather than guessing a fixed layout.
+    """
+    words = _tesseract_words_with_boxes(data)
+    if not words:
+        return None
+
+    lines: dict[tuple[int, int, int], list[dict[str, Any]]] = {}
+    for word in words:
+        lines.setdefault(word["line_key"], []).append(word)
+
+    ordered_line_keys = sorted(lines, key=lambda key: min(w["top"] for w in lines[key]))
+
+    header_key: tuple[int, int, int] | None = None
+    header_words: list[dict[str, Any]] | None = None
+    for key in ordered_line_keys:
+        line_words = sorted(lines[key], key=lambda w: w["left"])
+        # Label:value lines ("Service Date:", "Account #:") are never
+        # table headers — exclude them outright rather than risk an
+        # ambiguous word inside one being miscounted as a header match.
+        if any(w["text"].rstrip().endswith(":") for w in line_words):
+            continue
+
+        matched_group_indices: set[int] = set()
+        for word in line_words:
+            token = re.sub(r"[^a-z0-9]", "", word["text"].lower())
+            if not token:
+                continue
+            for group_index, group in enumerate(_TABLE_HEADER_WORD_GROUPS):
+                if group_index in matched_group_indices:
+                    continue
+                if token in group:
+                    matched_group_indices.add(group_index)
+                    break
+
+        if len(matched_group_indices) >= _MIN_HEADER_WORDS_MATCHED:
+            header_key = key
+            header_words = line_words
+            break
+
+    if header_key is None or header_words is None:
+        return None
+
+    column_anchors = [word["left"] + word["width"] / 2 for word in header_words]
+    header_row = [word["text"] for word in header_words]
+    header_top = min(word["top"] for word in header_words)
+
+    data_line_keys = [
+        key for key in ordered_line_keys if min(w["top"] for w in lines[key]) > header_top
+    ]
+
+    table_rows: list[list[str]] = [header_row]
+    for key in data_line_keys:
+        line_words = sorted(lines[key], key=lambda w: w["left"])
+        cell_words: list[list[str]] = [[] for _ in column_anchors]
+        for word in line_words:
+            word_center = word["left"] + word["width"] / 2
+            nearest_idx = min(
+                range(len(column_anchors)),
+                key=lambda i: abs(column_anchors[i] - word_center),
+            )
+            cell_words[nearest_idx].append(word["text"])
+        table_rows.append([" ".join(cell) if cell else "" for cell in cell_words])
+
+    return [table_rows]
+
+
+# Minimum height (px, post-upscale) for a dark horizontal band to be
+# treated as reverse-video text rather than a decorative rule. Real
+# bills draw a plain ~1-4px divider line under section titles (e.g.
+# under "account detail") that a pure row-brightness scan can't tell
+# apart from genuine reverse-video text by darkness alone — only by
+# height. Confirmed live: a bill's actual "account detail" divider
+# line was exactly 4-5px tall; its real reverse-video table-header
+# banner directly below it was 91px tall. 30px sits well clear of
+# both, calibrated from that real measurement, not guessed.
+_REVERSE_VIDEO_MIN_BAND_HEIGHT = 30
+_REVERSE_VIDEO_ROW_MEAN_THRESHOLD = 150
+_REVERSE_VIDEO_MIN_WORD_CONFIDENCE = 70
+
+
+def _detect_reverse_video_bands(gray: np.ndarray) -> list[tuple[int, int]]:
+    """Find contiguous horizontal bands whose row-mean brightness
+    suggests a dark/colored background — a header banner rendered as
+    light text on a dark fill, which adaptive thresholding (built for
+    dark-text-on-light) corrupts regardless of image resolution.
+    Confirmed live: this is a separate, distinct problem from OCR
+    resolution — a native 300 DPI render of a bill with such a banner
+    still fails to read it, while a merely-upscaled 150 DPI render
+    reads its normal (non-reverse-video) body text perfectly.
+
+    Returns (start_row, end_row) pairs tall enough to plausibly hold a
+    real text line, per _REVERSE_VIDEO_MIN_BAND_HEIGHT — this filters
+    out thin decorative divider rules, which are dark but far too
+    short to contain readable text.
+    """
+    row_means = np.mean(gray, axis=1)
+    dark_mask = row_means < _REVERSE_VIDEO_ROW_MEAN_THRESHOLD
+
+    bands: list[tuple[int, int]] = []
+    band_start: int | None = None
+    for row_index, is_dark in enumerate(dark_mask):
+        if is_dark and band_start is None:
+            band_start = row_index
+        elif not is_dark and band_start is not None:
+            bands.append((band_start, row_index))
+            band_start = None
+    if band_start is not None:
+        bands.append((band_start, len(dark_mask)))
+
+    return [
+        (start, end)
+        for start, end in bands
+        if (end - start) >= _REVERSE_VIDEO_MIN_BAND_HEIGHT
+    ]
+
+
+def _reocr_reverse_video_bands(
+    gray: np.ndarray, bands: list[tuple[int, int]], psm_mode: int
+) -> dict[str, list]:
+    """Crop and invert each detected reverse-video band and OCR it in
+    isolation, rather than as part of the full page.
+
+    This is deliberately a separate, targeted second pass rather than
+    switching the main page's OCR to a different page-segmentation
+    mode (e.g. "sparse text") that could find reverse-video text.
+    Confirmed live: a full-page pass with the main pipeline's PSM mode
+    finds zero words anywhere in a reverse-video band's row range, even
+    after inverting those rows in place, while a small crop of just
+    that band reads perfectly — the main pass's page-segmentation mode
+    appears to treat a wide dark band as a non-text region and skips it
+    outright. A whole-page PSM change fixes that but isn't used here
+    because it also changes how every other block of ordinary text on
+    the page gets segmented — a much bigger, unvalidated blast radius
+    for a fix that only needs to apply to these specific bands.
+
+    Returns a pytesseract.image_to_data-shaped dict (only the keys
+    _tesseract_words_with_boxes reads) with 'top' translated back into
+    the full image's coordinate space, ready to merge with the main
+    pass's data dict.
+    """
+    merged: dict[str, list] = {
+        "text": [], "left": [], "top": [], "width": [], "height": [],
+        "conf": [], "block_num": [], "par_num": [], "line_num": [],
+    }
+    for band_index, (start, end) in enumerate(bands):
+        crop = gray[start:end, :]
+        inverted_crop = 255 - crop
+        data = pytesseract.image_to_data(
+            inverted_crop, config=f"--psm {psm_mode}", output_type=pytesseract.Output.DICT
+        )
+        for i, text in enumerate(data["text"]):
+            if not text.strip():
+                continue
+            conf = data["conf"][i]
+            # Real header words scored 92-96 confidence here; spurious
+            # single-character noise from the crop's top/bottom pixel
+            # edge (e.g. a stray "|" or "po") scored 15 — confirmed live
+            # on a real bill. This threshold sits well clear of both,
+            # not tuned to one example.
+            if conf not in ("-1", -1) and float(conf) < _REVERSE_VIDEO_MIN_WORD_CONFIDENCE:
+                continue
+            merged["text"].append(text)
+            merged["left"].append(data["left"][i])
+            merged["top"].append(data["top"][i] + start)
+            merged["width"].append(data["width"][i])
+            merged["height"].append(data["height"][i])
+            merged["conf"].append(conf)
+            # Each band is its own line/block — distinct from the main
+            # pass's numbering (which starts at 1) so words from
+            # different bands never accidentally get grouped together.
+            merged["block_num"].append(-1000 - band_index)
+            merged["par_num"].append(0)
+            merged["line_num"].append(0)
+    return merged
+
+
+# The only keys any caller (confidence/word-count math in
+# _extract_image_content, the flattened-text builder, and
+# _tesseract_words_with_boxes) actually reads from a
+# pytesseract.image_to_data dict. Real pytesseract output has more keys
+# (level, page_num, word_num) that nothing here uses — merging only
+# this fixed set avoids ending up with mismatched list lengths across
+# keys if a source dict is missing one of those unused extras.
+_TESSERACT_DATA_KEYS = (
+    "text", "left", "top", "width", "height", "conf",
+    "block_num", "par_num", "line_num",
+)
+
+
+def _merge_tesseract_data(base: dict[str, list], addition: dict[str, list]) -> dict[str, list]:
+    """Concatenate two pytesseract.image_to_data-shaped dicts, keeping
+    only the keys downstream code actually reads (see
+    _TESSERACT_DATA_KEYS) so every key in the result stays the same
+    length regardless of what extra keys either source dict has."""
+    return {
+        key: list(base.get(key, [])) + list(addition.get(key, []))
+        for key in _TESSERACT_DATA_KEYS
+    }
 
 
 def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int, float]:
@@ -951,6 +1234,20 @@ def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int,
             "steep angle, or not a bill at all."
         )
 
+    # A second, targeted pass for reverse-video banners (light text on a
+    # dark/colored fill — common for table headers and section banners)
+    # that the main pass above structurally can't read: its page-
+    # segmentation mode finds zero words anywhere in such a band's row
+    # range, confirmed live, independent of image resolution. Runs after
+    # the confidence gate on purpose, so a photo's accept/reject decision
+    # is unaffected by this — it only enriches parsing on a photo already
+    # judged readable.
+    gray, _ = _grayscale_upscale_deskew(image)
+    reverse_video_bands = _detect_reverse_video_bands(gray)
+    if reverse_video_bands:
+        band_data = _reocr_reverse_video_bands(gray, reverse_video_bands, OCR_PSM_MODE)
+        data = _merge_tesseract_data(data, band_data)
+
     # Reconstruct real line breaks from Tesseract's block/paragraph/line
     # numbers rather than joining every word with a single space — many of
     # the downstream regexes (patient name, guarantor, totals, etc.) rely
@@ -964,7 +1261,8 @@ def _extract_image_content(path: Path) -> tuple[str, list[list[list[Any]]], int,
         lines.setdefault(key, []).append(word)
 
     text = "\n".join(" ".join(words) for words in lines.values())
-    return text, [], 1, round(mean_confidence / 100, 4)
+    tables = _cluster_words_into_table(data)
+    return text, (tables or []), 1, round(mean_confidence / 100, 4)
 
 
 def _math_consistency_check(
