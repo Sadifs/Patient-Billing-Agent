@@ -9,7 +9,7 @@
 
 If you're reviewing this dataset (Cedars team, faculty, or a new contributor), you only need two things:
 
-- **`synthetic_validation_dataset.csv`** — the master answer key, 100 labeled test cases
+- **`synthetic_validation_dataset.csv`** — the master answer key, 135 labeled test cases
 - **`synthetic_bills_v2/`** — the 70 full synthetic bills (JSON + PDF) those cases reference, including the expected-answer metadata
 
 Everything else in this folder (`scripts/`, `build-artifacts/`, `edge-cases/`, `synthetic_bills_v2_agent/`) is either build tooling that produced the two items above, or a metadata-stripped copy used internally to feed the agent without exposing its own answer key. See **Contents** below for what each one is.
@@ -19,19 +19,21 @@ Everything else in this folder (`scripts/`, `build-artifacts/`, `edge-cases/`, `
 ## What This Dataset Is
 
 The synthetic validation dataset is the ground truth used to evaluate the AI
-billing agent. It contains **100 labeled test cases** spanning two case
-**types** (not to be confused with the dataset's chronological v1/v2/v3
+billing agent. It contains **135 labeled test cases** spanning two case
+**types** (not to be confused with the dataset's chronological v1/v2/v3/v4
 growth — see **Version History** below):
 
 | Case type | Cases | Focus |
 |---------|-------|-------|
-| **Text-only** (`FA-`, `BILL-`, `SAF-`, `ACT-`, `DOC-` prefixes) | 30 | Text-input scenarios, billing literacy, FAP routing, safety |
+| **Text-only** (`FA-`, `BILL-`, `SAF-`, `ACT-`, `DOC-` prefixes) | 65 | Text-input scenarios, billing literacy, FAP routing, safety, multi-turn, adversarial |
 | **Document-linked** (`DV2-` prefix) | 70 | Bills (JSON + PDF) with diversified patient financial profiles |
 
 Ten early text-only cases (DV-001 – DV-010) were retired once document-linked
 bills covered the same ground. Other text-only cases that duplicated
-document-linked coverage were consolidated during the dataset's expansion to
-its current size (**100 cases**, **70 bills** — see below).
+document-linked coverage were consolidated during the dataset's v3 expansion
+(100 cases, 70 bills). A later v4 round added 35 more text-only cases (15
+multi-turn, 20 adversarial) to close specific coverage gaps — see **Version
+History** below and `evaluation/coverage_matrix.md` for what those gaps were.
 
 When the agent responds to a case, its output is compared against the labeled
 expected response to measure accuracy.
@@ -53,7 +55,8 @@ dataset's chronological growth, confirmed against actual commit history:
 | 2026-06-24 | v2 (built separately) | — | 15 | A separate `synthetic-data-v2/` folder was built in parallel with its own bills |
 | 2026-06-30 | v1 + v2 **merged** | 60 | 15 | The two folders were combined into one `synthetic-data/`; 7 v1 cases retired as superseded by the new bills |
 | 2026-07-01 | **expanded** | 72 | 30 | 15 more document-linked bills added to the merged dataset |
-| 2026-07-07 | v3 (current) — **expanded** | **100** | **70** | 40 more bills + 24 more text-only cases added (commit literally titled "Expand ... to v3") |
+| 2026-07-07 | v3 | 100 | 70 | 40 more bills + 24 more text-only cases added (commit literally titled "Expand ... to v3") |
+| 2026-07-28 | v4 (current) — **expanded** | **135** | **70** | 15 multi-turn + 20 adversarial text-only cases added, closing specific gaps found via a modality × scenario × payer coverage matrix (Prof. Vo's parser-vs-gold feedback, item 2) — see `evaluation/coverage_matrix.md` |
 
 So: there was exactly **one real merge** (06-30, two folders becoming one),
 followed by **two rounds of pure expansion** (07-01, 07-07) of that single
@@ -72,7 +75,7 @@ disambiguate it from) rather than bumping to "v4."
 
 | File / Folder | Description |
 |---|---|
-| `synthetic_validation_dataset.csv` | **Master — 100 labeled test cases (current, fully expanded). Use this.** |
+| `synthetic_validation_dataset.csv` | **Master — 135 labeled test cases (current, fully expanded). Use this.** |
 | `synthetic_bills_v2/` | 70 evaluator bills (JSON + PDF, full metadata) — the actual bill files the master CSV references |
 | `synthetic_bills_v2_agent/` | 70 LLM-safe bills (JSON, metadata stripped) — same bills, answer-key fields removed, safe to feed the agent |
 | `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios (reference, not used in evaluation) |
@@ -93,10 +96,10 @@ All scripts in `scripts/` are meant to be run from the `synthetic-data/` directo
 ## Case Types: Text-Only vs Document-Linked
 
 This section describes the two case **types** that make up today's single
-100-case dataset — not the chronological v1/v2/v3 growth covered in
+135-case dataset — not the chronological v1/v2/v3/v4 growth covered in
 **Version History** above.
 
-### Text-only cases (30 cases, no bill files)
+### Text-only cases (65 cases, no bill files)
 
 - Text-input and document-parsing scenarios
 - No bill files — all cases are text-based patient questions
@@ -196,7 +199,7 @@ Each V2 bill is a Cedars-Sinai–style patient statement (JSON + PDF) covering a
 
 | Field | Text-only | Document-linked | Total |
 |---|---|---|---|
-| Total cases | 30 | 70 | **100** |
+| Total cases | 65 | 70 | **135** |
 | Fields per case | 28 | 28 | 28 |
 | Synthetic bills | 0 | 70 (JSON+PDF) | 70 unique bill sets |
 | FPL range | 0% – 689% | 0% – 915% | 0% – 915% |
@@ -315,7 +318,7 @@ Requires: `csv`, `json`, `os`, `reportlab` (PDFs only).
 |---|---|
 | V2 document cases (DV2-001 – DV2-070) | `synthetic_bills_v2_agent/` |
 
-Use `synthetic_validation_dataset.csv` as the master answer key (**100 patients**, **70 bills**).
+Use `synthetic_validation_dataset.csv` as the master answer key (**135 patients**, **70 bills**).
 
 ---
 
