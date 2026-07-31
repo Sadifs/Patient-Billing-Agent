@@ -467,6 +467,53 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("$260", answer)
         self.assertNotIn("$3,320", answer)
 
+    def test_latest_uploaded_filename_recognizes_bracket_upload_format(self):
+        filename = _latest_uploaded_filename(
+            "[Patient uploads bill: bill_v2_champva_outpatient_36.pdf] — "
+            "What is the total amount I was billed before insurance?",
+            history=[],
+        )
+
+        self.assertEqual(filename, "bill_v2_champva_outpatient_36.pdf")
+
+    def test_direct_bill_amount_answer_recognizes_bracket_upload_format(self):
+        answer = _direct_bill_amount_answer(
+            "[Patient uploads bill: bill_v2_champva_outpatient_36.pdf] — "
+            "What is the total amount I was billed before insurance?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("$1,280", answer)
+
+    def test_direct_bill_header_answer_recognizes_bracket_upload_format(self):
+        answer = _direct_bill_header_answer(
+            "[Patient uploads bill: bill_v2_limited_benefit_plan_52.pdf] — "
+            "What insurance is listed on this bill?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIn("Fixed Indemnity Plan", answer)
+
+    def test_direct_bill_amount_answer_defers_to_llm_when_no_bill_uploaded(self):
+        answer = _direct_bill_amount_answer(
+            "My statement shows Total Charges $4,600, Insurance Paid $750, "
+            "Balance Due $3,850. So my balance is $4,200, right?",
+            history=[],
+        )
+
+        self.assertIsNone(answer)
+
+    def test_direct_bill_header_answer_defers_to_llm_when_no_bill_uploaded(self):
+        answer = _direct_bill_header_answer(
+            "Three kids and $96,000 income — hospital bill is $8,200 after "
+            "insurance. Too much for charity?",
+            history=[],
+        )
+
+        self.assertIsNone(answer)
+
     def test_latest_uploaded_filename_uses_most_recent_file_in_multi_bill_prefix(self):
         filename = _latest_uploaded_filename(
             '(Regarding my uploaded bills: "bill_v2_air_ambulance_transfer_44.pdf", '
