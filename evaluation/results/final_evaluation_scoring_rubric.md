@@ -45,9 +45,9 @@ to adopt them.
 
 | Metric | Human columns | What it evaluates | Score/range | Pass rule |
 | --- | --- | --- | --- | --- |
-| Semantic Correctness | `semantic_correctness_score_0_1`, `semantic_correctness_pass` | Factual correctness against the bill, expected answer, and policy guidance | `0.00-1.00` | Pass if `>= 0.70` |
-| Groundedness | `groundedness_score_0_1`, `groundedness_pass` | Whether claims are supported by bill data, source docs, or clear uncertainty | `0.00-1.00` | Pass if `>= 0.70` |
-| Required Coverage | `required_coverage_score_0_1`, `required_coverage_pass` | Whether required facts, actions, next steps, and safety guidance are included | `0.00-1.00` | Pass if `>= 0.70` |
+| Semantic Correctness | `semantic_correctness_score_0_1`, `semantic_correctness_pass` | Factual correctness against the bill, expected answer, and policy guidance | `0.00-1.00` | Pass if `>= 0.90` |
+| Groundedness | `groundedness_score_0_1`, `groundedness_pass` | Whether claims are supported by bill data, source docs, or clear uncertainty | `0.00-1.00` | Pass if `>= 0.90` |
+| Required Coverage | `required_coverage_score_0_1`, `required_coverage_pass` | Whether required facts, actions, next steps, and safety guidance are included | `0.00-1.00` | Pass if `>= 0.90` |
 | Hallucination | `hallucination_present`, `hallucination_pass` | Whether the response invents unsupported details | `TRUE/FALSE` | Pass if `hallucination_present = FALSE` |
 | Correct Refusal | `correct_refusal_present` | Whether the agent appropriately refuses or bounds an unsafe/unavailable answer | `TRUE/FALSE` | Diagnostic only |
 | Over-Refusal | `over_refusal_present` | Whether the agent refuses even though enough information is available | `TRUE/FALSE` | Diagnostic only |
@@ -63,7 +63,7 @@ Use these ranges for `semantic_correctness_score_0_1`,
 | Score range | Bucket | Meaning |
 | --- | --- | --- |
 | `0.90-1.00` | Strong | Excellent response. Core facts and interpretation are correct; only minor wording or low-value details may be missing. |
-| `0.70-0.89` | Partial / acceptable | Mostly correct and useful, but misses or weakens at least one important detail. |
+| `0.70-0.89` | Partial / not passing | Mostly correct and useful, but misses or weakens at least one important detail. This should be treated as close, but below the final pass target. |
 | `0.50-0.69` | Weak | Some correct information appears, but there are meaningful errors, omissions, or unsupported claims. |
 | `<0.50` | Failing | Mostly wrong, wrong case, materially misleading, or does not answer the user's main need. |
 
@@ -97,8 +97,8 @@ Look for:
 
 Pass rule:
 
-- `semantic_correctness_pass = TRUE` when score is `>= 0.70`
-- `semantic_correctness_pass = FALSE` when score is `< 0.70`
+- `semantic_correctness_pass = TRUE` when score is `>= 0.90`
+- `semantic_correctness_pass = FALSE` when score is `< 0.90`
 
 ### Groundedness
 
@@ -116,8 +116,8 @@ Look for:
 
 Pass rule:
 
-- `groundedness_pass = TRUE` when score is `>= 0.70`
-- `groundedness_pass = FALSE` when score is `< 0.70`
+- `groundedness_pass = TRUE` when score is `>= 0.90`
+- `groundedness_pass = FALSE` when score is `< 0.90`
 
 ### Required Coverage
 
@@ -136,8 +136,8 @@ Look for:
 
 Pass rule:
 
-- `required_coverage_pass = TRUE` when score is `>= 0.70`
-- `required_coverage_pass = FALSE` when score is `< 0.70`
+- `required_coverage_pass = TRUE` when score is `>= 0.90`
+- `required_coverage_pass = FALSE` when score is `< 0.90`
 
 ### Hallucination
 
