@@ -20,17 +20,15 @@ agent-harness/
 │       │   ├── indexer.py      # Reads PDFs, text, Excel → searchable chunks
 │       │   └── search.py       # TF-IDF search (replace with embeddings)
 │       ├── tools/              # Agent tools (add your own here)
-│       │   ├── explain_bill.py # Starter: explain a bill line item
-│       │   ├── calculate_fpl.py# Starter: FPL percentage calculator
-│       │   └── search_bills.py # Starter: knowledge base search
+│       │   ├── bill_parser.py  # Parses uploaded bill PDFs/photos
+│       │   ├── calculate_fpl.py# FPL percentage calculator
+│       │   └── search_bills.py # Knowledge base search
 │       ├── hooks/              # Safety hooks (add your own here)
-│       │   ├── phi_redaction.py# Starter: redact PHI from outputs
-│       │   └── content_filter.py# Starter: block dangerous operations
-│       ├── roles/              # Sub-agent identities (markdown)
-│       │   ├── bill_explainer.md
-│       │   └── research_agent.md
+│       │   ├── phi_redaction.py# Redact PHI from outputs
+│       │   └── content_filter.py# Block dangerous operations
 │       ├── skills/             # Procedural instructions (markdown)
-│       │   └── bill_analysis.md
+│       │   ├── bill_analysis.md
+│       │   └── bill_explanation.md
 │       └── static/             # Frontend UI
 │           └── index.html      # Chat interface
 │
