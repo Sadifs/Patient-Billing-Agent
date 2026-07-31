@@ -50,7 +50,7 @@ LMU Capstone/
 │
 ├── synthetic-data/             # Synthetic validation dataset (current expanded set)
 │   ├── README.md               # Dataset overview, schema, validation rubric
-│   ├── synthetic_validation_dataset.csv       # Master — 100 labeled test cases
+│   ├── synthetic_validation_dataset.csv       # Master answer key — 135 labeled test cases
 │   ├── generate_v2_bills.py    # V2 bill generation for bills 01–15
 │   ├── generate_v2_csv.py      # V2 validation CSV for bills 01–15
 │   ├── generate_new_bills.py   # Generates bills 16–25 (reproducible)
@@ -126,7 +126,7 @@ summarize scored review CSVs.
 
 For the current evaluation artifacts:
 
-- **Synthetic answer key:** [`synthetic-data/synthetic_validation_dataset.csv`](synthetic-data/synthetic_validation_dataset.csv)
+- **Synthetic answer key, not scored review output:** [`synthetic-data/synthetic_validation_dataset.csv`](synthetic-data/synthetic_validation_dataset.csv)
 - **Synthetic dataset schema:** [`synthetic-data/README.md`](synthetic-data/README.md)
 - **Midterm scored review CSV:** [`evaluation/results/midterm_agent_evaluation_scoring.csv`](evaluation/results/midterm_agent_evaluation_scoring.csv)
 - **Midterm results guide:** [`evaluation/results/README.md`](evaluation/results/README.md)
