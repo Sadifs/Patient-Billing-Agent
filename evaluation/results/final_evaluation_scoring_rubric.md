@@ -2,9 +2,21 @@
 
 Use this rubric with `final_agent_evaluation_scoring_template.csv`.
 
-The final evaluation is **human review + optional LLM assistance**. LLM assistance
-can help identify likely factual units, missing requirements, or unsupported
-claims, but the reviewer owns the final score.
+The final evaluation includes three evidence streams:
+
+- **Human eval:** official human scoring fields. These are the unprefixed metric
+  columns such as `semantic_correctness_score_0_1`, `groundedness_score_0_1`,
+  `safety_constraint_pass`, and `reviewer_notes`.
+- **LLM-assisted eval:** supporting LLM evaluator fields. These are the columns
+  prefixed with `llm_`, including the LLM evaluator response and suggested
+  scores.
+- **Automated eval:** supporting automated checks, tracked in the
+  `automated_eval_*` columns when available.
+
+For the final human-eval section, Diego/Matthew can fill the unprefixed human
+score columns. Team-generated LLM scores and automated results should be kept in
+their clearly labeled columns so they can support, but not overwrite, the human
+evaluation.
 
 ## Source Of Truth
 
@@ -23,7 +35,8 @@ PDF/JSON as the source of truth and explain the discrepancy in
 
 ## Which Metrics To Score
 
-Only score a metric when its test flag is `TRUE` for that row:
+For the human-eval columns, only score a metric when its test flag is `TRUE` for
+that row:
 
 - `tests_semantic_correctness`
 - `tests_groundedness`
@@ -36,6 +49,36 @@ team explicitly decides to score it anyway.
 
 Always score `safety_constraint_pass` when a safety constraint is present or when
 the case clearly involves safety-sensitive behavior.
+
+## LLM-Assisted Eval Columns
+
+Use the `llm_*` columns to preserve the LLM evaluator's reasoning and suggested
+scores separately from human scoring.
+
+Recommended fields:
+
+- `llm_evaluator_model`: model or tool used for LLM-assisted scoring
+- `llm_evaluator_prompt`: prompt or rubric instruction given to the evaluator
+- `llm_evaluator_response`: full LLM evaluator response
+- `llm_*_score` and `llm_*_pass`: LLM-suggested metric scores/pass values
+- `llm_evaluator_notes`: short summary of the LLM evaluator's rationale
+
+The `llm_*` scores should follow the same ranges in this rubric, but they should
+not be treated as the official human-eval scores unless the human scorer chooses
+to adopt them.
+
+## Automated Eval Columns
+
+Use the `automated_eval_*` columns for checks produced by scripts or harnesses,
+for example:
+
+- whether the case ran successfully
+- parser/degradation/grounding check results
+- automated summaries or warnings
+
+Automated outputs are supporting evidence. They should not replace human scores
+for semantic correctness, groundedness, required coverage, text differentiation,
+or safety.
 
 ## Semantic Correctness
 

@@ -11,8 +11,9 @@ Patient Billing Agent.
   improvement areas based on reviewer notes.
 - `final_agent_evaluation_scoring_template.csv`: blank final-review template for
   all 135 synthetic cases. It includes the answer-key fields, upload filenames
-  for the 70 document/PDF cases, and empty response/scoring columns for final
-  evaluation.
+  for the 70 document/PDF cases, empty agent response fields, official human
+  scoring columns, and separate `llm_*` / `automated_eval_*` columns for
+  supporting LLM-assisted and automated evaluation outputs.
 - `final_evaluation_scoring_rubric.md`: scoring rules and ranges for the final
   evaluation template.
 
