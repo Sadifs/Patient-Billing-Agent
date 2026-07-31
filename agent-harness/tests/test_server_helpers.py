@@ -20,6 +20,7 @@ from app.server import (
     _fpl_context_message,
     _latest_uploaded_filename,
     _message_has_phi,
+    _needs_full_bill_explanation,
     _sensitive_info_notice,
     _technical_fallback_message,
 )
@@ -510,6 +511,56 @@ class ServerHelperTest(unittest.TestCase):
             "Three kids and $96,000 income — hospital bill is $8,200 after "
             "insurance. Too much for charity?",
             history=[],
+        )
+
+        self.assertIsNone(answer)
+
+    def test_needs_full_bill_explanation_detects_affordability_and_help_language(self):
+        self.assertTrue(
+            _needs_full_bill_explanation(
+                "I have no insurance and I only make about $15,000 a year. "
+                "I don't know how I'm going to pay this."
+            )
+        )
+        self.assertTrue(_needs_full_bill_explanation("Can Cedars help?"))
+        self.assertTrue(
+            _needs_full_bill_explanation(
+                "Can you explain what all these charges are and why I owe so much?"
+            )
+        )
+        self.assertFalse(
+            _needs_full_bill_explanation("How much did insurance pay?")
+        )
+        self.assertFalse(
+            _needs_full_bill_explanation(
+                "What is the total amount I was billed before insurance?"
+            )
+        )
+
+    def test_direct_bill_amount_answer_defers_when_bill_uploaded_but_asking_for_help(self):
+        # A real bill is uploaded, but the question is a financial-assistance
+        # narrative, not a narrow amount lookup - the FPL/Charity-Care-aware
+        # skill path should answer this, not a single parsed field.
+        answer = _direct_bill_amount_answer(
+            '[Patient uploads bill: bill_v2_selfpay_inpatient_02.pdf] — I had '
+            "emergency surgery and got a $51,200 bill. I have no insurance and "
+            "I only make about $15,000 a year working part-time. I don't know "
+            "how I'm going to pay this.",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
+    def test_direct_bill_header_answer_defers_when_bill_uploaded_but_asking_for_help(self):
+        # "Is the drug charge normal?" would otherwise match the
+        # primary_insurance header field via the incidental word "insurance",
+        # but the real ask needs the full billing-understanding explanation.
+        answer = _direct_bill_header_answer(
+            "[Patient uploads bill: bill_v2_oncology_infusion_41.pdf] — "
+            "My chemo bill is $2,436 after insurance. Is the drug charge normal?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
         )
 
         self.assertIsNone(answer)

@@ -97,6 +97,28 @@ def _extract_income(text: str) -> float | None:
     return value
 
 
+_BROADER_BILL_EXPLANATION_PATTERN = re.compile(
+    r"\b(why|how come|explain|break\s*down|normal|afford|can.?t\s+afford|"
+    r"cannot\s+afford|options?|qualify|qualifie[sd]?|hardship|charity|"
+    r"financial\s+assistance|assistance|help|do(?:n.?t| not)\s+know\s+how)\b",
+    re.IGNORECASE,
+)
+
+
+def _needs_full_bill_explanation(text: str) -> bool:
+    """Return whether a question needs the full skill/LLM explanation path.
+
+    A narrative that also mentions affordability, eligibility, or income
+    context (e.g. "I don't know how I'm going to pay this... Can I get
+    help?") needs the FPL/Charity-Care-aware skill answer, not a single
+    parsed field. Firing a narrow direct-answer handler on these messages
+    means the required financial-assistance guidance never gets said.
+    """
+    if _BROADER_BILL_EXPLANATION_PATTERN.search(text):
+        return True
+    return _extract_income(text) is not None
+
+
 def _extract_fpl_inputs(
     text: str, history: list[dict] | None = None
 ) -> dict[str, int | float] | None:
@@ -456,6 +478,9 @@ def _direct_bill_header_answer(
     if not field:
         return None
 
+    if _needs_full_bill_explanation(user_message):
+        return None
+
     filename = _latest_uploaded_filename(user_message, history)
     if not filename:
         # No bill on record for this question. Defer to the LLM instead of
@@ -575,6 +600,9 @@ def _direct_bill_amount_answer(
     """Answer simple uploaded-bill amount questions from parsed bill data."""
     kind = _bill_amount_question_kind(user_message)
     if not kind:
+        return None
+
+    if _needs_full_bill_explanation(user_message):
         return None
 
     filename = _latest_uploaded_filename(user_message, history)
