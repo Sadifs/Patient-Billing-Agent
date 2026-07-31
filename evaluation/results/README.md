@@ -9,6 +9,10 @@ Patient Billing Agent.
   selected midterm cases.
 - `midterm_error_analysis.md`: summarized error patterns and recommended
   improvement areas based on reviewer notes.
+- `final_agent_evaluation_scoring_template.csv`: blank final-review template for
+  all 135 synthetic cases. It includes the answer-key fields, upload filenames
+  for the 70 document/PDF cases, and empty response/scoring columns for final
+  evaluation.
 
 ## Evaluation Method
 

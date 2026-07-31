@@ -128,6 +128,7 @@ For the current evaluation artifacts:
 
 - **Synthetic answer key, not scored review output:** [`synthetic-data/synthetic_validation_dataset.csv`](synthetic-data/synthetic_validation_dataset.csv)
 - **Synthetic dataset schema:** [`synthetic-data/README.md`](synthetic-data/README.md)
+- **Final evaluation scoring template:** [`evaluation/results/final_agent_evaluation_scoring_template.csv`](evaluation/results/final_agent_evaluation_scoring_template.csv)
 - **Midterm scored review CSV:** [`evaluation/results/midterm_agent_evaluation_scoring.csv`](evaluation/results/midterm_agent_evaluation_scoring.csv)
 - **Midterm results guide:** [`evaluation/results/README.md`](evaluation/results/README.md)
 - **Midterm error analysis:** [`evaluation/results/midterm_error_analysis.md`](evaluation/results/midterm_error_analysis.md)
