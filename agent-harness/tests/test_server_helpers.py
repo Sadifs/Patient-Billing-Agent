@@ -226,6 +226,13 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("310.2%", fpl_answer)
         self.assertNotIn("310.2%", answer)
 
+    def test_charity_care_coverage_does_not_hijack_general_assistance_question(self):
+        answer = _direct_charity_care_coverage_answer(
+            "TRICARE paid my whole bill and I owe $0. Should I still know about Cedars financial assistance?"
+        )
+
+        self.assertIsNone(answer)
+
     def test_direct_charity_care_coverage_answer_does_not_recalculate_fpl(self):
         answer = _direct_charity_care_coverage_answer(
             "Will they pay for all of my bill if I qualify?"
@@ -462,10 +469,31 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIsNone(kind)
 
+    def test_direct_bill_amount_answer_does_not_hijack_affordability_prompt(self):
+        answer = _direct_bill_amount_answer(
+            '(Regarding my uploaded bill: "bill_v2_selfpay_inpatient_02.pdf") '
+            "I have no insurance and only make $15,000. I do not know how I will pay this.",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
     def test_bill_amount_question_kind_does_not_treat_payer_question_as_amount(self):
         kind = _bill_amount_question_kind("What insurance paid for my service?")
 
         self.assertIsNone(kind)
+
+    def test_bill_amount_question_kind_does_not_hijack_contextual_balance_concern(self):
+        examples = [
+            "I bought insurance on Covered California but still owe $68.50. Can Cedars help?",
+            "College insurance paid most but I owe $72 as a student with little income.",
+            "My indemnity plan only paid $2,760 on a $13,800 bill. I didn't know it wasn't real insurance.",
+        ]
+
+        for question in examples:
+            with self.subTest(question=question):
+                self.assertIsNone(_bill_amount_question_kind(question))
 
     def test_bill_amount_question_kind_still_detects_insurance_payment_amounts(self):
         examples = [
@@ -588,6 +616,21 @@ class ServerHelperTest(unittest.TestCase):
         self.assertIn("**What You May Need**", answer)
         self.assertIn("866-803-1777", answer)
         self.assertIn("estimate your FPL percentage", answer)
+
+    def test_direct_payment_plan_answer_defers_when_uploaded_bill_context_exists(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_selfpay_payment_plan_25.pdf".',
+            }
+        ]
+
+        answer = _direct_payment_plan_answer(
+            "Should I keep paying my payment plan or is there another option?",
+            history,
+        )
+
+        self.assertIsNone(answer)
 
     def test_direct_call_prep_lists_specific_bill_fields(self):
         answer = _direct_call_prep_answer(

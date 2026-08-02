@@ -240,8 +240,18 @@ def _is_charity_care_coverage_question(text: str) -> bool:
         re.search(r"\b(charity care|financial assistance|assistance|if i qualify|if approved)\b", normalized)
     )
     asks_full_coverage = bool(
-        re.search(r"\b(pay|cover|forgive|waive)\b.*\b(all|full|entire|everything|whole)\b", normalized)
-        or re.search(r"\b(all|full|entire|everything|whole)\b.*\b(bill|balance|amount)\b", normalized)
+        re.search(
+            r"\b(?:will|would|could|can)\b.*\b(?:charity care|financial assistance|assistance|they|cedars)\b.*\b(?:pay|cover|forgive|waive)\b.*\b(?:all|full|entire|everything|whole)\b",
+            normalized,
+        )
+        or re.search(
+            r"\b(?:if i qualify|if approved)\b.*\b(?:all|full|entire|everything|whole)\b.*\b(?:bill|balance|amount)\b",
+            normalized,
+        )
+        or re.search(
+            r"\b(?:all|full|entire|everything|whole)\b.*\b(?:bill|balance|amount)\b.*\b(?:covered|paid|forgiven|waived)\b.*\b(?:charity care|financial assistance|assistance)\b",
+            normalized,
+        )
     )
     return mentions_assistance and asks_full_coverage
 
@@ -770,9 +780,14 @@ def _is_payment_plan_question(text: str) -> bool:
     )
 
 
-def _direct_payment_plan_answer(user_message: str) -> str | None:
+def _direct_payment_plan_answer(
+    user_message: str,
+    history: list[dict] | None = None,
+) -> str | None:
     """Return a consistent Cedars-specific payment-plan answer."""
     if not _is_payment_plan_question(user_message):
+        return None
+    if _latest_uploaded_filename(user_message, history):
         return None
 
     return (
@@ -1298,7 +1313,7 @@ async def chat(request: Request):
             content_type="text/event-stream",
         )
 
-    direct_payment_plan = _direct_payment_plan_answer(user_message)
+    direct_payment_plan = _direct_payment_plan_answer(user_message, history)
     if direct_payment_plan:
         async def stream_direct_payment_plan(resp):
             await resp.write(

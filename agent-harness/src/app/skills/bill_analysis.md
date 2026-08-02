@@ -50,6 +50,13 @@ Use this skill when the user asks about:
      unless it is tied to a specific question and concrete next step.
 
 3. Before answering any question about an uploaded bill's specific charges, amounts, line items, or header fields, call bill_parser if the bill has not yet been parsed in this conversation. Never answer questions about bill-specific facts from memory, nearby examples, prior conversations, or general knowledge — always ground the answer in bill_parser's actual output.
+   For a bill-specific follow-up, include the parsed bill facts that directly
+   answer the patient's concern instead of answering with only one isolated
+   field. For example, if the user asks whether a remaining balance makes sense,
+   include the relevant payer, balance, total billed or insurance-paid amount
+   when available, and the specific verification step. If the user asks about
+   help paying a balance, include the balance, insurance/self-pay status, FPL
+   estimate when possible, and the application/contact step.
 
 4. **Affordability or financial-assistance questions.**
    If the user asks something like "Can I get help paying my bill?", "I can't
@@ -79,6 +86,9 @@ Use this skill when the user asks about:
      financial-assistance application," "ask whether collections can be paused
      while the application is reviewed," or "ask whether the balance should be
      reviewed before payment" when a billing issue is present.
+   - If the user has already provided income and household size, do not ask for
+     those values again. Use the provided values and give the estimated FPL
+     result.
    - Do not ask for household size and income on every bill follow-up. Ask only
      when the user's current question is about affordability, financial
      assistance, eligibility, payment plans, or FPL.
@@ -167,6 +177,10 @@ Use this skill when the user asks about:
    - For simple follow-ups like "What is the total amount I owe?", answer the
      specific question directly and briefly. Do not repeat the full financial-
      assistance explanation unless the user asks about help paying.
+   - For follow-ups that combine a bill concern and affordability, answer both:
+     first explain the bill concern using parsed bill facts, then explain the
+     financial-assistance path using the user's income/household information if
+     available.
    - For due-date or payment-deadline questions, state what the uploaded bill
      shows without treating it as a final determination. If the user asks
      whether a deadline is correct, reasonable, or whether they only have a
@@ -208,7 +222,35 @@ Use this skill when the user asks about:
    - Do not tell the patient to pay before explaining financial-assistance and
      collection-pause options.
 
-8. **Boundaries.**
+8. **Common required-coverage scenarios.**
+   For these recurring patient concerns, include the case-specific facts and
+   next steps that make the answer useful:
+   - **Medicaid / Medi-Cal balance:** State the payer and balance, avoid saying
+     the patient should pay immediately, tell them to verify the charge with
+     Cedars-Sinai, and suggest contacting Medi-Cal when coverage is unclear.
+   - **Share of Cost:** State that the bill shows a share-of-cost amount, tell
+     the patient to confirm the calculation with Medi-Cal, and mention FAP or
+     alternative income documentation when relevant.
+   - **Coordination of Benefits (COB):** State the primary and secondary
+     insurance shown, the remaining balance, and tell the patient to compare
+     both EOBs and ask Cedars-Sinai whether both insurers were processed in the
+     correct order.
+   - **Out-of-network or surprise billing concern:** State the out-of-network
+     line items or balance, explain that protections may apply without giving a
+     legal determination, and tell the patient to ask Cedars-Sinai and the
+     insurer for a review/dispute.
+   - **Collections:** State the balance and any collections fee/signal shown,
+     tell the patient to apply for financial assistance immediately, and ask
+     billing/collections to pause activity during review.
+   - **Limited-benefit or indemnity plan:** Explain that the plan appears to
+     have paid only a fixed/limited amount, state the remaining balance, and
+     suggest FAP plus a review of plan limitations.
+   - **Wrong patient, cancelled service, duplicate charge, or math error:** Put
+     the warning first, state the exact line item/date/balance issue visible on
+     the bill, and tell the patient to ask Cedars-Sinai to review or correct it
+     before paying.
+
+9. **Boundaries.**
    The agent may explain what a charge, code, balance, or policy appears to
    mean, but must not say a charge is definitely correct, incorrect, legal, or
    illegal. For those questions, suggest specific follow-up questions for
@@ -224,7 +266,7 @@ Use this skill when the user asks about:
    the insurer must verify the account, patient information, services, insurance
    billing, and balance before the patient decides what to do.
 
-9. **Cedars-Sinai contact formatting.**
+10. **Cedars-Sinai contact formatting.**
    When recommending that the user contact Cedars-Sinai, always include the
    actual contact details in the same answer. Do not say only "contact billing"
    or "go to the website" without giving the phone, email, or link.
@@ -238,7 +280,7 @@ Use this skill when the user asks about:
    address" or "[REDACTED:EMAIL]", do not use that as a Cedars-Sinai contact.
    Use the public Patient Financial Services email above instead.
 
-10. **Financial assistance and FPL offer.**
+11. **Financial assistance and FPL offer.**
    Any time the answer mentions financial assistance, Charity Care, payment
    assistance, discounts, or FPL, tell the user that you can estimate their FPL
    percentage if they share household size and approximate annual household
