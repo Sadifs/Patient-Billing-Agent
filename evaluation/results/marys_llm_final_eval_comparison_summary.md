@@ -1,6 +1,9 @@
 # Final Evaluation Comparison Summary
 
-This summary compares the previous LLM-assisted final evaluation against the updated run on branch `mary/fix-final-eval-agent-gaps`.
+This summary compares two LLM-assisted final evaluation attempts:
+
+- `final_eval_attempt_1.csv`: earlier realistic-PDF evaluation run used as the comparison baseline.
+- `final_eval_attempt_2.csv`: updated evaluation run after the final-eval agent routing and coverage fixes on branch `mary/fix-final-eval-agent-gaps`.
 
 ## Important Caveat
 
@@ -14,7 +17,7 @@ The agent improved on grounding, specificity, and average semantic/coverage scor
 
 ## Metric Comparison
 
-| Metric | Previous Evaluation | Updated Evaluation | Direction |
+| Metric | Attempt 1 | Attempt 2 | Direction |
 | --- | ---: | ---: | --- |
 | Semantic correctness pass | 25/95 | 16/95 | Worse pass count |
 | Semantic correctness average | 46.4% | 52.4% | Better average |
@@ -41,4 +44,4 @@ The agent improved on grounding, specificity, and average semantic/coverage scor
 
 The updated agent appears better from a product-quality perspective: more grounded, more specific, and stronger on average. But the formal pass-rate metrics still show that the agent needs more work on consistently including all required facts and next steps.
 
-Suggested next step: manually review the priority cases listed in `marys_llm_final_eval_score_summary.md`, especially the hallucination/safety flags and the high-volume required-coverage failures.
+Suggested next step: manually review the priority cases listed in `marys_llm_final_eval_score_summary.md`, especially the hallucination/safety flags and the high-volume required-coverage failures. Use `final_eval_attempt_2.csv` as the current scored evaluation output.

@@ -1,7 +1,7 @@
 # Marys LLM Final Eval Score Summary
 
 Source CSV: `marys_final_eval_responses.csv`
-Scored CSV: `marys_llm_final_eval_score.csv`
+Scored CSV: `final_eval_attempt_2.csv`
 
 These are Codex/rubric-assisted draft scores for the updated agent responses. Scoring uses the full transcript (`agent_initial_response` + `agent_followup_response`) and leaves official human-eval columns blank.
 
