@@ -5,6 +5,10 @@ Scored CSV: `final_eval_attempt_2.csv`
 
 These are Codex/rubric-assisted draft scores for the updated agent responses. Scoring uses the full transcript (`agent_initial_response` + `agent_followup_response`) and leaves official human-eval columns blank.
 
+The `automated_eval_status`, `automated_eval_summary`, and
+`automated_eval_notes` columns are populated as deterministic summaries of the
+LLM-assisted rubric scores. They are not a separate official scoring pass.
+
 ## Metric Summary
 
 | Metric | Result |
