@@ -120,6 +120,20 @@ final scored response (`agent_final_response`). For PDF cases in this workflow,
 that usually means the response after the follow-up turn, not only the initial
 generic bill explanation.
 
+Column-wise, `run-live` treats each CSV row as a scripted conversation plus an
+answer key:
+
+1. It uses metadata columns like `case_id`, `category`, `modality`, `scenario`,
+   `payer`, and `plan_type` for filtering and reporting.
+2. It uses `bill_doc_file` to upload the matching synthetic bill when present.
+3. It sends `patient_input` as the first user turn.
+4. It sends `patient_followup` as the second user turn when populated.
+5. It writes `agent_initial_response`, `agent_followup_response`, and
+   `agent_final_response`; the final response is the follow-up response when one
+   exists, otherwise the initial response.
+6. It copies the expected-answer and `tests_*` columns into the output CSV so
+   LLM-assisted and human reviewers can score the final response.
+
 The live review CSV intentionally leaves reviewer scoring fields blank. Reviewers
 should mark:
 
