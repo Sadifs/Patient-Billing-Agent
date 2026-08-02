@@ -59,9 +59,9 @@ Use this skill when the user asks about:
    estimate when possible, and the application/contact step.
 
 4. **Affordability or financial-assistance questions.**
-   If the user asks something like "Can I get help paying my bill?", "I can't
-   afford this bill", "Do I qualify for help?", "charity care", "discount", or
-   "financial assistance":
+   If the user asks something like "Can I get help paying my bill?", "Can I
+   get financial help?", "I can't afford this bill", "Do I qualify for help?",
+   "charity care", "discount", or "financial assistance":
    - Answer the affordability question first. Do not interpret wording like
      "no insurance" or "how will I pay" as a question about how much insurance
      paid unless the user explicitly asks for the insurance-payment amount.
@@ -71,6 +71,10 @@ Use this skill when the user asks about:
      secondary insurance, or possible billing error.
    - Explain that Cedars-Sinai may offer financial assistance or payment-plan
      options.
+   - If the patient is a minor or the bill is in a child's name and the user is
+     listed as the guarantor/parent/guardian, explain that the guarantor can
+     still contact Cedars-Sinai to ask about financial assistance for the bill.
+     Do not answer only with the guarantor name.
    - If household size or annual household income is missing, ask for those two
      details before estimating FPL.
    - Keep the question simple: "What is your household size and approximate

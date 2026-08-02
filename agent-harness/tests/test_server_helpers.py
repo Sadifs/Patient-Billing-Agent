@@ -19,6 +19,7 @@ from app.server import (
     _direct_payment_plan_answer,
     _extract_fpl_inputs,
     _fpl_context_message,
+    _is_financial_help_question,
     _latest_uploaded_filename,
     _message_has_phi,
     _sensitive_info_notice,
@@ -357,6 +358,28 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("David Chen", answer)
         self.assertIn("financially responsible", answer)
+
+    def test_direct_bill_header_answer_does_not_hijack_minor_guarantor_financial_help(self):
+        history = [
+            {
+                "role": "user",
+                "content": 'I uploaded "bill_v2_pediatric_er_appendectomy_29.pdf".',
+            }
+        ]
+        question = (
+            "My daughter had emergency surgery and I have Anthem PPO. I still "
+            "owe $5,182. The bill says the guarantor is me (her father). Can "
+            "I get financial help even though the bill is in her name?"
+        )
+
+        answer = _direct_bill_header_answer(
+            question,
+            history,
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertTrue(_is_financial_help_question(question))
+        self.assertIsNone(answer)
 
     def test_direct_bill_header_answer_does_not_hijack_coverage_explanations(self):
         history = [

@@ -97,6 +97,19 @@ def _extract_income(text: str) -> float | None:
     return value
 
 
+def _is_financial_help_question(text: str) -> bool:
+    """Return whether the user is asking about help paying the bill."""
+    return bool(
+        re.search(
+            r"\b(?:financial\s+help|financial\s+assistance|charity\s+care|"
+            r"help\s+(?:paying|with|for)|get\s+help|can\s+i\s+get\s+help|"
+            r"afford|can't\s+pay|cannot\s+pay|hardship|discount)\b",
+            text,
+            re.IGNORECASE,
+        )
+    )
+
+
 def _extract_fpl_inputs(
     text: str, history: list[dict] | None = None
 ) -> dict[str, int | float] | None:
@@ -455,6 +468,11 @@ def _direct_bill_header_answer(
     """Answer simple uploaded-bill header questions from parsed bill data."""
     field = _bill_header_question_field(user_message)
     if not field:
+        return None
+    if _is_financial_help_question(user_message):
+        # Questions like "Can I get financial help even though the bill is in
+        # my child's name?" mention guarantor/header facts, but the useful
+        # answer is financial-assistance guidance grounded in the bill.
         return None
 
     filename = _latest_uploaded_filename(user_message, history)
