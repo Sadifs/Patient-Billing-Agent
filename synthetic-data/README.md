@@ -10,6 +10,7 @@
 If you're reviewing this dataset (Cedars team, faculty, or a new contributor), you only need two things:
 
 - **`synthetic_validation_dataset.csv`** — the master answer key, 135 labeled test cases
+- **`synthetic_validation_dataset_realistic_pdf_workflow.csv`** — optional evaluation copy where PDF cases use a realistic first turn (`Can you explain this bill?`) and move the original case-specific prompt to the follow-up turn
 - **`synthetic_bills_v2/`** — the 70 full synthetic bills (JSON + PDF) those cases reference, including the expected-answer metadata
 
 Everything else in this folder (`scripts/`, `build-artifacts/`, `edge-cases/`, `synthetic_bills_v2_agent/`) is either build tooling that produced the two items above, or a metadata-stripped copy used internally to feed the agent without exposing its own answer key. See **Contents** below for what each one is.
@@ -76,6 +77,7 @@ disambiguate it from) rather than bumping to "v4."
 | File / Folder | Description |
 |---|---|
 | `synthetic_validation_dataset.csv` | **Master — 135 labeled test cases (current, fully expanded). Use this.** |
+| `synthetic_validation_dataset_realistic_pdf_workflow.csv` | **Evaluation copy — same 135 cases, but PDF-modality cases start with `Can you explain this bill?` and move the original patient prompt into `patient_followup`; text-modality cases are unchanged.** |
 | `synthetic_bills_v2/` | 70 evaluator bills (JSON + PDF, full metadata) — the actual bill files the master CSV references |
 | `synthetic_bills_v2_agent/` | 70 LLM-safe bills (JSON, metadata stripped) — same bills, answer-key fields removed, safe to feed the agent |
 | `edge-cases/` | Planning CSVs for v1 and v2 edge scenarios (reference, not used in evaluation) |
@@ -98,6 +100,31 @@ All scripts in `scripts/` are meant to be run from the `synthetic-data/` directo
 This section describes the two case **types** that make up today's single
 135-case dataset — not the chronological v1/v2/v3/v4 growth covered in
 **Version History** above.
+
+### Optional realistic PDF workflow CSV
+
+`synthetic_validation_dataset_realistic_pdf_workflow.csv` is a copy of the
+master dataset for testing a more realistic uploaded-bill conversation flow.
+It does **not** replace `synthetic_validation_dataset.csv`.
+
+For rows where `modality = pdf`:
+
+- `patient_input` is changed to `Can you explain this bill?`
+- the original case-specific `patient_input` is moved into `patient_followup`
+- any original follow-up is preserved after the moved prompt
+
+For rows where `modality = text`:
+
+- `patient_input` and `patient_followup` are unchanged, because there is no
+  uploaded bill file and the text itself is the patient-provided context
+
+Use this copy when you want to evaluate the user-like workflow: upload PDF
+first, ask for a general explanation, then ask the case-specific follow-up.
+The expected response columns are intentionally unchanged from the master
+dataset. For this workflow copy, treat `expected_agent_response_summary`,
+`expected_extracted_fields`, `expected_next_steps`, and `safety_constraint` as
+expectations for the **final conversation response** after the follow-up turn,
+not only the first generic `Can you explain this bill?` response.
 
 ### Text-only cases (65 cases, no bill files)
 
