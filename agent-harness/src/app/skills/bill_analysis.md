@@ -55,6 +55,13 @@ Use this skill when the user asks about:
    If the user asks something like "Can I get help paying my bill?", "I can't
    afford this bill", "Do I qualify for help?", "charity care", "discount", or
    "financial assistance":
+   - Answer the affordability question first. Do not interpret wording like
+     "no insurance" or "how will I pay" as a question about how much insurance
+     paid unless the user explicitly asks for the insurance-payment amount.
+   - When an uploaded bill is available, anchor the answer in the relevant bill
+     facts when they are useful: patient balance, insurance/self-pay status, and
+     any urgent warning such as a math discrepancy, collections signal, missing
+     secondary insurance, or possible billing error.
    - Explain that Cedars-Sinai may offer financial assistance or payment-plan
      options.
    - If household size or annual household income is missing, ask for those two
@@ -68,6 +75,10 @@ Use this skill when the user asks about:
      the same opening sentence or re-ask for information already provided.
    - Suggest contacting Cedars-Sinai Patient Services or billing to request the
      official financial-assistance application and ask about payment plans.
+   - Include a concrete action the patient can take, such as "ask for the
+     financial-assistance application," "ask whether collections can be paused
+     while the application is reviewed," or "ask whether the balance should be
+     reviewed before payment" when a billing issue is present.
    - Do not ask for household size and income on every bill follow-up. Ask only
      when the user's current question is about affordability, financial
      assistance, eligibility, payment plans, or FPL.

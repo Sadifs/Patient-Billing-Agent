@@ -3,6 +3,7 @@ from pathlib import Path
 
 from app.server import (
     _bill_parser_context_message,
+    _bill_amount_question_kind,
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
     _direct_bill_amount_answer,
@@ -453,6 +454,29 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("$1,024", answer)
         self.assertIn("total insurance payments", answer)
+
+    def test_bill_amount_question_kind_does_not_hijack_affordability_prompt(self):
+        kind = _bill_amount_question_kind(
+            "I have no insurance and only make $15,000. I do not know how I will pay this."
+        )
+
+        self.assertIsNone(kind)
+
+    def test_bill_amount_question_kind_does_not_treat_payer_question_as_amount(self):
+        kind = _bill_amount_question_kind("What insurance paid for my service?")
+
+        self.assertIsNone(kind)
+
+    def test_bill_amount_question_kind_still_detects_insurance_payment_amounts(self):
+        examples = [
+            "How much did insurance pay?",
+            "What is the total insurance payment?",
+            "Did insurance cover anything?",
+        ]
+
+        for question in examples:
+            with self.subTest(question=question):
+                self.assertEqual(_bill_amount_question_kind(question), "insurance_paid")
 
     def test_direct_bill_amount_answer_reports_math_discrepancy_from_patient_balance_sum(self):
         answer = _direct_bill_amount_answer(

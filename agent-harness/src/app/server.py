@@ -525,6 +525,29 @@ def _sum_line_item_amount(
     return round(sum(values), 2)
 
 
+def _asks_insurance_payment_amount(normalized: str) -> bool:
+    """Return whether a question explicitly asks for the insurance-paid amount."""
+    return bool(
+        re.search(
+            r"\bhow much\b.*\binsurance\b.*\b(?:pay|paid|payment|payments|cover|covered)\b",
+            normalized,
+        )
+        or re.search(
+            r"\binsurance\b.*\b(?:pay|paid|payment|payments|cover|covered)\b.*\b(?:how much|amount|total)\b",
+            normalized,
+        )
+        or re.search(r"\b(?:total\s+)?insurance payments?\b", normalized)
+        or re.search(
+            r"\b(?:total\s+)?insurance\s+(?:payment|payments|amount paid|paid amount)\b",
+            normalized,
+        )
+        or re.search(
+            r"\bdid insurance\s+(?:pay|cover)\s+(?:anything|any amount|part|some)\b",
+            normalized,
+        )
+    )
+
+
 def _bill_amount_question_kind(user_message: str) -> str | None:
     normalized = user_message.lower().strip()
 
@@ -546,9 +569,7 @@ def _bill_amount_question_kind(user_message: str) -> str | None:
         normalized,
     ):
         return "total_billed"
-    if re.search(r"\binsurance\b", normalized) and re.search(
-        r"\b(?:paid|payment|payments|covered|cover|pay)\b", normalized
-    ):
+    if _asks_insurance_payment_amount(normalized):
         return "insurance_paid"
     if re.search(
         r"\b(?:how much|what(?:'s| is)?)\b.*\b(?:owe|owed|amount due|balance due|patient balance)\b",
