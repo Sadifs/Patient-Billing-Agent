@@ -99,6 +99,23 @@ python3 -m evaluation.evaluation_harness run-live \
   --continue-on-error
 ```
 
+To batch-run the optional realistic PDF workflow copy, place `--dataset` before
+the command:
+
+```bash
+python3 -m evaluation.evaluation_harness \
+  --dataset synthetic-data/synthetic_validation_dataset_realistic_pdf_workflow.csv \
+  run-live \
+  --output evaluation/results/final_agent_evaluation_realistic_pdf_live_outputs.csv \
+  --timeout-seconds 180 \
+  --resume \
+  --continue-on-error
+```
+
+In that copied dataset, PDF-modality cases start with `Can you explain this
+bill?` and move the original case-specific prompt to `patient_followup`; text
+cases are unchanged.
+
 The live review CSV intentionally leaves reviewer scoring fields blank. Reviewers
 should mark:
 

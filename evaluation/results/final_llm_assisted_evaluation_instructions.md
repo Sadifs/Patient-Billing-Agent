@@ -70,6 +70,28 @@ python3 -m evaluation.evaluation_harness run-live \
   --output evaluation/results/final_agent_evaluation_selected_cases.csv
 ```
 
+## Optional: Realistic PDF Conversation Dataset
+
+The repository also includes
+`synthetic-data/synthetic_validation_dataset_realistic_pdf_workflow.csv`.
+This is a copy of the master dataset for testing a more user-like PDF workflow:
+
+- PDF-modality cases upload the bill, then start with `Can you explain this bill?`
+- the original case-specific PDF prompt is moved into `patient_followup`
+- text-modality cases are unchanged
+
+To run that copied dataset:
+
+```bash
+python3 -m evaluation.evaluation_harness \
+  --dataset synthetic-data/synthetic_validation_dataset_realistic_pdf_workflow.csv \
+  run-live \
+  --output evaluation/results/final_agent_evaluation_realistic_pdf_live_outputs.csv \
+  --timeout-seconds 180 \
+  --resume \
+  --continue-on-error
+```
+
 ## 4. Fill The LLM-Assisted Columns
 
 For each row, give the LLM evaluator the row context and the rubric from
