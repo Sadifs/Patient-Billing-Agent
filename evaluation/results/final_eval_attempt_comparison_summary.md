@@ -44,4 +44,4 @@ The agent improved on grounding, specificity, and average semantic/coverage scor
 
 The updated agent appears better from a product-quality perspective: more grounded, more specific, and stronger on average. But the formal pass-rate metrics still show that the agent needs more work on consistently including all required facts and next steps.
 
-Suggested next step: manually review the priority cases listed in `marys_llm_final_eval_score_summary.md`, especially the hallucination/safety flags and the high-volume required-coverage failures. Use `final_eval_attempt_2.csv` as the current scored evaluation output.
+Suggested next step: manually review the priority cases listed in `final_eval_attempt_2_score_summary.md`, especially the hallucination/safety flags and the high-volume required-coverage failures. Use `final_eval_attempt_2.csv` as the current scored evaluation output.
