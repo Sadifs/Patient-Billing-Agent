@@ -4,6 +4,26 @@ Use this workflow to batch-test all final synthetic cases and prepare a review
 CSV for Diego and Matthew. The LLM-assisted scores are supporting evidence; the
 official human-eval columns should remain available for the human reviewers.
 
+## How The Harness Turns One CSV Row Into An Agent Test
+
+Each row in the synthetic test-case CSV is both a conversation script and an
+answer key. Before scoring the results, read the row in this order:
+
+| Step | CSV columns | What the harness does |
+| --- | --- | --- |
+| 1. Identify the case | `case_id`, `category`, `modality`, `scenario`, `payer`, `plan_type` | Uses these for filtering, grouping, validation, and coverage reporting. These fields are not sent to the agent as the user prompt. |
+| 2. Upload a bill if present | `bill_doc_file` | If a bill file is listed and uploads are enabled, the harness uploads the matching synthetic bill before sending the chat prompt. It prefers the PDF version when available. |
+| 3. Send the first user turn | `patient_input` | Sends this as the first user message. In the realistic PDF workflow copy, PDF cases usually start with `Can you explain this bill?`; text-only cases keep the original patient message. |
+| 4. Send the follow-up turn if present | `patient_followup` | If this field is populated, the harness sends it after the first agent response. In the realistic PDF workflow copy, this is usually where the original case-specific PDF question appears. |
+| 5. Save the agent outputs | `agent_initial_response`, `agent_followup_response`, `agent_final_response` | Saves both turns. `agent_final_response` equals the follow-up response when one exists; otherwise, it equals the initial response. |
+| 6. Bring forward the answer key | `expected_agent_response_summary`, `expected_extracted_fields`, `expected_next_steps`, `safety_constraint` | Copies these into the review CSV for LLM-assisted and human scoring. These fields are not shown to the agent. |
+| 7. Decide which metrics apply | `tests_semantic_correctness`, `tests_groundedness`, `tests_required_coverage`, `tests_hallucination_rate`, `tests_text_differentiation` | Reviewers and LLM evaluators should score only the metrics marked `True` for that row. |
+
+For rows with a follow-up turn, score the expected answer fields against
+`agent_final_response`, because that is the completed conversation. The initial
+response can still be reviewed for quality, but the formal case-specific score
+should be based on the final response unless the row has no follow-up.
+
 ## 1. Start From A Clean Main Branch
 
 From the repository root:
@@ -68,6 +88,34 @@ python3 -m evaluation.evaluation_harness run-live \
   --case-id DV2-009 \
   --case-id DOC-006 \
   --output evaluation/results/final_agent_evaluation_selected_cases.csv
+```
+
+## Optional: Realistic PDF Conversation Dataset
+
+The repository also includes
+`synthetic-data/synthetic_validation_dataset_realistic_pdf_workflow.csv`.
+This is a copy of the master dataset for testing a more user-like PDF workflow:
+
+- PDF-modality cases upload the bill, then start with `Can you explain this bill?`
+- the original case-specific PDF prompt is moved into `patient_followup`
+- text-modality cases are unchanged
+
+The expected answer fields are still final-response expectations. When scoring
+this realistic workflow copy, compare them to `agent_final_response`, which is
+the follow-up response when a follow-up exists. The initial response can still be
+reviewed for bill-summary quality, but the case-specific expected fields belong
+to the completed conversation.
+
+To run that copied dataset:
+
+```bash
+python3 -m evaluation.evaluation_harness \
+  --dataset synthetic-data/synthetic_validation_dataset_realistic_pdf_workflow.csv \
+  run-live \
+  --output evaluation/results/final_agent_evaluation_realistic_pdf_live_outputs.csv \
+  --timeout-seconds 180 \
+  --resume \
+  --continue-on-error
 ```
 
 ## 4. Fill The LLM-Assisted Columns

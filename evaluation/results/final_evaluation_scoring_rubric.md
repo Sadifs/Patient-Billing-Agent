@@ -4,6 +4,26 @@ Use this document with `final_agent_evaluation_scoring_template.csv`.
 For the batch-run and LLM-assisted handoff process, use
 `final_llm_assisted_evaluation_instructions.md`.
 
+## How To Read A Generated Evaluation Row
+
+Each output row comes from one synthetic test case. The harness uses the row in
+this order:
+
+| CSV area | Columns | How to interpret it during review |
+| --- | --- | --- |
+| Case metadata | `case_id`, `category`, `modality`, `scenario`, `payer`, `plan_type` | Describes what kind of case this is and how it should be grouped. |
+| Uploaded bill | `bill_doc_file`, `uploaded_bill_file` | Shows which synthetic bill was referenced and which file was actually uploaded to the agent. |
+| User conversation | `patient_input`, `patient_followup`, `agent_initial_prompt`, `agent_followup_prompt` | Shows the scripted patient turns and the exact prompts sent to the agent. |
+| Agent response | `agent_initial_response`, `agent_followup_response`, `agent_final_response` | Shows the model output. If there is a follow-up response, `agent_final_response` is the response to score. Otherwise, score the initial response. |
+| Answer key | `expected_agent_response_summary`, `expected_extracted_fields`, `expected_next_steps`, `safety_constraint` | Shows what a strong answer should include. These fields are for reviewers and were not shown to the agent. |
+| Metric flags | `tests_semantic_correctness`, `tests_groundedness`, `tests_required_coverage`, `tests_hallucination_rate`, `tests_text_differentiation` | Shows which metrics apply to this row. Score only the metrics marked `True`. |
+| Scoring fields | `llm_*`, unprefixed human-eval columns, `automated_eval_*` | Stores LLM-assisted suggestions, official human scores, and automated checks separately. |
+
+For the realistic PDF workflow dataset, PDF cases usually start with a generic
+first turn (`Can you explain this bill?`) and place the case-specific question in
+`patient_followup`. In those rows, compare the expected answer fields to
+`agent_final_response`, not only the initial bill-summary response.
+
 ## Quick Instructions
 
 1. Review one row at a time in `final_agent_evaluation_scoring_template.csv`.
