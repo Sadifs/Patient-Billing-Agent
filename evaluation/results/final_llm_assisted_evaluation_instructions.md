@@ -15,14 +15,15 @@ answer key. Before scoring the results, read the row in this order:
 | 2. Upload a bill if present | `bill_doc_file` | If a bill file is listed and uploads are enabled, the harness uploads the matching synthetic bill before sending the chat prompt. It prefers the PDF version when available. |
 | 3. Send the first user turn | `patient_input` | Sends this as the first user message. In the realistic PDF workflow copy, PDF cases usually start with `Can you explain this bill?`; text-only cases keep the original patient message. |
 | 4. Send the follow-up turn if present | `patient_followup` | If this field is populated, the harness sends it after the first agent response. In the realistic PDF workflow copy, this is usually where the original case-specific PDF question appears. |
-| 5. Save the agent outputs | `agent_initial_response`, `agent_followup_response`, `agent_final_response` | Saves both turns. `agent_final_response` equals the follow-up response when one exists; otherwise, it equals the initial response. |
+| 5. Save the agent outputs | `agent_initial_response`, `agent_followup_response`, `agent_final_response` | Saves both turns. `agent_final_response` equals the follow-up response when one exists; otherwise, it equals the initial response. Score the full transcript, not just one response. |
 | 6. Bring forward the answer key | `expected_agent_response_summary`, `expected_extracted_fields`, `expected_next_steps`, `safety_constraint` | Copies these into the review CSV for LLM-assisted and human scoring. These fields are not shown to the agent. |
 | 7. Decide which metrics apply | `tests_semantic_correctness`, `tests_groundedness`, `tests_required_coverage`, `tests_hallucination_rate`, `tests_text_differentiation` | Reviewers and LLM evaluators should score only the metrics marked `True` for that row. |
 
-For rows with a follow-up turn, score the expected answer fields against
-`agent_final_response`, because that is the completed conversation. The initial
-response can still be reviewed for quality, but the formal case-specific score
-should be based on the final response unless the row has no follow-up.
+For rows with a follow-up turn, score the expected answer fields against the
+full conversation transcript: `agent_initial_response` plus
+`agent_followup_response`. Use `agent_final_response` to check whether the
+case-specific follow-up was answered by the end, but give credit for required
+bill facts, warnings, or safety behavior that appeared in the initial response.
 
 ## 1. Start From A Clean Main Branch
 
@@ -100,11 +101,11 @@ This is a copy of the master dataset for testing a more user-like PDF workflow:
 - the original case-specific PDF prompt is moved into `patient_followup`
 - text-modality cases are unchanged
 
-The expected answer fields are still final-response expectations. When scoring
-this realistic workflow copy, compare them to `agent_final_response`, which is
-the follow-up response when a follow-up exists. The initial response can still be
-reviewed for bill-summary quality, but the case-specific expected fields belong
-to the completed conversation.
+The expected answer fields are completed-conversation expectations. When scoring
+this realistic workflow copy, compare them to the combined
+`agent_initial_response` and `agent_followup_response`. The initial response
+often contains bill-summary facts, while the follow-up response should resolve
+the case-specific patient concern.
 
 To run that copied dataset:
 
@@ -166,9 +167,14 @@ Copy this prompt for each row or adapt it for batch scoring:
 You are evaluating a synthetic patient billing agent response.
 
 Use the rubric in final_evaluation_scoring_rubric.md. Score only the metrics
-where the row's tests_* flag is TRUE. Use the uploaded PDF/JSON as the source
-of truth when present; if the CSV expected answer conflicts with the bill,
-trust the PDF/JSON and note the discrepancy.
+where the row's tests_* flag is TRUE. For multi-turn rows, score the full
+conversation transcript using both agent_initial_response and
+agent_followup_response. Give required-coverage credit for facts or next steps
+that appear in either response. Use agent_final_response to judge whether the
+case-specific follow-up was answered by the end, but do not ignore useful bill
+facts from the initial response. Use the uploaded PDF/JSON as the source of
+truth when present; if the CSV expected answer conflicts with the bill, trust
+the PDF/JSON and note the discrepancy.
 
 Return concise JSON using these keys:
 llm_semantic_correctness_score_0_1

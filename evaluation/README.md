@@ -116,9 +116,11 @@ In that copied dataset, PDF-modality cases start with `Can you explain this
 bill?` and move the original case-specific prompt to `patient_followup`; text
 cases are unchanged.
 The expected answer fields still describe what the agent should satisfy by the
-final scored response (`agent_final_response`). For PDF cases in this workflow,
-that usually means the response after the follow-up turn, not only the initial
-generic bill explanation.
+completed conversation. For PDF cases in this workflow, reviewers should score
+the full transcript across `agent_initial_response` and
+`agent_followup_response`. Use `agent_final_response` as the final answer to the
+case-specific follow-up, but do not ignore required facts, warnings, or safety
+behavior that the agent already provided in the initial bill explanation.
 
 Column-wise, `run-live` treats each CSV row as a scripted conversation plus an
 answer key:
@@ -132,7 +134,7 @@ answer key:
    `agent_final_response`; the final response is the follow-up response when one
    exists, otherwise the initial response.
 6. It copies the expected-answer and `tests_*` columns into the output CSV so
-   LLM-assisted and human reviewers can score the final response.
+   LLM-assisted and human reviewers can score the completed conversation.
 
 The live review CSV intentionally leaves reviewer scoring fields blank. Reviewers
 should mark:
