@@ -80,6 +80,12 @@ This is a copy of the master dataset for testing a more user-like PDF workflow:
 - the original case-specific PDF prompt is moved into `patient_followup`
 - text-modality cases are unchanged
 
+The expected answer fields are still final-response expectations. When scoring
+this realistic workflow copy, compare them to `agent_final_response`, which is
+the follow-up response when a follow-up exists. The initial response can still be
+reviewed for bill-summary quality, but the case-specific expected fields belong
+to the completed conversation.
+
 To run that copied dataset:
 
 ```bash

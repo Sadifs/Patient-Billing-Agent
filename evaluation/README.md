@@ -115,6 +115,10 @@ python3 -m evaluation.evaluation_harness \
 In that copied dataset, PDF-modality cases start with `Can you explain this
 bill?` and move the original case-specific prompt to `patient_followup`; text
 cases are unchanged.
+The expected answer fields still describe what the agent should satisfy by the
+final scored response (`agent_final_response`). For PDF cases in this workflow,
+that usually means the response after the follow-up turn, not only the initial
+generic bill explanation.
 
 The live review CSV intentionally leaves reviewer scoring fields blank. Reviewers
 should mark:

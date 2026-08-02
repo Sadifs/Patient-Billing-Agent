@@ -120,6 +120,11 @@ For rows where `modality = text`:
 
 Use this copy when you want to evaluate the user-like workflow: upload PDF
 first, ask for a general explanation, then ask the case-specific follow-up.
+The expected response columns are intentionally unchanged from the master
+dataset. For this workflow copy, treat `expected_agent_response_summary`,
+`expected_extracted_fields`, `expected_next_steps`, and `safety_constraint` as
+expectations for the **final conversation response** after the follow-up turn,
+not only the first generic `Can you explain this bill?` response.
 
 ### Text-only cases (65 cases, no bill files)
 
