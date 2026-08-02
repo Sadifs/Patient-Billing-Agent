@@ -8,6 +8,8 @@ These are Codex/rubric-assisted draft scores for the updated agent responses. Sc
 The `automated_eval_status`, `automated_eval_summary`, and
 `automated_eval_notes` columns are populated as deterministic summaries of the
 LLM-assisted rubric scores. They are not a separate official scoring pass.
+For Attempt 2, `automated_eval_status` marks 27 rows as `pass` and 108 rows as
+`needs_human_review`, matching the overall LLM-assisted pass/review result.
 
 ## Metric Summary
 
