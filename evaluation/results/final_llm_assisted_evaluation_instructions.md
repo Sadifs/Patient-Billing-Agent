@@ -80,7 +80,7 @@ In a second terminal, from the repository root:
 
 ```bash
 python3 -m evaluation.evaluation_harness run-live \
-  --output evaluation/results/final_agent_evaluation_live_outputs.csv \
+  --output evaluation/results/final_eval_live_outputs.csv \
   --timeout-seconds 180 \
   --resume \
   --continue-on-error
@@ -141,11 +141,16 @@ To run that copied dataset:
 python3 -m evaluation.evaluation_harness \
   --dataset synthetic-data/synthetic_validation_dataset_realistic_pdf_workflow.csv \
   run-live \
-  --output evaluation/results/final_agent_evaluation_realistic_pdf_live_outputs.csv \
+  --output evaluation/results/final_eval_realistic_pdf_live_outputs.csv \
   --timeout-seconds 180 \
   --resume \
   --continue-on-error
 ```
+
+For the final handoff, use `final_eval_for_human_review.csv` after the LLM
+scoring passes have been added. That file is the reviewer-facing comparison CSV;
+it includes the agent transcript, available LLM-assisted scores, disagreement
+flags, and blank human-review notes.
 
 ## 4. Fill The LLM-Assisted Columns
 

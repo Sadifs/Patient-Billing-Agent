@@ -14,10 +14,28 @@ Cedars-Sinai Patient Billing Agent.
   for the 70 document/PDF cases, empty agent response fields, official human
   scoring columns, and separate `llm_*` / `automated_eval_*` columns for
   supporting LLM-assisted and automated evaluation outputs.
+- `final_eval_for_human_review.csv`: primary final-review handoff file. It
+  combines the final agent transcripts, available LLM-assisted scoring passes,
+  disagreement flags, source-of-truth checks, and blank human-review notes.
 - `final_evaluation_scoring_rubric.md`: scoring rules and ranges for the final
   evaluation template.
 - `final_llm_assisted_evaluation_instructions.md`: step-by-step workflow for
   batch-running all final cases and filling the `llm_*` support columns.
+- `final_eval_attempt_1.csv`, `final_eval_attempt_2.csv`, and
+  `final_eval_attempt_3.csv`: versioned LLM-assisted scoring attempts retained
+  for auditability and comparison. Do not treat any one attempt as the official
+  final score.
+- `final_eval_attempt_2_claude_scored.csv`: independent Claude scoring pass
+  contributed by a teammate for cross-checking.
+- `final_eval_attempt_*_summary.md`,
+  `final_eval_attempt_3_vs_claude_scoring_comparison.csv`, and
+  `final_eval_claude_priority_review_cases.md`: comparison and triage artifacts
+  showing where LLM scorers disagreed or flagged possible issues.
+- `final_eval_dataset_issue_audit.csv`: source-of-truth balance audit. It is
+  currently header-only after expected-balance cleanup, meaning no remaining
+  `balance_due` / `amount_owed_usd` conflicts were found against bill JSON.
+- `final_eval_refusal_fix_smoke.csv`: targeted smoke-test output for the
+  upload/context over-refusal fix.
 
 ## Evaluation Method
 
@@ -82,7 +100,7 @@ Then, from the repository root in another terminal:
 
 ```bash
 python3 -m evaluation.evaluation_harness run-live \
-  --output evaluation/results/final_agent_evaluation_live_outputs.csv \
+  --output evaluation/results/final_eval_live_outputs.csv \
   --timeout-seconds 180 \
   --resume \
   --continue-on-error
@@ -91,11 +109,15 @@ python3 -m evaluation.evaluation_harness run-live \
 Use `final_llm_assisted_evaluation_instructions.md` to fill the `llm_*` columns.
 Keep official human-eval scores in the unprefixed scoring columns.
 
+For final review, use `final_eval_for_human_review.csv` as the reviewer-facing
+handoff file. It is designed to help humans compare LLM-assisted scoring passes,
+inspect disagreements, and make the official final scoring call.
+
 ## How To Use These Results
 
-Use this CSV as an evidence base for future agent improvements:
+Use the final-review CSV as an evidence base for future agent improvements:
 
-1. Open `midterm_agent_evaluation_scoring.csv`.
+1. Open `final_eval_for_human_review.csv`.
 2. Filter for rows where `overall_pass = FALSE`.
 3. Also review rows with any of these risk signals:
    - `semantic_correctness_score_0_1 < 0.90`

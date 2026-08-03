@@ -93,7 +93,7 @@ To batch-run all 135 final cases:
 
 ```bash
 python3 -m evaluation.evaluation_harness run-live \
-  --output evaluation/results/final_agent_evaluation_live_outputs.csv \
+  --output evaluation/results/final_eval_live_outputs.csv \
   --timeout-seconds 180 \
   --resume \
   --continue-on-error
@@ -106,7 +106,7 @@ the command:
 python3 -m evaluation.evaluation_harness \
   --dataset synthetic-data/synthetic_validation_dataset_realistic_pdf_workflow.csv \
   run-live \
-  --output evaluation/results/final_agent_evaluation_realistic_pdf_live_outputs.csv \
+  --output evaluation/results/final_eval_realistic_pdf_live_outputs.csv \
   --timeout-seconds 180 \
   --resume \
   --continue-on-error
@@ -154,6 +154,12 @@ those columns for LLM-assisted suggested scores and notes. Keep the unprefixed
 columns above for official human-eval scores. See
 `evaluation/results/final_llm_assisted_evaluation_instructions.md` for the full
 batch workflow and suggested LLM evaluator prompt.
+
+For the final handoff, start from
+`evaluation/results/final_eval_for_human_review.csv`. That file combines the
+final agent transcripts, available LLM-assisted scoring passes, disagreement
+flags, source-of-truth checks, and blank human-review notes into one
+reviewer-facing CSV.
 
 Use the refusal columns as diagnostic fields alongside hallucination:
 
@@ -229,9 +235,11 @@ The summary command compares completed reviewer scores against these targets:
 3. Run selected cases through `run-live`, or omit filters to batch-run all 135
    final cases.
 4. Use LLM assistance to fill the `llm_*` support columns when helpful.
-5. Have official human reviewers score the unprefixed human-eval columns.
-6. Run `summarize` on the completed review CSV.
-7. Use `reviewer_notes` to build the error-analysis slide or final improvement
+5. Use `evaluation/results/final_eval_for_human_review.csv` to compare LLM
+   scoring passes and identify rows that need human adjudication.
+6. Have official human reviewers score the unprefixed human-eval columns.
+7. Run `summarize` on the completed review CSV.
+8. Use `reviewer_notes` to build the error-analysis slide or final improvement
    backlog.
 
 ## Recommended Next Steps
