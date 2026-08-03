@@ -531,6 +531,24 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIsNone(answer)
 
+    def test_direct_bill_amount_answer_does_not_hijack_affordability_via_total_billed_kind(self):
+        # "can't afford" doesn't touch the insurance_paid trigger, but this
+        # message still matches the (untightened) total_billed kind -- the
+        # financial-help guard needs to catch it there too, not just when
+        # insurance_paid would have fired.
+        question = "I have no insurance and can't afford it. What is my total billed?"
+
+        self.assertEqual(_bill_amount_question_kind(question), "total_billed")
+        self.assertTrue(_is_financial_help_question(question))
+
+        answer = _direct_bill_amount_answer(
+            f'(Regarding my uploaded bill: "bill_v2_selfpay_inpatient_02.pdf") {question}',
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
     def test_bill_amount_question_kind_does_not_treat_payer_question_as_amount(self):
         kind = _bill_amount_question_kind("What insurance paid for my service?")
 

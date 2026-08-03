@@ -625,6 +625,12 @@ def _direct_bill_amount_answer(
     kind = _bill_amount_question_kind(user_message)
     if not kind:
         return None
+    if _is_financial_help_question(user_message):
+        # Questions like "I have no insurance and cannot afford this at all.
+        # What is the total amount I was billed?" mention an amount field,
+        # but the useful answer is financial-assistance guidance grounded in
+        # the bill, not just the isolated number.
+        return None
 
     filename = _latest_uploaded_filename(user_message, history)
     if not filename:
