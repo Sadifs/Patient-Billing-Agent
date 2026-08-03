@@ -22,6 +22,7 @@ This compares `final_eval_attempt_3.csv` against Sadaf's independent Claude-scor
 - The hard upload-refusal issue was real in text-only cases. The direct bill header/amount handlers were still returning “I do not see an uploaded bill connected...” instead of deferring to the LLM when the user had already supplied enough text context.
 - This branch now fixes that refusal path by letting the LLM answer text-only bill questions instead of forcing an upload. A 14-case smoke test covering the previously flagged refusal cases produced zero instances of the old refusal text; see `final_eval_refusal_fix_smoke.csv`.
 - DV2-064 appears to be a dataset/answer-key conflict: the bill JSON and `amount_owed_usd` show $9,664, while the prompt/expected fields mention $7,464.
+- The same source-of-truth pattern appears in DV2-046, DV2-048, DV2-049, DV2-051, DV2-056, DV2-058, DV2-061, and DV2-064: the expected/prompt balance differs from the bill JSON balance. These should be treated as expected-data cleanup unless the agent also contradicts itself across turns, as flagged for DV2-056.
 - Some Claude hallucination/safety flags may be real defects; compare the cases tagged `claude_hallucination_only` and `claude_safety_fail_only` in the CSV before accepting final scores.
 - `final_eval_dataset_issue_audit.csv` lists cases where expected/prompt dollar values may conflict with the source bill JSON. Some rows are component balances rather than true total-balance errors, so these should be reviewed before changing expected fields.
 
