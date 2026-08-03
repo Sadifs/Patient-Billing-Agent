@@ -4,6 +4,7 @@ from pathlib import Path
 from app.server import (
     _bill_parser_context_message,
     _bill_amount_question_kind,
+    _bill_header_question_field,
     _clean_duplicate_sensitive_notice,
     _clean_internal_tool_text,
     _direct_bill_amount_answer,
@@ -543,6 +544,64 @@ class ServerHelperTest(unittest.TestCase):
 
         answer = _direct_bill_amount_answer(
             f'(Regarding my uploaded bill: "bill_v2_selfpay_inpatient_02.pdf") {question}',
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
+    def test_is_financial_help_question_detects_explanation_and_eligibility_phrasing(self):
+        # Ported over from PR #45's _needs_full_bill_explanation -- confirmed
+        # live that these still slipped past the narrower financial-help-only
+        # wording, even after both handlers had that guard wired in.
+        should_match = [
+            "Can you explain what all these charges are and why I owe so much?",
+            "My chemo bill is $2,436 after insurance. Is the drug charge normal?",
+            "How come my patient balance is this high?",
+            "Can you break down why the total billed is so high?",
+            "What are my options, since I owe a lot on this bill?",
+            "Do I qualify for a lower total billed amount given my situation?",
+            "I need help, what is my total billed amount?",
+            "I do not know how I will pay. What is my total billed?",
+            "I make $15,000 a year. What is my total billed amount?",
+        ]
+        for question in should_match:
+            with self.subTest(question=question):
+                self.assertTrue(_is_financial_help_question(question))
+
+        should_not_match = [
+            "How much did insurance pay?",
+            "What is the total amount I was billed before insurance?",
+            "Do the bill totals add up correctly?",
+            "What insurance is listed on this bill?",
+            "What is my name?",
+        ]
+        for question in should_not_match:
+            with self.subTest(question=question):
+                self.assertFalse(_is_financial_help_question(question))
+
+    def test_direct_bill_amount_answer_defers_on_explanation_seeking_phrasing(self):
+        question = "Can you break down why the total billed is so high?"
+
+        self.assertEqual(_bill_amount_question_kind(question), "total_billed")
+
+        answer = _direct_bill_amount_answer(
+            f'(Regarding my uploaded bill: "bill_v2_selfpay_inpatient_02.pdf") {question}',
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
+    def test_direct_bill_header_answer_defers_on_normal_phrasing(self):
+        question = (
+            "My chemo bill is $2,436 after insurance. Is the drug charge normal?"
+        )
+
+        self.assertEqual(_bill_header_question_field(question), "primary_insurance")
+
+        answer = _direct_bill_header_answer(
+            f'(Regarding my uploaded bill: "bill_v2_oncology_infusion_41.pdf") {question}',
             history=[],
             upload_dir=self.synthetic_bill_dir,
         )

@@ -98,16 +98,25 @@ def _extract_income(text: str) -> float | None:
 
 
 def _is_financial_help_question(text: str) -> bool:
-    """Return whether the user is asking about help paying the bill."""
-    return bool(
-        re.search(
-            r"\b(?:financial\s+help|financial\s+assistance|charity\s+care|"
-            r"help\s+(?:paying|with|for)|get\s+help|can\s+i\s+get\s+help|"
-            r"afford|can't\s+pay|cannot\s+pay|hardship|discount)\b",
-            text,
-            re.IGNORECASE,
-        )
-    )
+    """Return whether the user is asking about help paying the bill.
+
+    Also covers broader explanation/eligibility phrasing ("why do I owe so
+    much", "is this normal", "what are my options", "do I qualify") and a
+    bare stated income figure, ported over from PR #45's
+    _needs_full_bill_explanation -- these were confirmed live to still slip
+    past the narrower financial-help wording alone.
+    """
+    if re.search(
+        r"\b(?:financial\s+help|financial\s+assistance|charity\s+care|"
+        r"help\s+(?:paying|with|for)|get\s+help|can\s+i\s+get\s+help|"
+        r"afford|can't\s+pay|cannot\s+pay|hardship|discount|"
+        r"why|how\s+come|explain|break\s*down|normal|options?|"
+        r"qualify|qualifie[sd]?|help|do(?:n't| not)\s+know\s+how)\b",
+        text,
+        re.IGNORECASE,
+    ):
+        return True
+    return _extract_income(text) is not None
 
 
 def _extract_fpl_inputs(
