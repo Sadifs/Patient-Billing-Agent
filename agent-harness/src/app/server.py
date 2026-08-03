@@ -106,12 +106,14 @@ def _is_financial_help_question(text: str) -> bool:
     _needs_full_bill_explanation -- these were confirmed live to still slip
     past the narrower financial-help wording alone.
     """
+    # Bare "help"/"afford"/"charity"/"assistance" below are deliberately not
+    # paired with narrower phrases like "help paying" or "financial
+    # assistance" -- the bare word already matches those substrings, so the
+    # narrower forms would be redundant.
     if re.search(
-        r"\b(?:financial\s+help|financial\s+assistance|charity\s+care|"
-        r"help\s+(?:paying|with|for)|get\s+help|can\s+i\s+get\s+help|"
-        r"afford|can't\s+pay|cannot\s+pay|hardship|discount|"
-        r"why|how\s+come|explain|break\s*down|normal|options?|"
-        r"qualify|qualifie[sd]?|help|do(?:n't| not)\s+know\s+how)\b",
+        r"\b(?:why|how\s+come|explain|break\s*down|normal|afford|options?|"
+        r"qualify|qualifie[sd]?|hardship|charity|assistance|help|discount|"
+        r"can't\s+pay|cannot\s+pay|do(?:n.?t| not)\s+know\s+how)\b",
         text,
         re.IGNORECASE,
     ):

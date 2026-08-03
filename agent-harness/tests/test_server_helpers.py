@@ -564,6 +564,9 @@ class ServerHelperTest(unittest.TestCase):
             "I need help, what is my total billed amount?",
             "I do not know how I will pay. What is my total billed?",
             "I make $15,000 a year. What is my total billed amount?",
+            "Is there any charity for my total billed amount?",
+            "Is there any assistance for my total billed amount?",
+            "I don’t know how I will pay. What is my total billed?",
         ]
         for question in should_match:
             with self.subTest(question=question):
