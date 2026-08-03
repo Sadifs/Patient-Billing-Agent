@@ -462,6 +462,25 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("Fixed Indemnity Plan", answer)
 
+    def test_latest_uploaded_filename_recognizes_bracket_upload_format(self):
+        filename = _latest_uploaded_filename(
+            "[Patient uploads bill: bill_v2_champva_outpatient_36.pdf] "
+            "What is the total amount I was billed before insurance?",
+            history=[],
+        )
+
+        self.assertEqual(filename, "bill_v2_champva_outpatient_36.pdf")
+
+    def test_direct_bill_header_answer_defers_when_no_bill_uploaded(self):
+        answer = _direct_bill_header_answer(
+            "My statement shows Patient: J. Kim, Service Date: 05/10/26, "
+            "Balance: $310. Which specific department or clinic was this from?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
+
     def test_direct_bill_amount_answer_handles_before_insurance_wording(self):
         answer = _direct_bill_amount_answer(
             '(Regarding my uploaded bill: "bill_v2_champva_outpatient_36.pdf") '
@@ -484,6 +503,16 @@ class ServerHelperTest(unittest.TestCase):
 
         self.assertIn("$1,024", answer)
         self.assertIn("total insurance payments", answer)
+
+    def test_direct_bill_amount_answer_defers_when_no_bill_uploaded(self):
+        answer = _direct_bill_amount_answer(
+            "My statement shows Total Charges $4,600, Insurance Paid $750, "
+            "Balance Due $3,850. So my balance is $4,200, right?",
+            history=[],
+            upload_dir=self.synthetic_bill_dir,
+        )
+
+        self.assertIsNone(answer)
 
     def test_bill_amount_question_kind_does_not_hijack_affordability_prompt(self):
         kind = _bill_amount_question_kind(

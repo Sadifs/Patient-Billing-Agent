@@ -341,6 +341,12 @@ _QUOTED_BILL_FILENAME_PATTERN = re.compile(
     r'"([^"]+\.(?:pdf|json|png|jpg|jpeg|heic|heif|txt))"',
     re.IGNORECASE,
 )
+_BRACKETED_UPLOADED_FILENAME_PATTERN = re.compile(
+    # Unquoted "[Patient uploads bill: X.pdf]" convention used by older
+    # synthetic evaluation prompts.
+    r'\[patient\s+uploads?\s+bills?:\s*([^\]]+\.(?:pdf|json|png|jpg|jpeg|heic|heif|txt))\s*\]',
+    re.IGNORECASE,
+)
 
 
 def _latest_uploaded_filename(
@@ -362,6 +368,9 @@ def _latest_uploaded_filename(
         match = _UPLOADED_FILENAME_PATTERN.search(text)
         if match:
             return Path(match.group(1)).name
+        bracket_match = _BRACKETED_UPLOADED_FILENAME_PATTERN.search(text)
+        if bracket_match:
+            return Path(bracket_match.group(1).strip()).name
     return None
 
 
@@ -477,10 +486,10 @@ def _direct_bill_header_answer(
 
     filename = _latest_uploaded_filename(user_message, history)
     if not filename:
-        return (
-            "I do not see an uploaded bill connected to this question. Please "
-            "upload the bill first, then I can read that field from the bill."
-        )
+        # Defer to the LLM instead of hard-refusing. Text-only cases may
+        # include enough bill details in the user's message, and the LLM can
+        # safely say what is missing when the field is genuinely unavailable.
+        return None
 
     base_dir = upload_dir or UPLOAD_DIR
     try:
@@ -619,10 +628,9 @@ def _direct_bill_amount_answer(
 
     filename = _latest_uploaded_filename(user_message, history)
     if not filename:
-        return (
-            "I do not see an uploaded bill connected to this question. Please "
-            "upload the bill first, then I can read that field from the bill."
-        )
+        # Defer to the LLM instead of hard-refusing. Text-only cases may
+        # include the relevant amounts directly in the user's message.
+        return None
 
     base_dir = upload_dir or UPLOAD_DIR
     try:
