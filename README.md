@@ -62,6 +62,7 @@ LMU Capstone/
 │   ├── evaluation_harness.py    # CLI: validate dataset, run cases, summarize scores
 │   ├── grounding_check.py       # Grounding/refusal checks on agent responses
 │   ├── grounding_sweep.py       # Batch grounding sweep across cases
+│   ├── degradation_harness.py   # Photo-degradation OCR accuracy testing
 │   ├── coverage_matrix.md       # Dataset coverage notes
 │   ├── results/                 # Scored review CSVs, rubric, final eval artifacts
 │   └── tests/                   # Unit tests for the harness
