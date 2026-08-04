@@ -22,9 +22,8 @@ LMU Capstone/
 │   │   └── app/                # Your application (extend this)
 │   │       ├── server.py       # Sanic web server (entrypoint)
 │   │       ├── rag/            # Knowledge base indexing & search
-│   │       ├── tools/          # Agent tools (bill explanation, FPL calc, search)
+│   │       ├── tools/          # Agent tools (bill parsing/OCR, bill explanation, FPL calc, search)
 │   │       ├── hooks/          # Safety hooks (PHI redaction, content filter)
-│   │       ├── roles/          # Sub-agent identities (markdown)
 │   │       ├── skills/         # Procedural instructions (markdown)
 │   │       └── static/         # Chat UI
 │   ├── Dockerfile
@@ -51,15 +50,24 @@ LMU Capstone/
 ├── synthetic-data/             # Synthetic validation dataset (current expanded set)
 │   ├── README.md               # Dataset overview, schema, validation rubric
 │   ├── synthetic_validation_dataset.csv       # Master answer key — 135 labeled test cases
-│   ├── generate_v2_bills.py    # V2 bill generation for bills 01–15
-│   ├── generate_v2_csv.py      # V2 validation CSV for bills 01–15
-│   ├── generate_new_bills.py   # Generates bills 16–25 (reproducible)
-│   ├── generate_v2_pdfs.py     # PDF renderer for all v2 bills
+│   ├── synthetic_validation_dataset_realistic_pdf_workflow.csv  # Eval copy w/ realistic first-turn prompts
+│   ├── scripts/                # Dataset/bill generation scripts (reproducible)
 │   ├── edge-cases/             # Planning CSVs (reference, not used in evaluation)
-│   ├── synthetic_bills_v2/     # V2 — 70 evaluator bills (JSON + PDF, full metadata)
-│   └── synthetic_bills_v2_agent/  # V2 — 70 LLM-safe bills (JSON, metadata stripped)
+│   ├── build-artifacts/        # Intermediate CSVs merged into the master dataset
+│   ├── synthetic_bills_v2/     # 70 evaluator bills (JSON + PDF, full metadata)
+│   └── synthetic_bills_v2_agent/  # 70 LLM-safe bills (JSON, metadata stripped)
+│
+├── evaluation/                  # Evaluation harness & results
+│   ├── README.md                # Usage guide — validate, run-live, summarize
+│   ├── evaluation_harness.py    # CLI: validate dataset, run cases, summarize scores
+│   ├── grounding_check.py       # Grounding/refusal checks on agent responses
+│   ├── grounding_sweep.py       # Batch grounding sweep across cases
+│   ├── coverage_matrix.md       # Dataset coverage notes
+│   ├── results/                 # Scored review CSVs, rubric, final eval artifacts
+│   └── tests/                   # Unit tests for the harness
 │
 ├── research-docs/              # Independent research by track
+│   ├── README.md               # Track summaries
 │   ├── billing-fundamentals.pdf     # Healthcare billing fundamentals
 │   ├── financial-assistance.pdf     # Financial assistance & FPL policy
 │   ├── ai-agent-architecture.pdf    # Agent architecture & RAG
@@ -68,6 +76,9 @@ LMU Capstone/
 ├── instructions/               # Project scope & requirements
 │   ├── Cedars MSBA Capstone Project Description.pdf
 │   └── LMU MSBA Cedars Capstone Outline Plan.pptx
+│
+├── final-showcase/             # Final showcase deliverables
+│   └── Poster.pdf               # 24"x36" capstone poster
 │
 └── README.md                   # This file
 ```
@@ -172,16 +183,19 @@ Basic evaluation flow:
 6. Use low scores and `reviewer_notes` to decide whether fixes belong in
    prompts, parser logic, safety hooks, UI context handling, or evaluation data.
 
+For spot-checking groundedness/refusal behavior outside the full scored review
+flow, see [`evaluation/grounding_check.py`](evaluation/grounding_check.py) and
+[`evaluation/grounding_sweep.py`](evaluation/grounding_sweep.py).
+
 ## Architecture
 
 The application uses an **agent harness** pattern:
 
 1. **Agent Loop** (`agent_harness/core.py`) — Calls the LLM, executes tool calls, and repeats until the agent has a final response
-2. **Tools** — Functions the LLM can invoke (explain bill line items, calculate FPL eligibility, search knowledge base)
+2. **Tools** — Functions the LLM can invoke (parse/OCR a bill, explain line items, calculate FPL eligibility, search knowledge base)
 3. **Hooks** — Safety checks that run before/after each tool call (PHI redaction, content filtering)
 4. **Skills** — Markdown instructions loaded into the system prompt for procedural guidance
-5. **Roles** — Identity documents for specialized sub-agents
-6. **RAG** — TF-IDF search over indexed knowledge documents (upgradeable to embeddings)
+5. **RAG** — TF-IDF search over indexed knowledge documents (upgradeable to embeddings)
 
 Supported LLM providers: OpenAI, Anthropic, Azure OpenAI.
 
@@ -192,7 +206,6 @@ Supported LLM providers: OpenAI, Anthropic, Azure OpenAI.
 | Tool | A function the LLM can call | `agent-harness/src/app/tools/` |
 | Hook | Safety check before/after tool execution | `agent-harness/src/app/hooks/` |
 | Skill | Instructions loaded into the system prompt | `agent-harness/src/app/skills/` |
-| Role | Identity for a specialized sub-agent | `agent-harness/src/app/roles/` |
 | RAG | Retrieval-augmented generation over local docs | `agent-harness/src/app/rag/` |
 
 ## Extending the Application
@@ -209,7 +222,7 @@ See [`agent-harness/README.md`](agent-harness/README.md) for detailed instructio
 
 The final product is a working web application that:
 
-1. Accepts patient bill uploads (images, PDFs)
+1. Accepts patient bill uploads (PDFs, JPG/PNG photos, HEIC/HEIF)
 2. Explains all line items in plain language
 3. Searches the knowledge base for relevant policies and resources
 4. Calculates financial assistance eligibility (FPL-based)
@@ -224,7 +237,7 @@ The final product is a working web application that:
 | Weekly Syncs | May 18 - August 7, 2026 |
 | Kick-off Presentation | June 12, 2026 |
 | Final Presentation | August 7, 2026 |
-| Final Report & Code Handoff | August 9, 2026 |
+| Final Reflections & Code Handoff | August 9, 2026 |
 
 ## Stakeholders
 
