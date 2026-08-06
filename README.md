@@ -215,7 +215,7 @@ See [`agent-harness/README.md`](agent-harness/README.md) for detailed instructio
 
 - Adding new tools
 - Adding safety hooks
-- Adding skills and sub-agent roles
+- Adding skills
 - Improving RAG with embeddings
 - Integrating external APIs
 

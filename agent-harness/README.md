@@ -1,6 +1,6 @@
 # Healthcare Bill Agent — Capstone Starter
 
-A starter harness for building an AI-powered healthcare bill analysis agent. This project provides the scaffolding for you to create your own tools, hooks, roles, skills, and knowledge-base integrations.
+A starter harness for building an AI-powered healthcare bill analysis agent. This project provides the scaffolding for you to create your own tools, hooks, skills, and knowledge-base integrations.
 
 ## Architecture
 
@@ -142,30 +142,6 @@ Skills are markdown instructions loaded into the system prompt:
 1. Create `src/app/skills/my_skill.md` with procedural instructions
 2. Add the filename to `SKILL_FILES` in `src/app/skills/__init__.py`
 
-### Adding a Sub-Agent (Role)
-
-Sub-agents are tools that spin up their own agent harness with a specialized role:
-
-1. Create a role document: `src/app/roles/my_agent.md`
-2. Create a tool that uses it:
-
-```python
-from pathlib import Path
-from agent_harness import AgentHarness, Message, tool
-
-role_prompt = Path("src/app/roles/my_agent.md").read_text()
-
-@tool(name="my_sub_agent", description="...", parameters={...})
-def my_sub_agent(args: dict) -> str:
-    sub = AgentHarness(
-        client=make_client(),
-        system_prompt=role_prompt,
-        tools=[...],
-        max_iterations=10,
-    )
-    return sub.run([Message(role="user", content=args["question"])])
-```
-
 ### Adding to the Knowledge Base
 
 Drop files into the `Knowledge Docs/` directory (one level up from this project):
@@ -196,7 +172,6 @@ To integrate external services (insurance lookup, medical code databases, etc.):
 | **Tool** | A function the LLM can call | `src/app/tools/` |
 | **Hook** | Safety check before/after tools | `src/app/hooks/` |
 | **Skill** | Instructions loaded into the prompt | `src/app/skills/` |
-| **Role** | Identity for a sub-agent | `src/app/roles/` |
 | **RAG** | Search over local documents | `src/app/rag/` |
 | **Client** | LLM provider connection | `src/agent_harness/clients/` |
 
@@ -206,9 +181,8 @@ Your final product should be a working web interface that:
 1. Accepts patient bill uploads (images, PDFs)
 2. Uses the agent harness with your custom tools, hooks, and skills
 3. Searches the knowledge base (local file RAG) for relevant policies
-4. Leverages sub-agent tools for specialized tasks
-5. Provides clear, empathetic explanations and next-step recommendations
-6. Runs in a Docker container
+4. Provides clear, empathetic explanations and next-step recommendations
+5. Runs in a Docker container
 
 ## Troubleshooting
 
